@@ -312,19 +312,44 @@
     \ifnum#1=1\relax
         \sseq@setcoord(#2,#3){(#2,#3)}
 %
-        \sseq@place@one{#2}{#3}{}{}{}
+        \sseq@place@full{#2}{#3}{}{}{}
+            {\node[draw,rectangle,fill,inner sep=0.3ex] at ##1 {};}
+            {\node[draw,circle,fill,inner sep=0.3ex] at ##1 {};}
     \else\ifnum#1=2\relax
         \sseq@setcoord(#2,#3,1){(#2-0.13,#3)}
         \sseq@setcoord(#2,#3,2){(#2+0.13,#3)}
 %
-        \sseq@place@one{#2}{#3}{,1}{-0.13}{}
-        \sseq@place@one{#2}{#3}{,2}{+0.13}{}
+        \sseq@place@full{#2}{#3}{,1}{-0.13}{}
+            {\node[draw,rectangle,fill,inner sep=0.3ex] at ##1 {};}
+            {\node[draw,circle,fill,inner sep=0.3ex] at ##1 {};}
+        \sseq@place@full{#2}{#3}{,2}{+0.13}{}
+            {\node[draw,rectangle,fill,inner sep=0.3ex] at ##1 {};}
+            {\node[draw,circle,fill,inner sep=0.3ex] at ##1 {};}
     \else
         \sseq@error{Not implemented}{}
     \fi\fi\conditionally@traceoff
 }
 
+\def\sseq@place@full#1#2#3#4#5#6#7{
+    \def\temp##1{#6}
+    \sseq@temptoks\@xp{\temp{(#1#4,#2#5)}}
+    \@xp\xdef\csname sseq@place\sseq@thename(#1,#2#3)\endcsname{\the\sseq@temptoks}% Classes that eventually die
+%
+    \def\temp##1{#7}
+    \sseq@temptoks\@xp{\temp{(#1#4,#2#5)}}
+    \@xp\xdef\csname sseq@placeinfty\sseq@thename(#1,#2#3)\endcsname{\the\sseq@temptoks}% Classes that live forever
+%
+    \ifnum#1<\sseq@xmaxpp\ifnum#1>\sseq@xminmm\ifnum#2<\sseq@ymaxpp\ifnum#2>\sseq@yminmm
+        \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename infty\endcsname{%
+            \@nx\ifx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2#3)\endcsname\relax\@nx\else
+                \@nx\@nx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2#3)\endcsname
+            \@nx\fi
+        }
+    \fi\fi\fi\fi
+}
+
 \def\sseq@place@one#1#2#3#4#5{
+    % Classes that live forever
     \@xp\gdef\csname sseq@place\sseq@thename(#1,#2#3)\endcsname{\node[draw,circle,fill,inner sep=0.3ex] at (#1#4,#2#5) {};}
     \ifnum#1<\sseq@xmaxpp\ifnum#1>\sseq@xminmm\ifnum#2<\sseq@ymaxpp\ifnum#2>\sseq@yminmm
         \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename infty\endcsname{%
@@ -354,12 +379,11 @@
 }
 
 \def\sseq@d@@#1#2#3{
-    %\error
     \conditionally@traceon
     \sseq@parsecommas(#3)
     \sseq@arg@checkpresent\d1
     \sseq@arg@checkpresent\d2
-    %\traceon
+%
     \edef\sourcename{(\sseq@arg\d1,\sseq@arg\d2\sseq@optargc3)}
     \sseq@parsecoords\targetname{\sseq@arg\d1 + \sseq@targetx{#2},\sseq@arg\d2+\sseq@targety{#2}}
     \edef\targetname{(\targetname\sseq@optargc4)}
@@ -407,11 +431,12 @@
 %
     \@xp\gdef\csname sseq@dstyle#2\sourcename\endcsname{}
 %
-    \@xp\global\@xp\let\csname sseq@place\sseq@thename\sourcename\endcsname\relax
-    \@xp\global\@xp\let\csname sseq@place\sseq@thename\targetname\endcsname\relax
+    \@xp\global\@xp\let\csname sseq@placeinfty\sseq@thename\sourcename\endcsname\relax
+    \@xp\global\@xp\let\csname sseq@placeinfty\sseq@thename\targetname\endcsname\relax
 %
+    % Classes that will eventually perish
     \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename#2\endcsname{
-        \@nx\node[draw,rectangle,fill,inner sep=0.3ex] at \source {};
-        \@nx\node[draw,rectangle,fill,inner sep=0.3ex] at \target {};
+        \@xp\@nx\csname sseq@place\sseq@thename\sourcename\endcsname
+        \@xp\@nx\csname sseq@place\sseq@thename\targetname\endcsname
     }
 }
