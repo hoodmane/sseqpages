@@ -1,0 +1,190 @@
+\documentclass{article}
+\usepackage[landscape,margin=0cm,top=2cm]{geometry}
+\usepackage{sseqpages}
+\makeatletter
+\def\row#1{\foreach \x in {1,...,35}{\place1(\x,#1)}}
+\def\twoptrow#1{\foreach \x in {1,...,35}{\place2(\x,#1)}}
+\begin{document}
+\begin{sseqdata}[scale=0.8]{mysseq}
+\degree{-#1}{#1-1}
+
+\xrange{1}{25}
+\yrange{0}{19}%
+
+\foreach \x in {1,3,...,35} {\place1(\x,0)}
+
+\row{1}
+\row{2}
+\row{3}
+
+\foreach \y in {7,15,23}{
+    \row{\y}
+    \row{\y+1}
+    \twoptrow{\y+2}
+    \row{\y+3}
+    \row{\y+4}
+}
+
+
+\conditionally@traceoff
+\foreach \x in {5,9,...,25}{
+    \d2 (\x,0)
+    \d2 (\x,1)
+
+%
+    %%
+    \foreach \y in {7,15}{
+        \d2 (\x,\y)
+        \d2 (\x,\y+1,,2)
+        \d2 (\x,\y+2,1,)
+    }
+}
+
+
+
+
+\foreach \x in {4,8,...,24}{
+    \d2 (\x,1)
+    \d2 (\x,2)
+%
+    \foreach \y in {7,15}{
+         \d2 (\x,\y+1,,2)
+        \d2 (\x,\y+2,1,)
+        \d2 (\x,\y+3)
+    }
+}
+
+
+\foreach \x in {4,8,..., 24,28}
+    \foreach \y in {7,15}{
+        \d3 (\x+2,\y,,1)
+        \d3 (\x,\y+2,2,)
+}
+
+\foreach \x in {11,19,27}{
+    \d4(\x,0)
+}
+
+\foreach \x in {12,20,28}
+    \foreach \y in {7,15}{
+        \d5(\x,\y)
+}
+
+\foreach \x in {10,18,26,34}{
+    \d7(\x,1)
+    \d7(\x-1,2)
+    \d7(\x-2,3,,2)
+
+    \foreach \y in {9,17}{
+        \d7(\x,\y,1)
+        \d7(\x-1,\y+1)
+        \d7(\x-2,\y+2,,2)
+    }
+}
+
+\d9(15,0)
+\d9(14,1,,2)
+\d10(13,2)
+
+\d8(23,0)
+\d8(22,1)
+\foreach \x in {23,31} {
+    \d8(\x-2,2,,2)
+    \d9(\x-3,3)
+}
+\foreach \x in {16,24,32} {
+    \d9(\x,7)
+    \d8(\x-2,9,1,)
+    \d8(\x-3,10,,2)
+    \d9(\x-4,11)
+}
+
+\node at (6,13) {This will show up in all copies};
+
+
+%\d[dashed,"hi"] 8 (29,2,,2)
+%\d13 (20,3)
+\end{sseqdata}
+
+\begin{sseqdata}[yscale=0.8]{ss2}
+\degree{-1}{#1-1}
+
+\xrange{1}{10}
+\yrange{0}{10}
+
+\foreach \x in {1,3,...,35} {\place1(\x,0)}
+
+\row{1}
+\row{2}
+\row{3}
+\d2   (5,0)
+
+\d3(7,0)
+\d["\textup{a l a b e l}" {sloped,above}]  4   (9,0)
+\end{sseqdata}
+
+
+
+\begin{sseqpage}
+\name{ss2}
+\page{0}
+\doptions2(5,0){"hi!" {sloped, above}}
+\doptions4(9,0){blue,dashed}
+\end{sseqpage}
+
+\vskip20pt
+
+\begin{sseqpage}
+\name{ss2}
+\page{0}
+\yrange{0}{5}
+\end{sseqpage}
+
+
+
+
+
+\begin{sseqpage}
+\name{mysseq}
+\page{0}
+\xrange{5}{25}
+\draw["\textup{this is it}" {above,sloped},dotted,->] (2,4) to (3.95,3.1);
+\end{sseqpage}
+
+\newpage
+\printpage{mysseq}{2}
+\newpage
+\printpage{mysseq}{3}
+
+\newpage
+\printpage{mysseq}{4}
+\newpage
+\printpage{mysseq}{5}
+\newpage
+\printpage{mysseq}{7}
+\newpage
+\printpage{mysseq}{8}
+\newpage
+\printpage{mysseq}{9}
+\newpage
+\printpage{mysseq}{10}
+
+\end{document}
+
+\begin{sseqpage}
+\name{mysseq}
+\page{0}
+%\doptions 4 (9,0){dashed}
+\end{sseqpage}
+
+
+
+
+\begin{sseqpage}
+\name{mysseq}
+\page{0}
+\xrange{1}{15}
+\yrange{0}{15}
+\doptions2(5,0){"x^3",dashed}
+%\doptions2(9,0){blue}
+\end{sseqpage} 
