@@ -5,8 +5,11 @@
 \def\row#1{\foreach \x in {1,...,35}{\place1(\x,#1)}}
 \def\twoptrow#1{\foreach \x in {1,...,35}{\place2(\x,#1)}}
 \begin{document}
+
 \begin{sseqdata}[scale=0.8]{mysseq}
 \degree{-#1}{#1-1}
+\cyclestyles{\node[draw,circle,inner sep=0.3ex] at #1 {};}
+                 {\node[draw,rectangle,inner sep=0.3ex] at #1 {};}
 
 \xrange{1}{25}
 \yrange{0}{19}%
@@ -17,6 +20,9 @@
 \row{2}
 \row{3}
 
+\cyclestyles{\node[draw,circle,fill,inner sep=0.3ex] at #1 {};}
+            {\node[draw,rectangle,fill,inner sep=0.3ex] at #1 {};}
+
 \foreach \y in {7,15,23}{
     \row{\y}
     \row{\y+1}
@@ -24,6 +30,15 @@
     \row{\y+3}
     \row{\y+4}
 }
+
+\sseq@addcontingentfeature{(10,7)(10,8)}{\draw (10,7)--(10,8);}
+
+%\@xp\show\csname sseq@feature0\endcsname
+%\@xp\show\csname sseq@featureinfty0\endcsname
+%\@xp\show\csname sseq@savednodes@mysseqinfty\endcsname
+%\@xp\show\csname sseq@transferfeature0\endcsname
+%\@xp\show\csname sseq@clearinfty\sseq@thename(9,2)\endcsname
+%\@xp\show\csname sseq@clearinfty\sseq@thename(9,3)\endcsname
 
 
 \conditionally@traceoff
@@ -147,7 +162,7 @@
 \begin{sseqpage}
 \name{mysseq}
 \page{0}
-\xrange{5}{25}
+\xrange{1}{25}
 \draw["\textup{this is it}" {above,sloped},dotted,->] (2,4) to (3.95,3.1);
 \end{sseqpage}
 
