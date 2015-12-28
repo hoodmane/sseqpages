@@ -1,7 +1,17 @@
 \documentclass{article}
 \usepackage[landscape,margin=0cm,top=2cm]{geometry}
 \usepackage{sseqpages}
+\usepackage{amsmath}
 \makeatletter
+
+
+%\traceon
+%\edef\test{\sseq@testpt 1.south.\@nil}
+%\edef\testa{\sseq@testpt 1.9.\@nil}
+%\show\test
+%\show\testa
+
+
 \def\row#1{\foreach \x in {1,...,35}{\place1(\x,#1)}}
 \def\twoptrow#1{\foreach \x in {1,...,35}{\place2(\x,#1)}}
 \begin{document}
@@ -139,7 +149,6 @@
 \end{sseqdata}
 
 
-
 \begin{sseqpage}
 \name{mysseq}
 \page{0}
@@ -152,10 +161,21 @@
 \doptions2(21,0){red}
 \doptions2(25,0){red}
 
+\doptions4(11,0){green}
+\doptions4(19,0){green}
+\doptions4(27,0){green}
+
 \doptions9(16,7){blue}
 \doptions9(24,7){blue}
 \doptions7(10,9,1){blue}
 \doptions7(18,9,1){blue}
+\end{sseqpage}
+
+
+\begin{sseqpage}
+\name{mysseq}
+\page{4}
+\draw[red, dashed, ->, "\text{this doesn't go here}" {sloped,below}] (7,0) to (3,3);
 \end{sseqpage}
 
 \newpage
@@ -194,7 +214,7 @@
 \yrange{0}{15}
 \doptions2(5,0){"x^3",dashed}
 %\doptions2(9,0){blue}
-\end{sseqpage} 
+\end{sseqpage}
 
 
 
@@ -211,4 +231,4 @@
 \name{ss2}
 \page{0}
 \yrange{0}{5}
-\end{sseqpage}
+\end{sseqpage} 

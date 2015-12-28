@@ -168,6 +168,7 @@
     % clip
     \clip(\sseq@xmin-0.4,\sseq@ymin-0.4) rectangle (\sseq@xmax+0.5,\sseq@ymax+0.5);%
 %
+    % Patch in modified tikz parsing rule
     \let\tikz@@@parse@regular\sseq@tikz@@@parse@regular
     \let\tikz@@to@or@edge@@coordinate\sseq@tikz@@to@or@edge@@coordinate
 %
@@ -317,8 +318,8 @@
 
 \def\sseq@parsecoords#1#2{\conditionally@traceoff\pgfmathparse{#2}\conditionally@traceon\edef\temp{\sseq@parsecoords@}\edef#1{\@xp\@gobble\temp}}
 \def\sseq@parsecoords@{\@xp\sseq@parsecoords@@\pgfmathresult\sseq@nil}
-\def\sseq@parsecoords@@#1{\ifx\sseq@nil#1\else ,\sseq@parsecoords@@@#1.\sseq@nil\@xp\sseq@parsecoords@@\fi}
-\def\sseq@parsecoords@@@#1.#2\sseq@nil{#1}
+\def\sseq@parsecoords@@#1{\ifx\sseq@nil#1\else ,\sseq@parsecoords@@@#1.0\sseq@nil\@xp\sseq@parsecoords@@\fi}
+\def\sseq@parsecoords@@@#1.0#2\sseq@nil{#1}
 
 %% Getters and setters
 
@@ -551,25 +552,55 @@
 \def\sseq@structline@@#1#2#3#4{\sseq@addcontingentfeature{(#1)(#3)}{\draw (#1#2)--(#3#4);}}
 
 
-%% Redo tikz rules for interpreting coordinates to default to treating (x,y) as specifying a node.
-\def\sseq@testpt#1.#2\@nil{{#1}\ifx&#2&\else .\sseq@gobblept#2\@nil\fi}
+%% Redo tikz parsing rules for interpreting coordinates
+% We want to intepret (x,y) as the name of a node.		
+%
+% Original behavior:
+% The original parsing rule said something like:
+%   if there's a cs: treat it like a coordinate shift
+%     if there's the word intersection: treat it as an intersection
+%       ...
+%        if there's a comma treat it as a literal coordinate
+%          else treat it as the name of a node
+%
+% We replace the second to last step with:
+%    if there's a comma, check if there's a node named sseq@{x,y} (alternatively sseq@{x,y,z})
+%      if there is such a node, treat it as refering to sseq@{x,y}
+%      else treat it as a literal coordinate
+%
+% Note that we name the cell nodes sseq@{x,y,z}.
+
+
+\def\sseq@testpt#1.#2\@nil{\ifx&#2&{#1}{}\else
+    \sseq@ifnum#2\@nil{\sseq@testpt@{#1}#2\@nil}{{#1}{.\sseq@gobblept#2\@nil}}\fi}
+\def\sseq@testpt@#1#2.#3\@nil{{#1.#2}\ifx&#3&{}\else{.\sseq@gobblept#3\@nil}\fi}
+
 \def\sseq@gobblept#1.\@nil{#1}
+\def\sseq@ifnum#1#2\@nil{
+    \ifx#10\sseq@ifnum@first\fi\ifx#11\sseq@ifnum@first\fi\ifx#12\sseq@ifnum@first\fi
+    \ifx#13\sseq@ifnum@first\fi\ifx#14\sseq@ifnum@first\fi\ifx#15\sseq@ifnum@first\fi
+    \ifx#16\sseq@ifnum@first\fi\ifx#17\sseq@ifnum@first\fi\ifx#18\sseq@ifnum@first\fi\ifx#19\sseq@ifnum@first\fi
+    \@secondoftwo
+}
+\def\sseq@ifnum@first#1\@secondoftwo{\fi\@firstoftwo}
 
 \let\sseq@tikz@@@parse@regular@old\tikz@@@parse@regular
 \def\sseq@tikz@@@parse@regular#1#2#3){%(
-    \edef\next{\@nx\sseq@tikz@@@parse@regular@\@nx#1{#2}\sseq@testpt#3.\@nil)}
+    \edef\next{\@nx\sseq@tikz@@@parse@regular@\@nx#1{#2}\sseq@testpt#3.\@nil}
     \next
 }
 
-\def\sseq@tikz@@@parse@regular@#1#2#3#4){
+\def\sseq@tikz@@@parse@regular@#1#2#3#4{
     \sseq@parsecoords\temp{#2,#3}
-    %\show\temp
-    \@xp\ifx\csname pgf@sh@pi@sseq@{\temp}\endcsname\pgfpictureid
+    \@xp\ifx\csname pgf@sh@pi@sseq@{\temp}\endcsname\pgfpictureid % Check if a node with name sseq@{x,y} is defined in this picture
         \edef\next{\@nx\tikz@parse@node\@nx#1(sseq@{\temp}#4)}
-    \else %(
-        \def\next{\sseq@tikz@@@parse@regular@old#1{#2}{#3#4})}
+    \else %( % No such node exists
+        \ifx&#4& % make sure there is no anchor
+            \def\next{\sseq@tikz@@@parse@regular@old#1{#2}{#3#4})} % Parse it as the coordinate (x,y) (not a node)
+        \else
+            \sseq@error{There is no node at (\temp), but you specified the anchor \@gobble#4. In order to accept an anchor, there must be a node at the given location}{}
+        \fi
     \fi
-    %\show\next
     \next
 }
 
