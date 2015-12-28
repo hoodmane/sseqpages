@@ -5,11 +5,11 @@
 \def\row#1{\foreach \x in {1,...,35}{\place1(\x,#1)}}
 \def\twoptrow#1{\foreach \x in {1,...,35}{\place2(\x,#1)}}
 \begin{document}
-
-\begin{sseqdata}[scale=0.8]{mysseq}
+\tikzset{every differential/.style={->}}
+\begin{sseqdata}[scale=0.9]{mysseq}
 \degree{-#1}{#1-1}
-\cyclestyles{\node[draw,circle,inner sep=0.3ex] at #1 {};}
-                 {\node[draw,rectangle,inner sep=0.3ex] at #1 {};}
+\cyclestyles{\node[draw,circle,inner sep=0.3ex] (#1) at (#2) {};}
+                 {\node[draw,rectangle,inner sep=0.3ex] (#1) at (#2) {};}
 
 \xrange{1}{25}
 \yrange{0}{19}%
@@ -20,8 +20,8 @@
 \row{2}
 \row{3}
 
-\cyclestyles{\node[draw,circle,fill,inner sep=0.3ex] at #1 {};}
-            {\node[draw,rectangle,fill,inner sep=0.3ex] at #1 {};}
+\cyclestyles{\node[draw,circle,fill,inner sep=0.3ex] (#1) at (#2) {};}
+            {\node[draw,rectangle,fill,inner sep=0.3ex] (#1) at (#2) {};}
 
 \foreach \y in {7,15,23}{
     \row{\y}
@@ -45,7 +45,7 @@
 \foreach \x in {5,9,...,25}{
     \d2 (\x,0)
     \d2 (\x,1)
-
+%
 %
     %%
     \foreach \y in {7,15}{
@@ -141,29 +141,21 @@
 
 
 \begin{sseqpage}
-\name{ss2}
-\page{0}
-\doptions2(5,0){"hi!" {sloped, above}}
-\doptions4(9,0){blue,dashed}
-\end{sseqpage}
-
-\vskip20pt
-
-\begin{sseqpage}
-\name{ss2}
-\page{0}
-\yrange{0}{5}
-\end{sseqpage}
-
-
-
-
-
-\begin{sseqpage}
 \name{mysseq}
 \page{0}
 \xrange{1}{25}
-\draw["\textup{this is it}" {above,sloped},dotted,->] (2,4) to (3.95,3.1);
+\draw["\textup{this is it}" {above,sloped},dotted,->] (2,4) to (3,3);
+\doptions2(5,0){red}
+\doptions2(9,0){red}
+\doptions2(13,0){red}
+\doptions2(17,0){red}
+\doptions2(21,0){red}
+\doptions2(25,0){red}
+
+\doptions9(16,7){blue}
+\doptions9(24,7){blue}
+\doptions7(10,9,1){blue}
+\doptions7(18,9,1){blue}
 \end{sseqpage}
 
 \newpage
@@ -203,3 +195,20 @@
 \doptions2(5,0){"x^3",dashed}
 %\doptions2(9,0){blue}
 \end{sseqpage} 
+
+
+
+\begin{sseqpage}
+\name{ss2}
+\page{0}
+\doptions2(5,0){"hi!" {sloped, above}}
+\doptions4(9,0){blue,dashed}
+\end{sseqpage}
+
+\vskip20pt
+
+\begin{sseqpage}
+\name{ss2}
+\page{0}
+\yrange{0}{5}
+\end{sseqpage}

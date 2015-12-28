@@ -70,10 +70,15 @@
 }
 \def\sseq@modtikzcommands@#1{\ifx#1\sseq@nil\else\def#1##1;{\sseq@g@addto@macro\sseq@savedpaths{#1##1;}}\@xp\sseq@modtikzcommands@\fi}
 
+% Defered evaluation of scopes.
+\NewEnviron{sseq@scope}{\sseq@temptoks\@xp{\BODY}\sseq@x@addto@macro\sseq@savedpaths{\@nx\begin{scope}\the\temptoks\@nx\end{scope}}}
+
 % transfer data about the current spectral sequence between \<command> and \<oldcommand><sseqname>
 \def\sseq@store#1{\edef\temp{\@nx\global\@nx\let\@xp\@nx\csname\sseq@macroname#1\sseq@thename\endcsname\@nx#1}\temp}
 \def\sseq@get#1{\edef\temp{\global\let\@nx#1\@xp\@nx\csname\sseq@macroname#1\sseq@thename\endcsname}\temp}
 
+
+%% Environment definitions
 
 \def\sseqdata{\@ifnextchar[{\sseqdata@}{\sseqdata@[]}}%}
 
@@ -102,7 +107,7 @@
     \xdef\sseq@xmaxpp{\sseq@infinity}%
     \xdef\sseq@yminmm{-\sseq@infinity}%
     \xdef\sseq@ymaxpp{\sseq@infinity}%
-    %
+%
     % copy commands into the user namespace.
     \sseq@copydatacommands{%
         \cyclestyle\cyclestyles %
@@ -144,7 +149,7 @@
         edge node={node [execute at begin node=$,%$
                          execute at end node=$,%$
                          auto=right,every label,##2]{##1}}}}%
-    %
+%
     % Set it up so that options are dumped out but not expanded
     % So \temp will look like \begin{tikzpicture}[option=\mycommand{stuff},...] with \mycommand not yet expanded.
     \sseq@temptoks\@xp\@xp\@xp{\csname sseq@options\sseq@thename\endcsname}%
@@ -163,6 +168,10 @@
     % clip
     \clip(\sseq@xmin-0.4,\sseq@ymin-0.4) rectangle (\sseq@xmax+0.5,\sseq@ymax+0.5);%
 %
+    \let\tikz@@@parse@regular\sseq@tikz@@@parse@regular
+    \let\tikz@@to@or@edge@@coordinate\sseq@tikz@@to@or@edge@@coordinate
+%
+%
     % Insert nodes from all pages after the current one
     \foreach\sseq@p in {\curpage,...,12,infty}{%
         \csname sseq@savednodes@\sseq@thename\sseq@p\endcsname %
@@ -179,9 +188,6 @@
 
 % Copied from tikzcd code. Passes quotes forward to edge
 \def\sseq@forward@quotes#1{\tikzset{every to/.append style={#1}}}
-
-% Defer evaluation of scopes.
-\NewEnviron{sseq@scope}{\sseq@temptoks\@xp{\BODY}\sseq@x@addto@macro\sseq@savedpaths{\@nx\begin{scope}\the\temptoks\@nx\end{scope}}}
 
 \def\sseq@data@name#1{\gdef\sseq@thename{#1}}
 % When you name a page, retreive the information for that page.
@@ -243,10 +249,10 @@
 }
 
 
-\tikzset{every differential/.style={}}
 
 
-\pgfkeys{
+\tikzset{
+  every differential/.style={},
   every label/.style={
     /tikz/auto,
     /tikz/font=\everymath\expandafter{\the\everymath\scriptstyle},
@@ -282,20 +288,20 @@
 
 \newcount\sseq@commacount
 
-\def\sseq@pc@stdslsl#1{
-    \advance\sseq@commacount1
-    \ifx&#1&
-        \@xp\let\csname sseq@arg\the\sseq@commacount\endcsname\relax
-    \else
-        \pgfmathparse{int(#1)}
-        \@xp\edef\csname sseq@arg\the\sseq@commacount\endcsname{\pgfmathresult}
-    \fi
+\def\sseq@pc@stdslsl#1{% This is the callback that we map over the texlist of arguments at the end of \sseq@parsecommas
+    \advance\sseq@commacount1%
+    \ifx&#1& % This without a space before the % breaks????
+        \@xp\let\csname sseq@arg\the\sseq@commacount\endcsname\relax %
+    \else %
+        \pgfmathparse{int(#1)}%
+        \@xp\edef\csname sseq@arg\the\sseq@commacount\endcsname{\pgfmathresult}%
+    \fi %
 }
 
 \def\sseq@parsecommas(#1){\let\\\sseq@pc@stdslsl\sseq@commacount0\relax\sseq@parsecommas@{}#1,,,,,\sseq@nil}
 
-\def\sseq@parsecommas@#1#2,{
-    \conditionally@traceoff
+\def\sseq@parsecommas@#1#2,{%
+    \conditionally@traceoff %
     \advance\sseq@commacount1\relax%
     \ifnum\sseq@commacount<4 %
         \def\next{\sseq@parsecommas@{#1\\{#2}}}%
@@ -305,22 +311,23 @@
     \next%
 }
 
-\def\sseq@parsecommas@@#1#2\sseq@nil{
+\def\sseq@parsecommas@@#1#2\sseq@nil{%
     \sseq@commacount=0\relax #1%
 }
-
 
 \def\sseq@parsecoords#1#2{\conditionally@traceoff\pgfmathparse{#2}\conditionally@traceon\edef\temp{\sseq@parsecoords@}\edef#1{\@xp\@gobble\temp}}
 \def\sseq@parsecoords@{\@xp\sseq@parsecoords@@\pgfmathresult\sseq@nil}
 \def\sseq@parsecoords@@#1{\ifx\sseq@nil#1\else ,\sseq@parsecoords@@@#1.\sseq@nil\@xp\sseq@parsecoords@@\fi}
 \def\sseq@parsecoords@@@#1.#2\sseq@nil{#1}
 
-% These errors really shouldn't happen at all, so eventually I should delete them
+%% Getters and setters
+
 \def\sseq@ifundefcoord{\@xp\sseq@ifundefcoord@}
 \def\sseq@ifundefcoord@(#1){\@ifundefined{sseq@coord\sseq@thename(#1)}}
 \def\sseq@getcoord#1{\@xp\sseq@getcoord@\@xp#1}
 \def\sseq@getcoord@#1(#2){\@ifundefined{sseq@coord\sseq@thename(#2)}{\sseq@thisshouldnothappen}{\@xp\let\@xp#1\csname sseq@coord\sseq@thename(#2)\endcsname}}
-\def\sseq@setcoord(#1){\@ifundefined{sseq@coord\sseq@thename(\temp)}{\@xp\xdef\csname sseq@coord\sseq@thename(#1)\endcsname}{\thisshouldnothappen}}
+\def\sseq@setcoord(#1){\@ifundefined{sseq@coord\sseq@thename(\temp)}{\@xp\xdef\csname sseq@coord\sseq@thename(#1)\endcsname}{\sseq@thisshouldnothappen}}
+\def\sseq@resetcoord(#1){\@xp\xdef\csname sseq@coord\sseq@thename(#1)\endcsname}
 
 \def\sseq@ifdead{\@xp\sseq@ifdead@}
 \def\sseq@ifdead@(#1){\@ifundefined{sseq@death\sseq@thename(#1)}{\@secondoftwo}{\@firstoftwo}}
@@ -334,46 +341,46 @@
 \newif\ifsseq@printnode@
 \def\sseq@nodecond#1#2{\sseq@printnode@false\ifnum#1<#2\relax \sseq@printnode@true\fi}
 
-\def\sseq@place#1(#2){
-    \sseq@parsecoords\temp{#2}
-    \edef\next{\@nx\sseq@place@#1(\temp)}
-    \next
+\def\sseq@place#1(#2){%
+    \sseq@parsecoords\temp{#2}%
+    \edef\next{\@nx\sseq@place@#1(\temp)}%
+    \next %
 }
 
-\def\sseq@place@#1(#2,#3){
-    \conditionally@traceon
-    \sseq@xminmax{#2}
-    \sseq@yminmax{#3}
-    \sseq@ifundefcoord(#2,#3){}{\sseq@error{A node at (#2,#3) already exists}{}}
-    \sseq@ifundefcoord(#2,#3,1){}{\sseq@error{A node at (#2,#3) already exists}{}}
-    \ifnum#1=1\relax
-        \sseq@setcoord(#2,#3){(#2,#3)}
+\def\sseq@place@#1(#2,#3){%
+    \conditionally@traceon %
+    \sseq@xminmax{#2}%
+    \sseq@yminmax{#3}%
+    \sseq@ifundefcoord(#2,#3){}{\sseq@error{A node at (#2,#3) already exists}{}}%
+    \sseq@ifundefcoord(#2,#3,1){}{\sseq@error{A node at (#2,#3) already exists}{}}%
+    \ifnum#1=1\relax %
+        \sseq@setcoord(#2,#3){#2,#3}%
 %
         \edef\temp{%
             \@nx\sseq@place@full{#2}{#3}{}{}{}%
                 {\the\sseq@thetranscyclestyle}%
                 {\the\sseq@thepermcyclestyle}%
-        }
-        \temp
-    \else\ifnum#1=2\relax
-        \sseq@setcoord(#2,#3,1){(#2-0.13,#3)}
-        \sseq@setcoord(#2,#3,2){(#2+0.13,#3)}
+        }%
+        \temp %
+    \else\ifnum#1=2\relax %
+        \sseq@setcoord(#2,#3,1){#2-0.13,#3}%
+        \sseq@setcoord(#2,#3,2){#2+0.13,#3}%
 %
         \edef\temp{%
             \@nx\sseq@place@full{#2}{#3}{,1}{-0.13}{}%
                 {\the\sseq@thetranscyclestyle}%
                 {\the\sseq@thepermcyclestyle}%
-        }
-        \temp
+        }%
+        \temp %
         \edef\temp{%
             \@nx\sseq@place@full{#2}{#3}{,2}{+0.13}{}%
                 {\the\sseq@thetranscyclestyle}%
                 {\the\sseq@thepermcyclestyle}%
-        }
-        \temp
-    \else
-        \sseq@error{Not implemented}{}
-    \fi\fi\conditionally@traceoff
+        }%
+        \temp %
+    \else %
+        \sseq@error{Not implemented}{}%
+    \fi\fi\conditionally@traceoff %
 }
 
 %
@@ -386,52 +393,53 @@
 % #7 -- callback to draw node if it is a permanent cycle
 %
 \def\sseq@place@full#1#2#3#4#5#6#7{
-    \def\temp##1{#6}
-    \sseq@temptoks\@xp{\temp{(#1#4,#2#5)}}
+    \def\temp##1##2{#6}%
+    \sseq@temptoks\@xp{\temp{sseq@{#1,#2#3}}{#1#4,#2#5}}%
     \@xp\xdef\csname sseq@place\sseq@thename(#1,#2#3)\endcsname{\the\sseq@temptoks}% Classes that eventually die
 %
-    \def\temp##1{#7}
-    \sseq@temptoks\@xp{\temp{(#1#4,#2#5)}}
+    \def\temp##1##2{#7}%
+    \sseq@temptoks\@xp{\temp{sseq@{#1,#2#3}}{#1#4,#2#5}}%
     \@xp\xdef\csname sseq@placeinfty\sseq@thename(#1,#2#3)\endcsname{\the\sseq@temptoks}% Classes that live forever
-    \@xp\gdef\csname sseq@clearinfty\sseq@thename(#1,#2#3)\endcsname{\@xp\global\@xp\let\csname sseq@placeinfty\sseq@thename(#1,#2#3)\endcsname\relax}
+    \@xp\gdef\csname sseq@clearinfty\sseq@thename(#1,#2#3)\endcsname{\@xp\global\@xp\let\csname sseq@placeinfty\sseq@thename(#1,#2#3)\endcsname\relax}%
 %
-    \ifnum#1<\sseq@xmaxpp\ifnum#1>\sseq@xminmm\ifnum#2<\sseq@ymaxpp\ifnum#2>\sseq@yminmm
+    \ifnum#1<\sseq@xmaxpp\ifnum#1>\sseq@xminmm\ifnum#2<\sseq@ymaxpp\ifnum#2>\sseq@yminmm %
         \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename infty\endcsname{%
-            \@nx\ifx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2#3)\endcsname\relax\@nx\else
-                \@nx\@nx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2#3)\endcsname
-            \@nx\fi
-        }
-    \fi\fi\fi\fi
+            \@nx\ifx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2#3)\endcsname\relax\@nx\else %
+                \@nx\@nx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2#3)\endcsname %
+            \@nx\fi %
+        }%
+    \fi\fi\fi\fi %
 }
 
-\def\sseq@place@one#1#2#3#4#5{
+% This isn't used anymore
+\def\sseq@place@one#1#2#3#4#5{%
     % Classes that live forever
-    \@xp\gdef\csname sseq@place\sseq@thename(#1,#2#3)\endcsname{\node[draw,circle,fill,inner sep=0.3ex] at (#1#4,#2#5) {};}
-    \ifnum#1<\sseq@xmaxpp\ifnum#1>\sseq@xminmm\ifnum#2<\sseq@ymaxpp\ifnum#2>\sseq@yminmm
+    \@xp\gdef\csname sseq@place\sseq@thename(#1,#2#3)\endcsname{\node[draw,circle,fill,inner sep=0.3ex] at (#1#4,#2#5) {};}%
+    \ifnum#1<\sseq@xmaxpp\ifnum#1>\sseq@xminmm\ifnum#2<\sseq@ymaxpp\ifnum#2>\sseq@yminmm %
         \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename infty\endcsname{%
-            \@nx\ifx\@xp\@nx\csname sseq@place\sseq@thename(#1,#2#3)\endcsname\relax\@nx\else
-                \@nx\@nx\@xp\@nx\csname sseq@place\sseq@thename(#1,#2#3)\endcsname
-            \@nx\fi
-        }
-    \fi\fi\fi\fi
+            \@nx\ifx\@xp\@nx\csname sseq@place\sseq@thename(#1,#2#3)\endcsname\relax\@nx\else %
+                \@nx\@nx\@xp\@nx\csname sseq@place\sseq@thename(#1,#2#3)\endcsname %
+            \@nx\fi %
+        }%
+    \fi\fi\fi\fi %
 }
 
-\def\sseq@replace(#1){
-    \sseq@ifundefcoord(#1){\sseq@error{There never was a class at (#1) so I can't replace it}{}}{}
-    \sseq@ifdead(#1){}{\sseq@error{I cannot replace the class at (#1) because it seems to be alive and well}{}}
-    \sseq@parsecommas(#1)
-    \sseq@arg@checkpresent\d1
-    \sseq@arg@checkpresent\d2
-}
+\def\sseq@replace(#1){%
+    \sseq@ifundefcoord(#1){\sseq@error{There never was a class at (#1) so I can't replace it}{}}{}%
+    \sseq@ifdead(#1){}{\sseq@error{I cannot replace the class at (#1) because it seems to be alive and well}{}}%
+    \sseq@parsecommas(#1)%
+    \sseq@arg@checkpresent\d1%
+    \sseq@arg@checkpresent\d2%
+}%
 
 
 \def\sseq@d{\@ifnextchar[{\sseq@d@}{\sseq@d@[]}} %}
 
-\def\sseq@d@[#1]#2(#3){
-    \sseq@tempcount=#2
-    \sseq@temptoks{\sseq@d@@{#1}}
-    \edef\temp{\the\sseq@temptoks{\the\sseq@tempcount}}
-    \temp{#3}
+\def\sseq@d@[#1]#2(#3){%
+    \sseq@tempcount=#2%
+    \sseq@temptoks{\sseq@d@@{#1}}%
+    \edef\temp{\the\sseq@temptoks{\the\sseq@tempcount}}%
+    \temp{#3}%
 }
 
 \def\sseq@d@@#1#2#3{%
@@ -481,14 +489,14 @@
         \@nx\sseq@temptoks{\the\sseq@temptoks}%
         %\@nx\show\@xp\@nx\csname sseq@dstyle\sourcename#2\endcsname
         %\show\@xp\@nx\csname sseq@dstyle#2\sourcename\endcsname
-        \@nx\edef\@nx\temp{\@nx\@nx\@nx\draw[every differential,\@nx\the\@nx\sseq@temptoks,\@xp\@nx\csname sseq@dstyle#2\sourcename\endcsname] \source to \target;}%
+        \@nx\edef\@nx\temp{\@nx\@nx\@nx\draw[every differential,\@nx\the\@nx\sseq@temptoks,\@xp\@nx\csname sseq@dstyle#2\sourcename\endcsname] \sourcename to \targetname;}%
         \@nx\temp %
     }%
 %
     \@xp\gdef\csname sseq@dstyle#2\sourcename\endcsname{}%
 %
-    % Remove placement of features from infinity page
-    \def\sseq@temppage{#2} % This is needed for contingent features to work properly
+    % Remove placement of features from infinity page -- removes node, and also any features contingent on the node
+    \def\sseq@temppage{#2} % This is needed to tell contingent features what page we're on
     \csname sseq@clearinfty\sseq@thename\sourcename\endcsname%
     \csname sseq@clearinfty\sseq@thename\targetname\endcsname%
 %
@@ -513,7 +521,7 @@
         \@nx\@xp\@nx\sseq@g@addto@macro\@nx\csname sseq@savednodes@\sseq@thename\@nx\sseq@temppage\endcsname{%
             \@xp\@nx\csname sseq@feature\the\sseq@featurecount\endcsname %
         }%
-        \global\let\@xp\@nx\csname sseq@transferfeature\the\sseq@featurecount\endcsname\relax  %
+        \global\let\@xp\@nx\csname sseq@transferfeature\the\sseq@featurecount\endcsname\relax %
     }%
     \sseq@addcontingentfeature@#1(\sseq@nil)%
     \global\advance\sseq@featurecount1%
@@ -524,10 +532,52 @@
     \@xp\sseq@x@addto@macro\csname sseq@clearinfty\sseq@thename(\temp)\endcsname{%
             \@xp\@nx\csname sseq@transferfeature\the\sseq@featurecount\endcsname %
     }%
-    %\traceon
-    %
+%
     \@xp\sseq@addcontingentfeature@ %
 \fi}
 
-\def\sseq@structline(#1)(#2){\edef\temp{\@nx\sseq@structline@{#1}{#2}}\temp}
-\def\sseq@structline@#1#2{\sseq@addcontingentfeature{(#1)(#2)}{\draw (#1)--(#2);}}
+\def\sseq@structline(#1)(#2){\edef\temp{\@nx\sseq@structline@\sseq@anchorsplit{#1}\sseq@anchorsplit{#2}}\temp}
+\def\sseq@structline@#1#2#3#4{
+    \sseq@parsecoords\source{#1}%
+    \sseq@parsecoords\target{#3}%
+    \edef\temp{\@nx\sseq@structline@@{\source}{#2}{\target}{#4}}
+    \temp
+}
+
+\def\sseq@anchorsplit#1{\sseq@anchorsplit@#1.\sseq@nil}
+\def\sseq@anchorsplit@#1.#2{\ifx#2\sseq@nil {#1}{}\else {#1}\@xp\sseq@anchorsplit@@\@xp#2\fi}
+\def\sseq@anchorsplit@@#1.\sseq@nil{{.#1}}
+
+\def\sseq@structline@@#1#2#3#4{\sseq@addcontingentfeature{(#1)(#3)}{\draw (#1#2)--(#3#4);}}
+
+
+%% Redo tikz rules for interpreting coordinates to default to treating (x,y) as specifying a node.
+\def\sseq@testpt#1.#2\@nil{{#1}\ifx&#2&\else .\sseq@gobblept#2\@nil\fi}
+\def\sseq@gobblept#1.\@nil{#1}
+
+\let\sseq@tikz@@@parse@regular@old\tikz@@@parse@regular
+\def\sseq@tikz@@@parse@regular#1#2#3){%(
+    \edef\next{\@nx\sseq@tikz@@@parse@regular@\@nx#1{#2}\sseq@testpt#3.\@nil)}
+    \next
+}
+
+\def\sseq@tikz@@@parse@regular@#1#2#3#4){
+    \sseq@parsecoords\temp{#2,#3}
+    %\show\temp
+    \@xp\ifx\csname pgf@sh@pi@sseq@{\temp}\endcsname\pgfpictureid
+        \edef\next{\@nx\tikz@parse@node\@nx#1(sseq@{\temp}#4)}
+    \else %(
+        \def\next{\sseq@tikz@@@parse@regular@old#1{#2}{#3#4})}
+    \fi
+    %\show\next
+    \next
+}
+
+\def\sseq@tikz@@to@or@edge@@coordinate(#1){%
+  \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid
+    \def\tikztotarget{sseq@{#1}}
+  \else
+    \def\tikztotarget{#1}
+  \fi
+  \tikz@to@or@edge@function%
+}

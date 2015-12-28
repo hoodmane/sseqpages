@@ -1,14 +1,18 @@
 \documentclass{article}
 \usepackage[landscape,margin=0cm,top=2cm]{geometry}
 \usepackage{sseqpages}
+\makeatletter
 \begin{document}
+\tikzset{every differential/.style={->}}
+%\pgfset{every differential/.show}
 \begin{sseqdata}[yscale=0.8, xscale=0.5]{tmfass}
-\cyclestyles{\node[draw,circle,fill,inner sep=0.3ex] at #1 {};}
-            {\node[draw,rectangle,fill,inner sep=0.3ex] at #1 {};}
+\cyclestyles{\node[draw,circle,fill,inner sep=0.3ex] (#1) at (#2) {};}
+            {\node[draw,rectangle,fill,inner sep=0.3ex] (#1) at (#2) {};}
 \degree{-1}{#1}
 \xrange{0}{50}
 \yrange{0}{20}
-            
+
+
 \def\tower(#1,#2){
     \foreach \y in {#2,...,25}{
         \place1(#1,\y)
@@ -44,7 +48,7 @@
     \tower(#1+4,#2)
     \place1(#1+4,#2-1)
     \structline(#1+4,#2-1)(#1+4,#2)
-    
+
     \place1(#1+6,#2)
     \place1(#1+6,#2+1)
     \place1(#1+7,#2-1)
@@ -58,17 +62,17 @@
     \place1(#1+12,#2)
     \place1(#1+12,#2+1)
     \place1(#1+12,#2+2)
-    \place1(#1+13,#2+1) 
+    \place1(#1+13,#2+1)
     \structline(#1+6,#2)(#1+6,#2+1)
     \structline(#1+6,#2+1)(#1+6,#2+2)
     \structline(#1+7,#2-1)(#1+7,#2)
     \structline(#1+7,#2)(#1+7,#2+1)
     \structline(#1+9,#2)(#1+9,#2+1)
-    \structline(#1+9,#2+1)(#1+9,#2+2)    
+    \structline(#1+9,#2+1)(#1+9,#2+2)
     \structline(#1+10,#2)(#1+10,#2+1)
     \structline(#1+12,#2)(#1+12,#2+1)
-    \structline(#1+12,#2+1)(#1+12,#2+2)    
-    
+    \structline(#1+12,#2+1)(#1+12,#2+2)
+
     \structline(#1+4,#2-1)(#1+7,#2)
     \structline(#1+4,#2)(#1+7,#2+1)
     \structline(#1+6,#2)(#1+9,#2+1)
@@ -81,7 +85,7 @@
     \structline(#1+9,#2)(#1+10,#2+1)
     \structline(#1+10,#2)(#1+13,#2+1)
     \structline(#1+12,#2)(#1+13,#2+1)
-    
+
     \d2(#1+4,#2-1)
     \d2(#1+4,#2)
     \d2(#1+4,#2+1)
@@ -92,7 +96,7 @@
 \def\towergroupb(#1,#2){
     \towergroupa(#1,#2)
     \place1(#1+10,#2-1)
-    \place1(#1+13,#2-1)    
+    \place1(#1+13,#2-1)
     \place1(#1+13,#2)
     \place1(#1+15,#2)
     \place2(#1+16,#2-1)
@@ -106,19 +110,19 @@
     \structline(#1+13,#2-1)(#1+13,#2)
     \structline(#1+13,#2)(#1+13,#2+1)
     \structline(#1+16,#2)(#1+16,#2+1)
-    \structline(#1+16-0.13,#2-1)(#1+16,#2)
-    \structline(#1+16+0.13,#2-1)(#1+16,#2)    
-    
+    \structline(#1+16,#2-1,1)(#1+16,#2)
+    %\structline(#1+16,#2-1,2)(#1+16,#2)
+
     \structline(#1+10,#2-1)(#1+13,#2)
     \structline(#1+13,#2-1)(#1+16,#2)
     \structline(#1+13,#2)(#1+16,#2+1)
     \structline(#1+15,#2)(#1+18,#2+1)
     \structline(#1+15,#2)(#1+16,#2+1)
-    \structline(#1+16+0.13,#2-1)(#1+17,#2)
+    %\structline(#1+16,#2-1,2)(#1+17,#2)
     \structline(#1+17,#2)(#1+18,#2+1)
     \structline(#1+18,#2+1)(#1+18,#2)
     \d2(#1+10,#2)
-    
+
 }
 
 \towergroup(0,0)
@@ -140,12 +144,13 @@
 %\d3(30,6)
 \d4(31,8)
 \end{sseqdata}
+%\@xp\show\csname sseq@saveddiffs@tmfass2\endcsname
 
 \printpage{tmfass}{2}
 \newpage
 \printpage{tmfass}{3}
 \newpage
 \printpage{tmfass}{4}
-\end{document} 
+\end{document}
 
 
