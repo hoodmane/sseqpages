@@ -11,8 +11,20 @@
 \let\@nx\noexpand
 
 \def\sseq@macroname{\@xp\@gobble\string}
+\def\sseq@error{\PackageError{sseqpages}}
+\def\sseq@nil{\sseq@thisshouldnthappen@nil} % This expansion text should be unique so that \ifx\sseq@nil\undefinedcommand is false.
+\def\sseq@infinity{10000} % Larger than any coordinate anyone will ever use (hopefully).
+\def\sseq@ifhop#1#2\fi{\fi#1} % so we can use \sseq@optarg in \edef.
+\def\sseq@id#1{#1} % Just removes braces
 
-% Declarations
+% My own version of \pgfutil@g@addtomacro. Checks if the macro is undefined and handles that case correctly too.
+\def\sseq@g@addto@macro#1{\@ifundefined{\sseq@macroname#1}{\gdef#1}{\sseq@g@addto@macro@#1}}
+\let\sseq@g@addto@macro@\pgfutil@g@addto@macro
+\def\sseq@x@addto@macro#1{\@ifundefined{\sseq@macroname#1}{\xdef#1}{\sseq@x@addto@macro@#1}}
+\def\sseq@x@addto@macro@#1#2{\begingroup\pgfutil@toks@\@xp{#1}\xdef#1{\the\pgfutil@toks@#2}\endgroup}
+
+
+%% Declarations
 \newtoks\sseq@temptoks
 \newtoks\sseq@temptoks@ii
 \newtoks\sseq@thepermcyclestyle
@@ -21,17 +33,87 @@
 \newcount\sseq@featurecount
 
 
+%% Getters and setters
 
-\def\sseq@error{\PackageError{sseqpages}}
-\def\sseq@nil{\sseq@thisshouldnthappen@nil} % This expansion text should be unique so that \ifx\sseq@nil\undefinedcommand is false.
-\def\sseq@infinity{10000} % Larger than any coordinate anyone will ever use (hopefully).
+\def\sseq@ifundefcoord{\@xp\sseq@ifundefcoord@}
+\def\sseq@ifundefcoord@(#1){\@ifundefined{sseq@coord\sseq@thename(#1)}}
+\def\sseq@getcoord#1{\@xp\sseq@getcoord@\@xp#1}
+\def\sseq@getcoord@#1(#2){\@ifundefined{sseq@coord\sseq@thename(#2)}{\sseq@thisshouldnothappen}{\@xp\let\@xp#1\csname sseq@coord\sseq@thename(#2)\endcsname}}
+\def\sseq@setcoord(#1){\@ifundefined{sseq@coord\sseq@thename(\temp)}{\@xp\xdef\csname sseq@coord\sseq@thename(#1)\endcsname}{\sseq@thisshouldnothappen}}
+\def\sseq@resetcoord(#1){\@xp\xdef\csname sseq@coord\sseq@thename(#1)\endcsname}
+
+\def\sseq@ifdead{\@xp\sseq@ifdead@}
+\def\sseq@ifdead@(#1){\@ifundefined{sseq@death\sseq@thename(#1)}{\@secondoftwo}{\@firstoftwo}}
+\def\sseq@getdeathpage{\@xp\sseq@getdeathpage@}
+\def\sseq@getdeathpage@(#1){\csname sseq@death\sseq@thename(#1)\endcsname}
+\def\sseq@setdeathpage{\@xp\sseq@setdeathpage@}
+\def\sseq@setdeathpage@(#1){\@xp\xdef\csname sseq@death\sseq@thename(#1)\endcsname}
+\def\sseq@cleardeathpage{\@xp\sseq@cleardeathpage@}
+\def\sseq@cleardeathpage@(#1){\@xp\global\@xp\let\csname sseq@death\sseq@thename(#1)\endcsname\relax}
+
+\newif\ifsseq@printnode@
+\def\sseq@nodecond#1#2{\sseq@printnode@false\ifnum#1<#2\relax \sseq@printnode@true\fi}
 
 
-% My own version of \pgfutil@g@addtomacro. Checks if the macro is undefined and handles that case correctly too.
-\def\sseq@g@addto@macro#1{\@ifundefined{\sseq@macroname#1}{\gdef#1}{\sseq@g@addto@macro@#1}}
-\let\sseq@g@addto@macro@\pgfutil@g@addto@macro
-\def\sseq@x@addto@macro#1{\@ifundefined{\sseq@macroname#1}{\xdef#1}{\sseq@x@addto@macro@#1}}
-\def\sseq@x@addto@macro@#1#2{\begingroup\pgfutil@toks@\@xp{#1}\xdef#1{\the\pgfutil@toks@#2}\endgroup}
+%% Parsers
+
+% \sseq@parsecoords:
+% #1 -- output command
+% #2 -- coordinate of the form "(x,y)" or "x,y" or "(x,y,n)" or "x,y,n"
+% Defines #1 to be #2 after applying \pgfmathparse to x and y, and then replacing numbers of the form n.0 with n for n an integer
+\def\sseq@parsecoords#1#2{\conditionally@traceoff\pgfmathparse{#2}\conditionally@traceon\edef\temp{\sseq@parsecoords@}\edef#1{\@xp\@gobble\temp}}
+\def\sseq@parsecoords@{\@xp\sseq@parsecoords@@\pgfmathresult\sseq@nil}
+\def\sseq@parsecoords@@#1{\ifx\sseq@nil#1\else ,\sseq@parsecoords@@@#1.0\sseq@nil\@xp\sseq@parsecoords@@\fi}
+\def\sseq@parsecoords@@@#1.0#2\sseq@nil{#1\ifx&#2&\else\@xp\ifx\sseq@parsecoords@@@getfirst#2\sseq@nil.\else .0\sseq@parsecoords@@@uptopt#2\sseq@nil\fi\fi}
+\def\sseq@parsecoords@@@getfirst#1#2\sseq@nil{#1}
+\def\sseq@parsecoords@@@uptopt#1.#2\sseq@nil{#1}
+
+
+% \sseq@parsecommas:
+% (#1) -- a comma separated list of up to four arguments. Blank or off-the-end entries are considered to be absent.
+% The value of the #1th argument is stored in \csname sseq@arg#1\endcsname.
+\def\sseq@parsecommas(#1){\let\\\sseq@pc@stdslsl\sseq@commacount0\relax\sseq@parsecommas@{}#1,,,,,\sseq@nil}
+
+\def\sseq@parsecommas@#1#2,{%
+    \conditionally@traceoff %
+    \advance\sseq@commacount1\relax%
+    \ifnum\sseq@commacount<4 %
+        \def\next{\sseq@parsecommas@{#1\\{#2}}}%
+    \else %
+        \def\next{\sseq@parsecommas@@{#1\\{#2}}}%
+    \fi  %
+    \next%
+}
+
+\def\sseq@parsecommas@@#1#2\sseq@nil{%
+    \sseq@commacount=0\relax #1%
+}
+
+\def\sseq@pc@stdslsl#1{% This is the callback that we map over the texlist of arguments at the end of \sseq@parsecommas
+    \advance\sseq@commacount1%
+    \ifx&#1& % This without a space before the % breaks????
+        \@xp\let\csname sseq@arg\the\sseq@commacount\endcsname\relax %
+    \else %
+        \pgfmathparse{int(#1)}%
+        \@xp\edef\csname sseq@arg\the\sseq@commacount\endcsname{\pgfmathresult}%
+    \fi %
+}
+
+% These are for accessing the output of \sseq@parsecommas
+
+% #1 -- callback to apply to the argument if it is present
+% #2 -- default value if argument is absent. Gets #3 = the name of the command this argument for, #4 = the argument number.
+%       if we don't want to throw an error, this argument should generally end in \@gobbletwo
+% #3 -- the name of the command
+% #4 -- the number of the argument
+\def\sseq@optarggen#1#2#3#4{\@xp\ifx\csname sseq@arg#4\endcsname\relax #2{#3}{#4}\else  #1{\csname sseq@arg#4\endcsname}\fi}
+\def\sseq@optargc{\sseq@optarggen{,\sseq@id}{\@gobbletwo}{}}
+\def\sseq@optarg#1{\sseq@optarggen{\sseq@id}{#1\@gobbletwo}{}}
+
+\def\sseq@arg@checkpresent#1#2{\@ifundefined{sseq@arg#2}{\sseq@error{Comma separated value argument number #2 to the command \@nx#1 is missing}{Argument #2 is mandatory, please include it}{}}}
+\def\sseq@arg{\sseq@optarggen{\sseq@id}{\sseq@thiscanthappen}}
+
+\newcount\sseq@commacount
 
 
 %% Command redefinition commands
@@ -69,6 +151,7 @@
     \sseq@nil                                   %
 }
 \def\sseq@modtikzcommands@#1{\ifx#1\sseq@nil\else\def#1##1;{\sseq@g@addto@macro\sseq@savedpaths{#1##1;}}\@xp\sseq@modtikzcommands@\fi}
+
 
 % Defered evaluation of scopes.
 \NewEnviron{sseq@scope}{\sseq@temptoks\@xp{\BODY}\sseq@x@addto@macro\sseq@savedpaths{\@nx\begin{scope}\the\temptoks\@nx\end{scope}}}
@@ -187,9 +270,26 @@
     \let\sseq@thename\relax %
 }
 
+\def\printpage#1#2{
+    \begin{sseqpage}
+    \name{#1}
+    \page{#2}
+    \end{sseqpage}
+}
+
+\tikzset{
+  every differential/.style={},
+  every label/.style={
+    /tikz/auto,
+    /tikz/font=\everymath\expandafter{\the\everymath\scriptstyle},
+    /tikz/inner sep=+0.5ex}
+}
+
 % Copied from tikzcd code. Passes quotes forward to edge
 \def\sseq@forward@quotes#1{\tikzset{every to/.append style={#1}}}
 
+
+%% Options and primitives for sseqdata and asseqpage
 \def\sseq@data@name#1{\gdef\sseq@thename{#1}}
 % When you name a page, retreive the information for that page.
 \def\sseq@page@name#1{%
@@ -250,97 +350,7 @@
 }
 
 
-
-
-\tikzset{
-  every differential/.style={},
-  every label/.style={
-    /tikz/auto,
-    /tikz/font=\everymath\expandafter{\the\everymath\scriptstyle},
-    /tikz/inner sep=+0.5ex}
-}
-
-
-\def\printpage#1#2{
-    \begin{sseqpage}
-    \name{#1}
-    \page{#2}
-    \end{sseqpage}
-}
-
-
-
-% Core
-
-\def\sseq@ifhop#1#2\fi{\fi#1} % so we can use \sseq@optarg in \edef.
-\def\sseq@id#1{#1} % Just removes braces
-
-% #1 -- callback to apply to the argument if it is present
-% #2 -- default value if argument is absent. Gets #3 = the name of the command this argument for, #4 = the argument number.
-%       if we don't want to throw an error, this argument should generally end in \@gobbletwo
-% #3 -- the name of the command
-% #4 -- the number of the argument
-\def\sseq@optarggen#1#2#3#4{\@xp\ifx\csname sseq@arg#4\endcsname\relax #2{#3}{#4}\else  #1{\csname sseq@arg#4\endcsname}\fi}
-\def\sseq@optargc{\sseq@optarggen{,\sseq@id}{\@gobbletwo}{}}
-\def\sseq@optarg#1{\sseq@optarggen{\sseq@id}{#1\@gobbletwo}{}}
-
-\def\sseq@arg@checkpresent#1#2{\@ifundefined{sseq@arg#2}{\sseq@error{Comma separated value argument number #2 to the command \@nx#1 is missing}{Argument #2 is mandatory, please include it}{}}}
-\def\sseq@arg{\sseq@optarggen{\sseq@id}{\sseq@thiscanthappen}}
-
-\newcount\sseq@commacount
-
-\def\sseq@pc@stdslsl#1{% This is the callback that we map over the texlist of arguments at the end of \sseq@parsecommas
-    \advance\sseq@commacount1%
-    \ifx&#1& % This without a space before the % breaks????
-        \@xp\let\csname sseq@arg\the\sseq@commacount\endcsname\relax %
-    \else %
-        \pgfmathparse{int(#1)}%
-        \@xp\edef\csname sseq@arg\the\sseq@commacount\endcsname{\pgfmathresult}%
-    \fi %
-}
-
-\def\sseq@parsecommas(#1){\let\\\sseq@pc@stdslsl\sseq@commacount0\relax\sseq@parsecommas@{}#1,,,,,\sseq@nil}
-
-\def\sseq@parsecommas@#1#2,{%
-    \conditionally@traceoff %
-    \advance\sseq@commacount1\relax%
-    \ifnum\sseq@commacount<4 %
-        \def\next{\sseq@parsecommas@{#1\\{#2}}}%
-    \else %
-        \def\next{\sseq@parsecommas@@{#1\\{#2}}}%
-    \fi  %
-    \next%
-}
-
-\def\sseq@parsecommas@@#1#2\sseq@nil{%
-    \sseq@commacount=0\relax #1%
-}
-
-\def\sseq@parsecoords#1#2{\conditionally@traceoff\pgfmathparse{#2}\conditionally@traceon\edef\temp{\sseq@parsecoords@}\edef#1{\@xp\@gobble\temp}}
-\def\sseq@parsecoords@{\@xp\sseq@parsecoords@@\pgfmathresult\sseq@nil}
-\def\sseq@parsecoords@@#1{\ifx\sseq@nil#1\else ,\sseq@parsecoords@@@#1.0\sseq@nil\@xp\sseq@parsecoords@@\fi}
-\def\sseq@parsecoords@@@#1.0#2\sseq@nil{#1}
-
-%% Getters and setters
-
-\def\sseq@ifundefcoord{\@xp\sseq@ifundefcoord@}
-\def\sseq@ifundefcoord@(#1){\@ifundefined{sseq@coord\sseq@thename(#1)}}
-\def\sseq@getcoord#1{\@xp\sseq@getcoord@\@xp#1}
-\def\sseq@getcoord@#1(#2){\@ifundefined{sseq@coord\sseq@thename(#2)}{\sseq@thisshouldnothappen}{\@xp\let\@xp#1\csname sseq@coord\sseq@thename(#2)\endcsname}}
-\def\sseq@setcoord(#1){\@ifundefined{sseq@coord\sseq@thename(\temp)}{\@xp\xdef\csname sseq@coord\sseq@thename(#1)\endcsname}{\sseq@thisshouldnothappen}}
-\def\sseq@resetcoord(#1){\@xp\xdef\csname sseq@coord\sseq@thename(#1)\endcsname}
-
-\def\sseq@ifdead{\@xp\sseq@ifdead@}
-\def\sseq@ifdead@(#1){\@ifundefined{sseq@death\sseq@thename(#1)}{\@secondoftwo}{\@firstoftwo}}
-\def\sseq@getdeathpage{\@xp\sseq@getdeathpage@}
-\def\sseq@getdeathpage@(#1){\csname sseq@death\sseq@thename(#1)\endcsname}
-\def\sseq@setdeathpage{\@xp\sseq@setdeathpage@}
-\def\sseq@setdeathpage@(#1){\@xp\xdef\csname sseq@death\sseq@thename(#1)\endcsname}
-\def\sseq@cleardeathpage{\@xp\sseq@cleardeathpage@}
-\def\sseq@cleardeathpage@(#1){\@xp\global\@xp\let\csname sseq@death\sseq@thename(#1)\endcsname\relax}
-
-\newif\ifsseq@printnode@
-\def\sseq@nodecond#1#2{\sseq@printnode@false\ifnum#1<#2\relax \sseq@printnode@true\fi}
+%% Placement
 
 \def\sseq@place#1(#2){%
     \sseq@parsecoords\temp{#2}%
@@ -571,12 +581,12 @@
 % Note that we name the cell nodes sseq@{x,y,z}.
 
 
-\def\sseq@testpt#1.#2\@nil{\ifx&#2&{#1}{}\else
-    \sseq@ifnum#2\@nil{\sseq@testpt@{#1}#2\@nil}{{#1}{.\sseq@gobblept#2\@nil}}\fi}
-\def\sseq@testpt@#1#2.#3\@nil{{#1.#2}\ifx&#3&{}\else{.\sseq@gobblept#3\@nil}\fi}
+\def\sseq@testpt#1.#2\sseq@nil{\ifx&#2&{#1}{}\else
+    \sseq@ifnum#2\sseq@nil{\sseq@testpt@{#1}#2\sseq@nil}{{#1}{.\sseq@gobblept#2\sseq@nil}}\fi}
+\def\sseq@testpt@#1#2.#3\sseq@nil{{#1.#2}\ifx&#3&{}\else{.\sseq@gobblept#3\sseq@nil}\fi}
 
-\def\sseq@gobblept#1.\@nil{#1}
-\def\sseq@ifnum#1#2\@nil{
+\def\sseq@gobblept#1.\sseq@nil{#1}
+\def\sseq@ifnum#1#2\sseq@nil{
     \ifx#10\sseq@ifnum@first\fi\ifx#11\sseq@ifnum@first\fi\ifx#12\sseq@ifnum@first\fi
     \ifx#13\sseq@ifnum@first\fi\ifx#14\sseq@ifnum@first\fi\ifx#15\sseq@ifnum@first\fi
     \ifx#16\sseq@ifnum@first\fi\ifx#17\sseq@ifnum@first\fi\ifx#18\sseq@ifnum@first\fi\ifx#19\sseq@ifnum@first\fi
@@ -586,7 +596,7 @@
 
 \let\sseq@tikz@@@parse@regular@old\tikz@@@parse@regular
 \def\sseq@tikz@@@parse@regular#1#2#3){%(
-    \edef\next{\@nx\sseq@tikz@@@parse@regular@\@nx#1{#2}\sseq@testpt#3.\@nil}
+    \edef\next{\@nx\sseq@tikz@@@parse@regular@\@nx#1{#2}\sseq@testpt#3.\sseq@nil}
     \next
 }
 
