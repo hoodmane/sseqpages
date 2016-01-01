@@ -1,35 +1,69 @@
 \documentclass{article}
 \usepackage[landscape,margin=0cm,top=2cm]{geometry}
+\usepackage{tikz}
+\makeatletter
 \usepackage{sseqpages}
 \usepackage{amsmath}
 \makeatletter
+%\show\sseq@ifundefcoord@
 %\traceon
 %\edef\test{\sseq@testpt 1.south.\@nil}
 %\edef\testa{\sseq@testpt 1.9.\@nil}
 %\show\test
 %\show\testa
+%\def\sseq@thename{thename}
+%\def\coord{(2,2)}
+%\tracingall
+%\sseq@setcoordprop{propname}(2,2){hi}
+%\edef\test{\sseq@getcoordprop{propname}\coord}
+%\show\test
 
+\def\row#1{\foreach \x in {1,...,35}{\place(\x,#1)}}
+\def\twoptrow#1{\foreach \x in {1,...,35}{\place(\x,#1)\place(\x,#1)}}
+%\sseqset{every differential/.style={->},every class/.style=blue}
 
-\def\row#1{\foreach \x in {1,...,35}{\place1(\x,#1)}}
-\def\twoptrow#1{\foreach \x in {1,...,35}{\place2(\x,#1)}}
 \begin{document}
-\tikzset{every differential/.style={->}}
-\begin{sseqdata}[scale=0.9]{mysseq}
+
+%\sseq@setstdoffsets12{-0.13}{+0.13}
+%\sseq@setstdoffsets22{+0.13}{-0.13}
+\begin{sseqdata}[yscale=0.8]{ss2}
+\cyclestyles{draw,circle,fill,inner sep=0.3ex}
+            {draw,rectangle,fill,inner sep=0.3ex}
+\degree{-1}{#1-1}
+
+\xrange{1}{10}
+\yrange{0}{10}
+
+\foreach \x in {1,3,...,35} {\place(\x,0)}
+
+\row{1}
+\row{2}
+\row{3}
+\d["\textup{a l a b e l}" {sloped,above}]  4   (9,0)
+\foreach \x in {2,3,5,6}{    
+    \d["hi"]2 (\x,1)
+}
+
+\d3(7,0)
+%\tracingall
+
+\end{sseqdata}
+
+\begin{sseqdata}[differentials=->,classes={draw,blue},scale=0.9]{mysseq}
 \degree{-#1}{#1-1}
-\cyclestyles{\node[draw,circle,inner sep=0.3ex] (#1) at (#2) {};}
-                 {\node[draw,rectangle,inner sep=0.3ex] (#1) at (#2) {};}
+\cyclestyles{circle,inner sep=0.3ex}{rectangle,inner sep=0.3ex}
 
 \xrange{1}{25}
 \yrange{0}{19}%
-
-\foreach \x in {1,3,...,35} {\place1(\x,0)}
+%\tracingall
+\foreach \x in {1,3,...,35} {\place(\x,0)}
 
 \row{1}
 \row{2}
 \row{3}
 
-\cyclestyles{\node[draw,circle,fill,inner sep=0.3ex] (#1) at (#2) {};}
-            {\node[draw,rectangle,fill,inner sep=0.3ex] (#1) at (#2) {};}
+\cyclestyles{draw,circle,fill,inner sep=0.3ex}
+            {draw,rectangle,fill,inner sep=0.3ex}
 
 \foreach \y in {7,15,23}{
     \row{\y}
@@ -39,19 +73,36 @@
     \row{\y+4}
 }
 
+\place(1,12)
+\draw(1,2)--(1,3);
+\node at (1,13) {a!};
+\d2(3,0)
+\structline(10,7)(10,8)
+\begin{scope}["x",xshift=2]
+\place(1,12)
+\draw(1,2)--(1,3);
+\node at (1,13) {a!};
+\d2(3,0)
+\structline(10,7)(10,8)
+\end{scope}
 \sseq@addcontingentfeature{(10,7)(10,8)}{\draw (10,7)--(10,8);}
+
+
 
 %\@xp\show\csname sseq@feature0\endcsname
 %\@xp\show\csname sseq@featureinfty0\endcsname
 %\@xp\show\csname sseq@savednodes@mysseqinfty\endcsname
 %\@xp\show\csname sseq@transferfeature0\endcsname
 %\@xp\show\csname sseq@clearinfty\sseq@thename(9,2)\endcsname
-%\@xp\show\csname sseq@clearinfty\sseq@thename(9,3)\endcsname   
+%\@xp\show\csname sseq@clearinfty\sseq@thename(9,3)\endcsname
 
+%\tracingall
+%\d2 (5,0)
 
 \conditionally@traceoff
-\foreach \x in {5,9,...,25}{
-    \d2 (\x,0)
+\foreach \x in {9,13,...,25}{    
+    %\d["hippo",/tikz/every to/.prefix code={\tracingall},/tikz/every to/.append code={\show\hi}]2 (\x,0)
+    \d["\textup{hippo}"{sloped, above}]2 (\x,0)
     \d2 (\x,1)
 %
 %
@@ -122,37 +173,30 @@
     \d9(\x-4,11)
 }
 
-\node at (6,13) {This will show up in all copies};
+\draw[<-] (2,3)--(0,5) -- (2,5) [green] -- (3,5);
+
+
+\draw[<-,xshift=2,yshift=8] (2,3)--(0,5) -- (2,5) [green] -- (3,5);
+
+%\showthe\sseq@x
+
+
+\node at (6,5) {This will show up in all copies};
 
 
 %\d[dashed,"hi"] 8 (29,2,,2)
 %\d13 (20,3)
 \end{sseqdata}
-
-\begin{sseqdata}[yscale=0.8]{ss2}
-\degree{-1}{#1-1}
-
-\xrange{1}{10}
-\yrange{0}{10}
-
-\foreach \x in {1,3,...,35} {\place1(\x,0)}
-
-\row{1}
-\row{2}
-\row{3}
-\d2   (5,0)
-
-\d3(7,0)
-\d["\textup{a l a b e l}" {sloped,above}]  4   (9,0)
-\end{sseqdata}
-
+%\show\sseq@savedpaths
 
 \begin{sseqpage}
 \name{mysseq}
 \page{0}
 \xrange{1}{25}
 \draw["\textup{this is it}" {above,sloped},dotted,->] (2,4) to (3,3);
+%\tracingall
 \doptions2(5,0){red}
+%\error
 \doptions2(9,0){red}
 \doptions2(13,0){red}
 \doptions2(17,0){red}
@@ -170,11 +214,42 @@
 \end{sseqpage}
 
 
+\newpage
+
 \begin{sseqpage}
 \name{mysseq}
 \page{4}
-\draw[red, dashed, ->, "\text{this doesn't go here}" {sloped,below}] (7,0) to (3,3);    
+\draw[red, dashed, ->, "\text{this doesn't go here}" {sloped,below}] (7,0) to (3,3);
 \end{sseqpage}
+\newpage
+
+
+
+
+\begin{sseqpage}
+\name{ss2}
+\page{0}
+\doptions2(5,0){"hi!" {sloped, above}}
+\doptions4(9,0){blue,dashed}
+\end{sseqpage}
+
+
+\vskip20pt
+
+\begin{sseqpage}
+\name{ss2}
+\page{0}
+\yrange{0}{5}
+\end{sseqpage}
+\newpage
+
+
+
+
+\def\xoffset{-0.5}
+\newpage
+\printpage{mysseq}{0}
+
 
 \newpage
 \printpage{mysseq}{2}
