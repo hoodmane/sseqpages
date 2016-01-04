@@ -18,35 +18,95 @@
 \def\sseq@id#1{#1} % Just removes braces, "identity," used with parsecommas
 \def\sseq@getfirstchar#1#2\sseq@nil{#1} % used in parsecoords
 
-% My own version of \pgfutil@g@addto@macro. Checks if the macro is undefined and handles that case correctly too.
-\def\sseq@g@addto@macro#1{\@ifundefined{\sseq@macroname#1}{\gdef#1}{\sseq@g@addto@macro@#1}}
-\let\sseq@g@addto@macro@\pgfutil@g@addto@macro
-\def\sseq@x@addto@macro#1{\@ifundefined{\sseq@macroname#1}{\xdef#1}{\sseq@x@addto@macro@#1}}
-\def\sseq@x@addto@macro@#1#2{\begingroup\pgfutil@toks@\@xp{#1}\xdef#1{\the\pgfutil@toks@#2}\endgroup}
-
 
 %% Declarations
 \newif\ifsseq@errorchecking
 \sseq@errorcheckingtrue
+
 \newtoks\sseq@temptoks
 \newtoks\sseq@temptoks@ii
 \newtoks\sseq@thepermcyclestyle
 \newtoks\sseq@thetranscyclestyle
+
+\newcount\sseq@context@depth
+\newcount\sseq@context@tempcount
+\newcount\sseq@featurecount
 \newcount\sseq@x
 \newcount\sseq@y
 \newcount\sseq@tempcount
-\newcount\sseq@featurecount
+\sseq@context@depth\z@
+\sseq@context@tempcount\z@
+\sseq@featurecount\z@
+\sseq@x\z@ \sseq@y\z@
+\sseq@tempcount\z@
+
+
 \newdimen\sseq@tempdimen
 \newdimen\sseq@tempdimen@ii
+
+
+%% \sseq@--@--addto@macro and friends.
+% My own variants of \pgfutil@g@addto@macro.
+% \sseq@x@addto@macro recursively expands the argument and then adds it.
+% \sseq@g/x@deforaddto@macro checks first whether the macro is defined or not, if not it used \gdef or \xdef, else it uses \sseq@g/x@addto@macro
+% The "ctx" variants are \let equal to the foreach versions when inside of \foreach or when the context command (not named yet) is used
+% They also add saved state information to the macro the first time they add data to that macro
+\def\sseq@g@addto@macro@ctx#1#2{\begingroup\pgfutil@toks@\@xp{#1#2}\xdef#1{\the\pgfutil@toks@}\endgroup} % copy of \pgfutil@g@addto@macro
+\def\sseq@x@addto@macro@ctx#1#2{\begingroup\pgfutil@toks@\@xp{#1}\xdef#1{\the\pgfutil@toks@#2}\endgroup} % let #2 be expanded
+
+\let\sseq@g@addto@macro\sseq@g@addto@macro@ctx
+\let\sseq@x@addto@macro\sseq@x@addto@macro@ctx
+
+\def\sseq@g@deforaddto@macro@ctx#1{\@ifundefined{#1}{\@xp\gdef\csname#1\endcsname}{\@xp\sseq@g@addto@macro\csname#1\endcsname}}
+\def\sseq@x@deforaddto@macro@ctx#1{\@ifundefined{#1}{\@xp\xdef\csname#1\endcsname}{\@xp\sseq@x@addto@macro\csname#1\endcsname}}
+
+\let\sseq@g@deforaddto@macro\sseq@g@deforaddto@macro@ctx
+\let\sseq@x@deforaddto@macro\sseq@x@deforaddto@macro@ctx
+
+\def\sseq@g@addto@macro@foreach#1{%
+    \sseq@gx@addto@macro@foreach@#1
+    \sseq@g@addto@macro#1%
+}
+
+\def\sseq@x@addto@macro@foreach#1{
+    \sseq@gx@addto@macro@foreach@#1
+    \sseq@x@addto@macro#1%
+}
+
+\def\sseq@g@deforaddto@macro@foreach#1{
+    \@ifundefined{#1}{\@xp\gdef\csname #1\endcsname{}}{}
+    \@xp\sseq@gx@addto@macro@foreach@\csname #1\endcsname
+    \@xp\sseq@g@addto@macro\csname #1\endcsname%
+}
+
+\def\sseq@x@deforaddto@macro@foreach#1{
+    \@ifundefined{#1}{\@xp\gdef\csname #1\endcsname{}}{}
+    \@xp\sseq@gx@addto@macro@foreach@\csname #1\endcsname
+    \@xp\sseq@x@addto@macro\csname #1\endcsname%
+}
+
+\def\sseq@gx@addto@macro@foreach@#1{%
+    \@ifundefined{sseq@context@\sseq@macroname#1}
+        {\sseq@context@tempcount=0\relax}
+        {\sseq@context@tempcount=\csname sseq@context@\sseq@macroname#1\endcsname\relax}%
+    \ifnum\sseq@context@tempcount<\sseq@context@depth\relax %
+        \loop %
+            \advance\sseq@context@tempcount1\relax%
+            \sseq@for@addsavedtoksntomacro{\the\sseq@context@tempcount}{#1}%
+        \ifnum\sseq@context@tempcount<\sseq@context@depth\repeat %
+        \@xp\edef\csname sseq@context@\sseq@macroname#1\endcsname{\the\sseq@context@depth}%
+    \fi %
+}
+
 
 %% Set up keys
 
 \pgfkeys{
     tikz/sseqpages/.is family,
     tikz/sseqpages/.search also={/tikz},
-    tikz/sseqpages/internal/shifts only pass/.unknown/.code={},
-    tikz/sseqpages/internal/no shifts pass/.is family,
-    tikz/sseqpages/internal/no shifts pass/.search also={/tikz/sseqpages,/tikz}
+    tikz/sseqpages/first pass/.unknown/.code={},
+    tikz/sseqpages/second pass/.is family,
+    tikz/sseqpages/second pass/.search also={/tikz/sseqpages,/tikz}
 }
 \def\sseqset{\pgfqkeys{/tikz/sseqpages}}
 \sseqset{
@@ -87,14 +147,16 @@
     transform canvas/.code={\sseq@transform{transform canvas}{#1}}
 }
 
-\pgfqkeys{/tikz/sseqpages/internal/shifts only pass}{
+\pgfqkeys{/tikz/sseqpages/first pass}{
     xshift/.code={\sseq@ifp@checkshifttransform{x}{#1}},
-    yshift/.code={\sseq@ifp@checkshifttransform{y}{#1}}
+    yshift/.code={\sseq@ifp@checkshifttransform{y}{#1}},
+    standard parse/.code={} % Insert stuff here
 }
 
-\pgfqkeys{/tikz/sseqpages/internal/no shifts pass}{
+\pgfqkeys{/tikz/sseqpages/second pass}{
     xshift/.code={},
     yshift/.code={},
+    standard parse/.code={}
 }
 
 \def\sseq@okaytransform#1#2{\pgfkeysalso{/tikz/#1=#2}}
@@ -130,9 +192,9 @@
     }{\sseq@errortransform{#1shift}{#2}}
 }
 
-\def\sseq@ifpgfmathresultisunitlessint{\ifpgfmathunitsdeclared \@xp\@secondoftwo\else\sseq@ifpgfmathresultisint{\@xp\@firstoftwo}{\@xp\@secondoftwo}\fi}
+\def\sseq@ifpgfmathresultisunitlessint{\ifpgfmathunitsdeclared\@xp\@secondoftwo\else\sseq@ifpgfmathresultisint{\@xp\@firstoftwo}{\@xp\@secondoftwo}\fi}
 \def\sseq@ifpgfmathresultisint{\@xp\sseq@ifpgfmathresultisint@\pgfmathresult..\sseq@nil}
-\def\sseq@ifpgfmathresultisint@#1.#2.#3\sseq@nil{\ifx\sseq@nil#2\sseq@nil\@xp\@firstoftwo\else \ifnum#2=0 \@xp\@xp\@xp\@firstoftwo\else \@xp\@xp\@xp\@secondoftwo\fi\fi}
+\def\sseq@ifpgfmathresultisint@#1.#2.#3\sseq@nil{\ifx\sseq@nil#2\sseq@nil\@xp\@firstoftwo\else \ifnum#2=0\relax \@xp\@xp\@xp\@firstoftwo\else \@xp\@xp\@xp\@secondoftwo\fi\fi}
 
 %% (What should this section be titled?)
 \def\sseq@iffullcoord(#1){\sseq@iffullcoord@#1,\sseq@nil}
@@ -250,7 +312,7 @@
     \sseq@nil                               %
 }
 \def\sseq@modtikzcommands@defer@#1{\ifx#1\sseq@nil\else\def#1{\sseq@defer@tikzcommand#1}\@xp\sseq@modtikzcommands@defer@\fi}
-\def\sseq@defer@tikzcommand@std#1;{\sseq@g@addto@macro\sseq@savedpaths{#1;}}
+\def\sseq@defer@tikzcommand@std#1;{\sseq@g@addto@macro@ctx\sseq@savedpaths{#1;}}
 \let\sseq@defer@tikzcommand\sseq@defer@tikzcommand@std
 
 \def\sseq@modtikzcommands@options{%
@@ -286,7 +348,7 @@
 
 \def\sseq@scopeoptions{}
 \def\sseq@scope{\@ifnextchar[{\sseq@scope@}{\sseq@scope@[]}}
-\def\sseq@scope@[#1]{\pgfqkeys{/tikz/sseqpages/internal/shifts only pass}{#1}\@xp\def\@xp\sseq@scopeoptions\@xp{\sseq@scopeoptions#1,}\sseq@x@addto@macro\sseq@savedpaths{\@nx\begin{scope}[/tikz/sseqpages,#1]}}
+\def\sseq@scope@[#1]{\pgfqkeys{/tikz/sseqpages/first pass}{#1}\@xp\def\@xp\sseq@scopeoptions\@xp{\sseq@scopeoptions#1,}\sseq@x@addto@macro\sseq@savedpaths{\@nx\begin{scope}[/tikz/sseqpages,#1]}}
 \def\sseq@endscope{\sseq@g@addto@macro\sseq@savedpaths{\end{scope}}}
 
 \def\sseq@defer@tikzcommand@scope#1;{%
@@ -300,15 +362,19 @@
 \def\sseq@get#1{\edef\temp{\global\let\@nx#1\@xp\@nx\csname\sseq@macroname#1\sseq@thename\endcsname}\temp}
 
 
+
 %% Environment definitions
 
 \def\sseqdata{\@ifnextchar[{\sseqdata@}{\sseqdata@[]}}%}
 
 \def\sseqdata@[#1]#2{%
-    \def\sseq@savedpaths{}%
     \sseq@data@name{#2}%
     \@xp\gdef\csname sseq@options\sseq@thename\endcsname{#1}%
-    %
+%
+    \gdef\sseq@savedpaths{}%
+    \gdef\sseq@compilesseq{}%
+    \@xp\gdef\csname sseq@savednodes@\sseq@thename infty\endcsname{}
+%
     % Page 0 is all pages
     \@xp\gdef\csname sseq@saveddiffs@\sseq@thename0\endcsname{%
         \foreach\sseq@p in {1,...,12}{%
@@ -340,19 +406,27 @@
 %
     % Defer evaluation of tikz primitives
     \sseq@modtikzcommands@defer %
+    \sseq@patchfor %
     \pgfkeys{/handlers/first char syntax/the character "/.initial=\@gobble}%
+    \selectfont\nullfont
 }
 
 % Store the savedpaths and ranges
 \def\endsseqdata{
-    \@xp\xdef\csname sseq@savednodes@\sseq@thename infty\endcsname{\csname sseq@savednodes@\sseq@thename infty\endcsname}%
+    %\@xp\xdef\csname sseq@savednodes@\sseq@thename infty\endcsname{\csname sseq@savednodes@\sseq@thename infty\endcsname}%
     \sseq@compilesseq
-    \global\let\sseq@compilesseq\relax
+
     \sseq@store\sseq@savedpaths %
     \sseq@store\sseq@thepermcyclestyle\sseq@store\sseq@thetranscyclestyle %
     \sseq@store\sseq@xmin\sseq@store\sseq@xmax %
     \sseq@store\sseq@ymin\sseq@store\sseq@ymax %
 }
+
+%%
+\def\expandallonce#1{\@xp\expandallonce@\@xp{\@xp}#1\sseq@nil}
+\def\expandallonce@#1#2{\ifx#2\sseq@nil \def\test{#1} \else \sseq@ifhop{\@xp\expandallonce@@\@xp{#2}{#1}} \fi}
+\def\expandallonce@@#1#2{\expandallonce@{#2#1}}
+
 \def\sseqpage{\@ifnextchar[{\sseqpage@}{\sseqpage@[]}} %}
 
 \def\sseqpage@[#1]{
@@ -364,7 +438,10 @@
     % Defer evaluation of all tikz primitives
     \sseq@modtikzcommands@defer %
     \pgfkeys{/handlers/first char syntax/the character "/.initial=\@gobble}%
+    \sseq@patchfor %
+    \selectfont\nullfont
 }
+
 \def\endsseqpage{%
     % Copied from tikzcd code. Passes quotes forward to edge and format edge label appropriately
     \pgfkeys{% `quotes' library support,
@@ -403,20 +480,24 @@
     \let\tikz@@to@or@edge@@coordinate\sseq@tikz@@to@or@edge@@coordinate
 %
 %
-    % Insert nodes from all pages after the current one
+%\pdfresettimer
+    % Insert nodes from all pages on or after the current one
     \foreach\sseq@p in {\curpage,...,12,infty}{%
         \csname sseq@savednodes@\sseq@thename\sseq@p\endcsname %
     }%
+%\xdef\nodestime{\the\pdfelapsedtime}
+%
 %
     % Insert differentials from just this page. \sseq@saveddiffs@thename@0 expands to all of these
-    %\@xp\show\csname sseq@saveddiffs@\sseq@thename2\endcsname %
-    %\tracingall
+%\pdfresettimer
     \csname sseq@saveddiffs@\sseq@thename\curpage\endcsname %
+%\xdef\dstime{\the\pdfelapsedtime}
 %
     % dump in savedpaths now. Contains all miscellaneous tikz stuff. Perhaps should add an unclipped version.
     \sseq@modtikzcommands@options
     \sseq@savedpaths %
     \end{tikzpicture}%
+%\par Nodes: \nodestime{} Differentials: \dstime
     \sseqpage@cleanup % This blanks any options special to this page
     \let\sseq@thename\relax %
 }
@@ -493,7 +574,7 @@
     \sseq@iffullcoord(#2){}{\edef\temp{\temp,1}}
 %
     %\@xp\sseq@g@addto@macro\csname sseq@dstyle#1(#2)\endcsname
-    \sseq@x@addto@macro\sseqpage@cleanup{\gdef\@xp\@nx\csname sseq@dstyle#1(\temp)\endcsname{}}
+    \sseq@x@addto@macro@\sseqpage@cleanup{\gdef\@xp\@nx\csname sseq@dstyle#1(\temp)\endcsname{}} % macro@ b/c doesn't need \foreach context
     \@xp\def\csname sseq@dstyle#1(\temp)\endcsname
 }
 
@@ -504,7 +585,7 @@
 
 \def\sseq@place@[#1](#2,#3){
     \bgroup
-    \pgfqkeys{/tikz/sseqpages/internal/shifts only pass}{#1}
+    \pgfqkeys{/tikz/sseqpages/first pass}{#1}
     \sseq@parsecoords\temp{\sseq@x+#2,\sseq@y+#3}%
     \edef\next{\@nx\sseq@place@@(\temp)}%
     \@xp\egroup
@@ -520,25 +601,26 @@
 %
     % Classes that eventually die
     %\def\temp{{sseq@{#1,#2,\tempnodenum}}{#1\@nx\sseq@xoffset{#1}{#2}{\tempnodenum},#2\@nx\sseq@yoffset{#1}{#2}{\tempnodenum}}}
-    \edef\temp{\@nx\node[/tikz/sseqpages/internal/no shifts pass,every class,\the\sseq@thetranscyclestyle,\sseq@scopeoptions,#3] (sseq@{#1,#2,\tempnodenum}) at (#1\@xp\@nx\csname sseq@xoffset@\sseq@thename(#1,#2,\tempnodenum)\endcsname,#2\@xp\@nx\csname sseq@yoffset@\sseq@thename(#1,#2,\tempnodenum)\endcsname){};}
+    \edef\temp{\@nx\node[/tikz/sseqpages/second pass,every class,\the\sseq@thetranscyclestyle,\sseq@scopeoptions,#3] (sseq@{#1,#2,\tempnodenum}) at (#1\@xp\@nx\csname sseq@xoffset@\sseq@thename(#1,#2,\tempnodenum)\endcsname,#2\@xp\@nx\csname sseq@yoffset@\sseq@thename(#1,#2,\tempnodenum)\endcsname){};}
     \sseq@temptoks\@xp{\temp}%
     \@xp\xdef\csname sseq@place\sseq@thename(#1,#2,\tempnodenum)\endcsname{\the\sseq@temptoks}
 %
     % Classes that live forever
-    \edef\temp{\@nx\node[/tikz/sseqpages/internal/no shifts pass,every class,\the\sseq@thepermcyclestyle,\sseq@scopeoptions,#3] (sseq@{#1,#2,\tempnodenum}) at (#1\@xp\@nx\csname sseq@xoffset@\sseq@thename(#1,#2,\tempnodenum)\endcsname,#2\@xp\@nx\csname sseq@yoffset@\sseq@thename(#1,#2,\tempnodenum)\endcsname){};}
+    \edef\temp{\@nx\node[/tikz/sseqpages/second pass,every class,\the\sseq@thepermcyclestyle,\sseq@scopeoptions,#3] (sseq@{#1,#2,\tempnodenum}) at (#1\@xp\@nx\csname sseq@xoffset@\sseq@thename(#1,#2,\tempnodenum)\endcsname,#2\@xp\@nx\csname sseq@yoffset@\sseq@thename(#1,#2,\tempnodenum)\endcsname){};}
     \sseq@temptoks\@xp{\temp}
     \@xp\xdef\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname{\the\sseq@temptoks}
-    \@xp\xdef\csname sseq@clearinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname{\global\let\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname\relax}%
+    \sseq@x@deforaddto@macro{sseq@clearinfty\sseq@thename(#1,#2,\tempnodenum)}{\global\let\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname\relax}%
 %
-    \sseq@g@addto@macro\sseq@compilesseq{\sseq@setoffsets{#1}{#2}}
+    \sseq@g@addto@macro\sseq@compilesseq{\sseq@setoffsets{#1}{#2}} % macro@ b/c doesn't need \foreach context
     %\sseq@x@addto@macro\sseq@compilesseq{\xdef\@xp\@nx\csname sseq@place\sseq@thename(#1,#2,\tempnodenum)\endcsname{\@nx\@xp\@nx\@nx\@xp\@nx\csname sseq@place\sseq@thename(#1,#2,\tempnodenum)\endcsname}}
     %\sseq@x@addto@macro\sseq@compilesseq{\xdef\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname{\@nx\@xp\@nx\@nx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname}}
 
     \ifnum#1<\sseq@xmaxpp\ifnum#1>\sseq@xminmm\ifnum#2<\sseq@ymaxpp\ifnum#2>\sseq@yminmm %
-        \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename infty\endcsname{%
-            \@nx\ifx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname\relax\@nx\else %
-                \@nx\@nx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname %
-            \@nx\fi %
+        \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename infty\endcsname{% no need for defor since infty page initialized at begin{sseqdata}
+%            \@nx\ifx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname\relax\@nx\else %
+%                \@nx\@nx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname %
+%            \@nx\fi %
+            \@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname %
         }%
     \fi\fi\fi\fi %
 }
@@ -564,6 +646,19 @@
         \sseq@usestdoffsets{#1}{#2}{2}{4}
         \sseq@usestdoffsets{#1}{#2}{3}{4}
         \sseq@usestdoffsets{#1}{#2}{4}{4}
+    \or
+        \sseq@usestdoffsets{#1}{#2}{1}{5}
+        \sseq@usestdoffsets{#1}{#2}{2}{5}
+        \sseq@usestdoffsets{#1}{#2}{3}{5}
+        \sseq@usestdoffsets{#1}{#2}{4}{5}
+        \sseq@usestdoffsets{#1}{#2}{5}{5}
+    \or
+        \sseq@usestdoffsets{#1}{#2}{1}{6}
+        \sseq@usestdoffsets{#1}{#2}{2}{6}
+        \sseq@usestdoffsets{#1}{#2}{3}{6}
+        \sseq@usestdoffsets{#1}{#2}{4}{6}
+        \sseq@usestdoffsets{#1}{#2}{5}{6}
+        \sseq@usestdoffsets{#1}{#2}{6}{6}
     \else
         \sseq@error{Too many nodes in coordinate (#1,#2). Improve this error message}{}
     \fi
@@ -603,7 +698,7 @@
 \def\sseq@d@@#1#2(#3,#4){%
     \conditionally@traceon%
 %
-    \pgfqkeys{/tikz/sseqpages/internal/shifts only pass}{#1}
+    \pgfqkeys{/tikz/sseqpages/first pass}{#1}
     \sseq@parsecommas(\sseq@x+#3,\sseq@y+#4)%
     \sseq@arg@checkpresent\d1%
     \sseq@arg@checkpresent\d2%
@@ -674,9 +769,9 @@
     \sseq@setdeathpage\target{#2}%
 %
     \sseq@temptoks{#1}%
-    \@xp\sseq@x@addto@macro\csname sseq@saveddiffs@\sseq@thename#2\endcsname{%
+    \sseq@x@deforaddto@macro{sseq@saveddiffs@\sseq@thename#2}{%
         \@nx\sseq@temptoks{\the\sseq@temptoks}%
-        \@nx\edef\@nx\temp{\@nx\@nx\@nx\draw[/tikz/sseqpages/internal/no shifts pass,every differential,\sseq@scopeoptions,\@nx\the\@nx\sseq@temptoks,\@xp\@nx\csname sseq@dstyle#2\source\endcsname] \source to \target;}%
+        \@nx\edef\@nx\temp{\@nx\@nx\@nx\draw[/tikz/sseqpages/second pass,every differential,\sseq@scopeoptions,\@nx\the\@nx\sseq@temptoks,\@xp\@nx\csname sseq@dstyle#2\source\endcsname] \source to \target;}%
         \@nx\temp %
     }%
 %
@@ -688,7 +783,7 @@
     \csname sseq@clearinfty\sseq@thename\target\endcsname%
 %
     % Add placement on appropriate page
-    \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename#2\endcsname{%
+    \sseq@x@deforaddto@macro{sseq@savednodes@\sseq@thename#2}{%
         \@xp\@nx\csname sseq@place\sseq@thename\source\endcsname %
         \@xp\@nx\csname sseq@place\sseq@thename\target\endcsname %
     }%
@@ -698,14 +793,16 @@
     \@xp\gdef\csname sseq@feature\the\sseq@featurecount\endcsname{#2}%
     \@xp\gdef\csname sseq@featureinfty\the\sseq@featurecount\endcsname{#2}%
     \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename infty\endcsname{%
-        \@nx\ifx\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname\relax\@nx\else %
-            \@nx\@nx\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname %
-        \@nx\fi %
+        \@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname
+%        \@nx\ifx\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname\relax\@nx\else %
+%            \@nx\@nx\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname %
+%        \@nx\fi %
     }%
-    %\@xp\show\csname sseq@feature\the\sseq@featurecount\endcsname
+    %
     \@xp\xdef\csname sseq@transferfeature\the\sseq@featurecount\endcsname{%
         \global\let\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname\relax %
-        \@nx\@xp\@nx\sseq@g@addto@macro\@nx\csname sseq@savednodes@\sseq@thename\@nx\sseq@temppage\endcsname{%
+        %\sseq@temppage is defined by \d before it calls this.
+        \@nx\sseq@g@deforaddto@macro{sseq@savednodes@\sseq@thename\@nx\sseq@temppage}{% needs to be defor in case this is placed before the nodes it connects.
             \@xp\@nx\csname sseq@feature\the\sseq@featurecount\endcsname %
         }%
         \global\let\@xp\@nx\csname sseq@transferfeature\the\sseq@featurecount\endcsname\relax %
@@ -718,7 +815,7 @@
     \ifx\sseq@nil#1\else %
         \sseq@parsecoords\temp{\sseq@x+#1,\sseq@y+#2}%
         \@xp\sseq@iffullcoord\@xp(\temp){}{\edef\temp{\temp,1}}%
-        \@xp\sseq@x@addto@macro\csname sseq@clearinfty\sseq@thename(\temp)\endcsname{%
+        \sseq@x@deforaddto@macro{sseq@clearinfty\sseq@thename(\temp)}{% should be deforaddto, so that it will work even if this is called before the node is placed
                 \@xp\@nx\csname sseq@transferfeature\the\sseq@featurecount\endcsname %
         }%
     %
@@ -780,7 +877,6 @@
 
 \def\sseq@tikz@@@parse@regular@#1#2#3#4{
     \sseq@parsecoords\temp{\sseq@x+#2,\sseq@y+#3}
-    %\show\temp
     \@xp\sseq@iffullcoord\@xp(\temp){}{\@ifundefined{sseq@coord\sseq@thename(\temp)@numnodes}{}{\ifnum\csname sseq@coord\sseq@thename(\temp)@numnodes\endcsname=1\relax\edef\temp{\temp,1}\fi}}
     \@xp\ifx\csname pgf@sh@pi@sseq@{\temp}\endcsname\pgfpictureid % Check if a node with name sseq@{x,y} is defined in this picture
         \edef\next{\@nx\tikz@parse@node\@nx#1(sseq@{\temp}#4)}
@@ -802,3 +898,155 @@
   \fi
   \tikz@to@or@edge@function%
 }
+
+
+%% Patch \foreach to use sseq@context
+
+\def\sseq@for@clearsavedtoks{\@xp\gdef\csname sseq@for@savedtoks\the\sseq@context@depth\endcsname{}}
+\def\sseq@for@addtosavedtoks{\@xp\sseq@g@addto@macro\csname sseq@for@savedtoks\the\sseq@context@depth\endcsname}
+\def\sseq@for@xaddtosavedtoks{\@xp\sseq@x@addto@macro\csname sseq@for@savedtoks\the\sseq@context@depth\endcsname}
+\def\sseq@for@addsavedtoksntomacro#1#2{\@xp\@xp\@xp\sseq@g@addto@macro\@xp\@xp\@xp#2\@xp\@xp\@xp{\csname sseq@for@savedtoks#1\endcsname}}
+
+\let\sseq@pgffor@doloop\pgffor@doloop
+\let\sseq@pgffor@invokebody\pgffor@invokebody
+\let\sseq@pgffor@assign@@@parse\pgffor@assign@@@parse
+\let\sseq@pgffor@count@@parse\pgffor@count@@parse
+\let\sseq@pgffor@remember@@@parse\pgffor@remember@@@parse
+\let\sseq@pgffor@remember@@@parse@old\pgffor@remember@@@parse@old
+\let\sseq@pgffor@multiassignfinal\pgffor@multiassignfinal
+\let\sseq@pgffor@default@endgroup\pgffor@default@endgroup
+\let\sseq@pgffor@atendforeach\pgffor@atendforeach
+
+\def\sseq@patchfor{
+    \let\pgffor@atbeginforeach\sseq@pgffor@atbeginforeach
+    \let\pgffor@invokebody\sseq@pgffor@invokebody
+    \let\pgffor@doloop\sseq@pgffor@doloop
+    \let\pgffor@assign@@@parse\sseq@pgffor@assign@@@parse
+    \let\pgffor@count@@parse\sseq@pgffor@count@@parse
+    \let\pgffor@remember@@@parse\sseq@pgffor@remember@@@parse
+    \let\pgffor@remember@@@parse@old\sseq@pgffor@remember@@@parse@old
+    \let\pgffor@multiassignfinal\sseq@pgffor@multiassignfinal
+    \let\pgffor@default@endgroup\sseq@pgffor@default@endgroup
+    \let\pgffor@atendforeach\sseq@pgffor@atendforeach
+}
+
+\def\sseq@pgffor@atbeginforeach{%
+    \begingroup %
+    \let\sseq@g@addto@macro@ctx\sseq@g@addto@macro@foreach %
+    \let\sseq@x@addto@macro@ctx\sseq@x@addto@macro@foreach %
+    \let\sseq@g@deforaddto@macro@ctx\sseq@g@deforaddto@macro@foreach %
+    \let\sseq@x@deforaddto@macro@ctx\sseq@x@deforaddto@macro@foreach %
+    \advance\sseq@context@depth1\relax %
+    \sseq@for@clearsavedtoks %
+}
+
+\patchcmd\sseq@pgffor@invokebody % store setting after
+    {\expandafter\expandafter\expandafter\def\expandafter\pgffor@var\expandafter{\pgffor@value}}
+    {\expandafter\expandafter\expandafter\def\expandafter\pgffor@var\expandafter{\pgffor@value}%
+        \sseq@for@xaddtosavedtoks{\def\@xp\@nx\pgffor@var{\pgffor@var}}}
+    {}{\no}
+\patchcmd\sseq@pgffor@doloop % store setting before
+    {\ifx\pgffor@assign@before@code}
+    {\sseq@for@xaddtosavedtoks{\def\@xp\@nx\pgffor@var{\pgffor@var}}%
+     \ifx\pgffor@assign@before@code}
+    {}{\no}
+\patchcmd\sseq@pgffor@invokebody % reset stored definitions before
+    {\ifx\pgffor@assign@after@code}
+    {\sseq@for@clearsavedtoks%
+     \ifx\pgffor@assign@after@code}
+    {}{\no}
+\patchcmd\sseq@pgffor@doloop % reset stored definitions before
+    {\ifx\pgffor@assign@after@code}
+    {\sseq@for@clearsavedtoks%
+     \ifx\pgffor@assign@after@code}
+    {}{\no}
+
+
+%%
+%\patchcmd\pgffor@invokebody
+%    {\else\pgffor@assign@once@code}
+%    {\else\pgffor@assign@once@code
+%        \@xp\sseq@for@addtosavedtoks\@xp{\pgffor@assign@once@code}}
+%    {}{\no}
+%\patchcmd\pgffor@invokebody
+%    {\else\pgffor@assign@before@code}
+%    {\else\pgffor@assign@before@code}% \show\pgffor@assign@before@code }
+%     %   \@xp\sseq@for@addtosavedtoks\@xp{\pgffor@assign@before@code}}
+%    {}{\no}
+%\patchcmd\pgffor@invokebody
+%    {\else\pgffor@assign@after@code}
+%    {\else\pgffor@assign@after@code
+%        \@xp\pgfutil@g@addto@macro\@xp\savedtoks\@xp{\pgffor@assign@after@code}}
+%    {}{\no}
+
+
+%\patchcmd\pgffor@doloop % store code after
+%    {\ifx\pgffor@assign@before@code}
+%    {\ifx\pgffor@assign@before@code\show\pgffor@assign@before@code}
+%    %    \@xp\sseq@for@addtosavedtoks\@xp{\pgffor@assign@before@code}}
+%    {}{\no}
+%\patchcmd\pgffor@doloop
+%    {\else\pgffor@assign@after@code}
+%    {\else\pgffor@assign@after@code
+%        \@xp\pgfutil@g@addto@macro\@xp\savedtoks\@xp{\pgffor@assign@after@code}}
+%    {}{\no}
+
+
+\patchcmd\sseq@pgffor@remember@@@parse@old
+    {\pgfutil@append@tomacro{\pgffor@assign@once@code}{\def#2{#4}}}
+    {\pgfutil@append@tomacro{\pgffor@assign@once@code}{\def#2{#4}\sseq@for@addtosavedtoks{\def#2{#4}}}}
+    {}{\no}
+\patchcmd\sseq@pgffor@assign@@@parse
+    {\pgfutil@append@tomacro{\pgffor@assign@once@code}{\pgfmathparse{#2}\let#1=\pgfmathresult}}
+    {\pgfutil@append@tomacro{\pgffor@assign@once@code}{\pgfmathparse{#2}\let#1=\pgfmathresult\sseq@for@xaddtosavedtoks{\def\@nx#1{\pgfmathresult}}}}
+    {}{\no}
+\patchcmd\sseq@pgffor@assign@@@parse
+    {\pgfutil@append@tomacro{\pgffor@assign@once@code}{\def#1{#2}}}
+    {\pgfutil@append@tomacro{\pgffor@assign@once@code}{\def#1{#2}\sseq@for@addtosavedtoks{\def#1{#2}}}}
+    {}{\no}
+
+
+\patchcmd\sseq@pgffor@assign@@@parse
+    {\pgfutil@append@tomacro{\pgffor@assign@before@code}{\pgfmathparse{#2}\let#1=\pgfmathresult}}
+    {\pgfutil@append@tomacro{\pgffor@assign@before@code}{\pgfmathparse{#2}\let#1=\pgfmathresult\sseq@for@xaddtosavedtoks{\def\@nx#1{\pgfmathresult}}}}
+    {}{\no}
+\patchcmd\sseq@pgffor@assign@@@parse
+    {\pgfutil@append@tomacro{\pgffor@assign@before@code}{\def#1{#2}}}
+    {\pgfutil@append@tomacro{\pgffor@assign@before@code}{\def#1{#2}\sseq@for@addtosavedtoks{\def#1{#2}}}}
+    {}{\no}
+\patchcmd\sseq@pgffor@count@@parse
+    {\pgfutil@append@tomacro\pgffor@assign@before@code{\pgfmathparse{int(#1+1)}\let#1=\pgfmathresult}}
+    {\pgfutil@append@tomacro\pgffor@assign@before@code{\pgfmathparse{int(#1+1)}\let#1=\pgfmathresult\sseq@for@xaddtosavedtoks{\def\@nx#1{\pgfmathresult}}}}
+    {}{\no}
+
+
+\patchcmd\sseq@pgffor@remember@@@parse
+    {\pgfutil@append@tomacro{\pgffor@assign@after@code}{\expandafter\def\expandafter#1\expandafter{\the#2}}}
+    {\pgfutil@append@tomacro{\pgffor@assign@after@code}{\expandafter\def\expandafter#1\expandafter{\the#2}\sseq@for@xaddtosavedtoks{\def\@nx#1{\the#2}}}}
+    {}{\no}
+\patchcmd\sseq@pgffor@remember@@@parse
+    {\pgfutil@append@tomacro{\pgffor@assign@after@code}{\expandafter\def\expandafter#1\expandafter{#2}}}
+    {\pgfutil@append@tomacro{\pgffor@assign@after@code}{\expandafter\def\expandafter#1\expandafter{#2}\@xp\sseq@for@xaddtosavedtoks\@xp{\@xp\def\@xp#1\@xp{#2}}}}
+    {}{\no}
+\patchcmd\sseq@pgffor@remember@@@parse@old
+    {\pgfutil@append@tomacro{\pgffor@assign@after@code}{\edef#2{#1}}}
+    {\pgfutil@append@tomacro{\pgffor@assign@after@code}{\edef#2{#1}\sseq@for@xaddtosavedtoks{\def\@nx#2{#1}}}}
+    {}{\no}
+
+
+\patchcmd\sseq@pgffor@multiassignfinal
+    {\expandafter\expandafter\expandafter\def\expandafter\pgffor@currentvar\expandafter{\pgffor@temp}}
+    {\expandafter\expandafter\expandafter\def\expandafter\pgffor@currentvar\expandafter{\pgffor@temp}%
+        \sseq@for@xaddtosavedtoks{\def\@xp\@nx\pgffor@currentvar{\pgffor@temp}}}
+    {}{\no}
+\patchcmd\sseq@pgffor@default@endgroup
+    {\else\pgffor@remember@once@expanded}
+    {\else\pgffor@remember@once@expanded %
+        \sseq@for@addtosavedtoks{\pgffor@remember@once@expanded}}
+    {}{\no}
+\patchcmd\sseq@pgffor@atendforeach
+    {\else\pgffor@remember@expanded}
+    {\else\pgffor@remember@expanded %
+        \sseq@for@addtosavedtoks{\pgffor@remember@expanded}}
+    {}{\no}
+\pretocmd\sseq@pgffor@atendforeach{\sseq@for@clearsavedtoks}{}{\no}
