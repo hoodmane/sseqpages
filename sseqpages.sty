@@ -1,6 +1,5 @@
 \ProvidesPackage{sseqpages}
 \RequirePackage{tikz}
-\RequirePackage{environ}
 \RequirePackage{etoolbox}
 
 \usetikzlibrary{quotes}
@@ -21,7 +20,7 @@
 
 %% Declarations
 \newif\ifsseq@errorchecking
-\newif\ifsseq@needstikzdifferential
+\newif\ifsseq@needstikz
 \sseq@errorcheckingtrue
 
 \newtoks\sseq@temptoks
@@ -52,6 +51,7 @@
 \newdimen\sseq@tempdimen@ii
 
 
+
 %% \sseq@--@--addto@macro and friends.
 % My own variants of \pgfutil@g@addto@macro.
 % \sseq@x@addto@macro recursively expands the argument and then adds it.
@@ -67,11 +67,14 @@
 \let\sseq@x@addto@macro@noctx\sseq@x@addto@macro
 
 
-\def\sseq@g@deforaddto@macro@ctx#1{\@ifundefined{#1}{\@xp\gdef\csname#1\endcsname}{\@xp\sseq@g@addto@macro@noctx\csname#1\endcsname}}
-\def\sseq@x@deforaddto@macro@ctx#1{\@ifundefined{#1}{\@xp\xdef\csname#1\endcsname}{\@xp\sseq@x@addto@macro@noctx\csname#1\endcsname}}
+\def\sseq@g@deforaddto@macro#1{\@ifundefined{#1}{\@xp\gdef\csname#1\endcsname}{\@xp\sseq@g@addto@macro@noctx\csname#1\endcsname}}
+\def\sseq@x@deforaddto@macro#1{\@ifundefined{#1}{\@xp\xdef\csname#1\endcsname}{\@xp\sseq@x@addto@macro@noctx\csname#1\endcsname}}
 
-\let\sseq@g@deforaddto@macro\sseq@g@deforaddto@macro@ctx
-\let\sseq@x@deforaddto@macro\sseq@x@deforaddto@macro@ctx
+\let\sseq@g@deforaddto@macro@ctx\sseq@g@deforaddto@macro
+\let\sseq@x@deforaddto@macro@ctx\sseq@x@deforaddto@macro
+\let\sseq@g@deforaddto@macro@noctx\sseq@g@deforaddto@macro
+\let\sseq@x@deforaddto@macro@noctx\sseq@x@deforaddto@macro
+
 
 \def\sseq@g@addto@macro@foreach#1{%
     \sseq@gx@addto@macro@foreach@#1
@@ -116,6 +119,8 @@
     tikz/sseqpages/.is family,
     tikz/sseqpages/.unknown/.code={\sseq@passoptionto{/tikz}},
     % \sseq@currentoptionpath is set to \sseq@thename in \sseqdata, then "temp" in \sseqpage
+    % TODO: fix global so that unknown options cause errors at the begining of the environment
+    % It should check that the option is defined somewhere before deferring it.
     tikz/sseqpages/global/.unknown/.code={
         \let\tempa\pgfkeyscurrentname
         \let\tempb\pgfkeyscurrentvalue
@@ -143,7 +148,7 @@
     /tikz/sseqpages/first pass/handle quote/.code={},
     /tikz/sseqpages/first pass/scope/handle quote/.code={\sseq@error{Quotes are not allowed as options to a scope}{}},
     /tikz/sseqpages/first pass/class/handle quote/.code={\@xp\def\@xp\sseq@classnodetext\@xp{\sseq@removequotes#1}},
-    /tikz/sseqpages/first pass/differential/handle quote/.code=\sseq@needstikzdifferentialtrue,
+    /tikz/sseqpages/first pass/differential/handle quote/.code=\sseq@needstikztrue,
     /tikz/sseqpages/second pass/handle quote/.code={},
     /tikz/sseqpages/second pass/differential/handle quote/.code={\tikzset{every to/.append style={#1}}},
     /tikz/sseqpages/handle quote/.code={\tikzset{every to/.append style={#1}}}% Should we use this? (probably?)
@@ -151,40 +156,65 @@
 
 %% Parsing and context
 \sseqset{
-    standard parse/.code={\let\tikz@@@parse@regular\sseq@tikz@@@parse@regular@old}
+    standard parse/.code={
+        \let\tikz@@@parse@regular\sseq@tikz@@@parse@regular@old
+        \let\sseq@transform\sseq@okaytransform % Allow all coordinate transformations
+        \let\sseq@shifttransform\sseq@okaytransform
+    }
 }
 
 \pgfqkeys{/tikz/sseqpages/first pass}{
-    use context/.code={
+    use context/.code={%\def rather than \let because until a \foreach loop occurs, \sseq@g@addto@macro@ctx is vanilla variant
         \def\sseq@g@addto@macro{\sseq@g@addto@macro@ctx}
         \def\sseq@x@addto@macro{\sseq@x@addto@macro@ctx}
         \def\sseq@g@deforaddto@macro{\sseq@g@deforaddto@macro@ctx}
         \def\sseq@x@deforaddto@macro{\sseq@x@deforaddto@macro@ctx}
-    }
+    },
+    needs tikz/.code=\sseq@needstikztrue,
+    shade/.code=\sseq@needstikztrue, % TODO: shading?
+    blend mode/.code=\sseq@needstikztrue,
+    pattern/.code=\sseq@needstikztrue,
+    path picture/.code=\sseq@needstikztrue,
+    path fading/.code=\sseq@needstikztrue,
+    decorate/.code=\sseq@needstikztrue,
+    pin/.code=\sseq@needstikztrue,
+    label/.code=\sseq@needstikztrue,
 }
 
 \pgfqkeys{/tikz/sseqpages/second pass}{
     standard parse/.code={},
-    use context/.code={}
+    use context/.code={},
+    needs tikz/.code={}
 }
 
-%% Force differential to be drawn with tikz, as opposed to with faster direct \pgf commands
+%% Force multipart nodes to be drawn with tikz
+% Drawing with tikz is slower, but I don't want to reimplement these features
+\pgfqkeys{/tikz/sseqpages/first pass/class}{
+    circle split/.code=\sseq@needstikztrue,
+    circle solidus/.code=\sseq@needstikztrue,
+    ellipse split/.code=\sseq@needstikztrue,
+    rectangle split/.code=\sseq@needstikztrue,
+    align/.code=\sseq@needstikztrue,
+    name/.code={\sseq@error{You can't use the 'name' option with the '\@nx\place' command. You should use 'alias' instead}{}}
+}
+
+
+%% Force differential to be drawn with tikz if it is bent
+% Drawing with tikz is slower, but I don't want to reimplement these features
 \pgfqkeys{/tikz/sseqpages/first pass/differential}{
-    bend angle/.code=\sseq@needstikzdifferentialtrue,
-    bend left/.code=\sseq@needstikzdifferentialtrue,
-    bend right/.code=\sseq@needstikzdifferentialtrue,
-    in/.code=\sseq@needstikzdifferentialtrue,
-    out/.code=\sseq@needstikzdifferentialtrue,
-    controls/.code=\sseq@needstikzdifferentialtrue,
-    in control/.code=\sseq@needstikzdifferentialtrue,
-    out control/.code=\sseq@needstikzdifferentialtrue,
-    loop/.code=\sseq@needstikzdifferentialtrue,
-    loop above/.code=\sseq@needstikzdifferentialtrue,
-    loop below/.code=\sseq@needstikzdifferentialtrue,
-    loop left/.code=\sseq@needstikzdifferentialtrue,
-    loop right/.code=\sseq@needstikzdifferentialtrue
+    bend left/.code=\sseq@needstikztrue,
+    bend right/.code=\sseq@needstikztrue,
+    in/.code=\sseq@needstikztrue,
+    out/.code=\sseq@needstikztrue,
+    controls/.code=\sseq@needstikztrue,
+    in control/.code=\sseq@needstikztrue,
+    out control/.code=\sseq@needstikztrue,
+    loop/.code=\sseq@needstikztrue,
+    loop above/.code=\sseq@needstikztrue,
+    loop below/.code=\sseq@needstikztrue,
+    loop left/.code=\sseq@needstikztrue,
+    loop right/.code=\sseq@needstikztrue
 }
-
 
 
 %% Style options
@@ -213,10 +243,13 @@
 
 \pgfqkeys{/tikz/sseqpages/global}{
     name/.code={\name{#1}},
+    page/.code={\page{#1}},
+    x range/.code 2 args={\sseq@xrange{#1}{#2}},
+    y range/.code 2 args={\sseq@yrange{#1}{#2}},
     grid/.code={},
     labels/.code={},
-    xlabels/.code={},
-    ylabels/.code={},
+    x labels/.code={},
+    y labels/.code={},
     label step/.code={\def\sseq@xlabelstep{#1}\def\sseq@ylabelstep{#1}},
     x label step/.store in=\sseq@xlabelstep,
     y label step/.store in=\sseq@ylabelstep
@@ -256,8 +289,8 @@
 }
 
 \pgfqkeys{/tikz/sseqpages/first pass}{
-    xshift/.code={\sseq@ifp@checkshifttransform{x}{#1}},
-    yshift/.code={\sseq@ifp@checkshifttransform{y}{#1}}
+    xshift/.code={\sseq@firstpass@checkshifttransform{x}{#1}},
+    yshift/.code={\sseq@firstpass@checkshifttransform{y}{#1}}
 }
 
 \pgfqkeys{/tikz/sseqpages/second pass}{
@@ -292,7 +325,7 @@
     }{}
 }
 
-\def\sseq@ifp@checkshifttransform#1#2{
+\def\sseq@firstpass@checkshifttransform#1#2{
     \pgfmathparse{#2}
     \sseq@ifpgfmathresultisunitlessint{
         \@xp\advance\csname sseq@#1\endcsname\pgfmathresult
@@ -354,7 +387,6 @@
 \def\sseq@parsecommas(#1){\let\\\sseq@pc@stdslsl\sseq@commacount0\relax\sseq@parsecommas@{}#1,,,,,\sseq@nil}
 
 \def\sseq@parsecommas@#1#2,{%
-    \conditionally@traceoff %
     \advance\sseq@commacount1\relax%
     \ifnum\sseq@commacount<4 %
         \def\next{\sseq@parsecommas@{#1\\{#2}}}%
@@ -462,6 +494,7 @@
     \fi %
 }
 
+% TODO: figure out how to respect the style "every scope"
 \def\sseq@scopeoptions{}
 \def\sseq@scope{\@ifnextchar[{\sseq@scope@}{\sseq@scope@[]}}
 \def\sseq@scope@[#1]{%
@@ -479,8 +512,7 @@
 
 % transfer data about the current spectral sequence between \<command> and \<oldcommand><sseqname>
 \def\sseq@store#1{\edef\temp{\@nx\global\@nx\let\@xp\@nx\csname\sseq@macroname#1\sseq@thename\endcsname\@nx#1}\temp}
-\def\sseq@get#1{\edef\temp{\global\let\@nx#1\@xp\@nx\csname\sseq@macroname#1\sseq@thename\endcsname}\temp}
-
+\def\sseq@get#1{\ifx#1\sseq@novalue\edef\temp{\global\let\@nx#1\@xp\@nx\csname\sseq@macroname#1\sseq@thename\endcsname}\temp\fi}
 
 
 %% Environment definitions
@@ -488,18 +520,19 @@
 \def\sseqdata{\@ifnextchar[{\sseqdata@}{\sseqdata@[]}}%}
 
 \def\sseqdata@[#1]#2{%
+    \let\sseq@xminmax\sseq@xminmax@active
+    \let\sseq@yminmax\sseq@yminmax@active
     \sseq@data@name{#2}%
     % the default option handler for /tikz/sseqpages/global adds to \sseq@currentoptionpath options
     \let\sseq@currentoptionpath\sseq@thename
     \pgfqkeys{/tikz/sseqpages/global}{#1}
+    %To give these options global scope we say \global\let\sseq@<name of sseq>options\sseq@<name of sseq>options
     \edef\temp{\global\let\@xp\@nx\csname pgfk@/tikz/sseqpages/global/\sseq@thename options/.@cmd\endcsname\@xp\@nx\csname pgfk@/tikz/sseqpages/global/\sseq@thename options/.@cmd\endcsname}
     \temp
-%    \@xp\gdef\csname sseq@options\sseq@thename\endcsname{#1}%
-%
     \gdef\sseq@savedpaths{}%
     \gdef\sseq@compilesseq{}%
+    %
     \@xp\gdef\csname sseq@savednodes@\sseq@thename infty\endcsname{}
-%
     % Page 0 is all pages
     \@xp\gdef\csname sseq@saveddiffs@\sseq@thename0\endcsname{%
         \foreach\sseq@p in {1,...,12}{%
@@ -511,6 +544,7 @@
     \xdef\sseq@xmax{-\sseq@infinity}%
     \xdef\sseq@ymin{\sseq@infinity}%
     \xdef\sseq@ymax{-\sseq@infinity}%
+    %
     % These are used to decide whether to add a certain node to savedpaths.
     % In general the check is whether xmin<=xcoord<=xmax, but since Latex has no <=, set xminmm=xmin-1, xmaxpp=xmax+1.
     % If the user doesn't specify a range, all nodes should be rendered
@@ -529,10 +563,9 @@
         \structline %
     }%
 %
-    % Defer evaluation of tikz primitives
-    \sseq@modtikzcommands@defer %
-    \sseq@patchfor %
-    \pgfkeys{/handlers/first char syntax/the character "/.initial=\sseq@handlequote}%
+    \sseq@modtikzcommands@defer % Defer evaluation of tikz primitives
+    \sseq@patchfor % patch \foreach to work with deferred macros
+    \pgfkeys{/handlers/first char syntax/the character "/.initial=\sseq@handlequote} % install quotes parsing
     \selectfont\nullfont
 }
 
@@ -540,7 +573,7 @@
 \def\endsseqdata{
     %\@xp\xdef\csname sseq@savednodes@\sseq@thename infty\endcsname{\csname sseq@savednodes@\sseq@thename infty\endcsname}%
     \sseq@compilesseq
-
+%
     \sseq@store\sseq@savedpaths %
     \sseq@store\sseq@thepermcyclestyle\sseq@store\sseq@thetranscyclestyle %
     \sseq@store\sseq@xlabelstep
@@ -552,6 +585,11 @@
 \def\sseqpage{\@ifnextchar[{\sseqpage@}{\sseqpage@[]}} %}
 
 \def\sseqpage@[#1]{
+    \let\sseq@savedpaths\sseq@novalue
+    \let\sseq@xlabelstep\sseq@novalue
+    \let\sseq@ylabelstep\sseq@novalue
+    \let\sseq@xmin\sseq@novalue\let\sseq@xmax\sseq@novalue
+    \let\sseq@ymin\sseq@novalue\let\sseq@ymax\sseq@novalue
     % Copy commands into user namespace
     \sseq@copypagecommands{\name\page\doptions\xrange\yrange}%
 %
@@ -567,7 +605,7 @@
 }
 
 \def\endsseqpage{%
-    % Copied from tikzcd code. Passes quotes forward to edge and format edge label appropriately
+    % Copied from tikzcd code. Pass quotes forward to edge and format edge label appropriately
     \pgfkeys{
       /tikz/edge quotes mean={%
         edge node={node [execute at begin node=$,%$
@@ -591,31 +629,26 @@
     \sseq@drawylabels
     \sseq@clip
 %
+% TODO: add background savedpaths?
+%
     % Patch in modified tikz parsing rule
     \let\tikz@@@parse@regular\sseq@tikz@@@parse@regular
     \let\tikz@@to@or@edge@@coordinate\sseq@tikz@@to@or@edge@@coordinate
 %
-%
-%\pdfresettimer
+    \csname sseq@savednodes@\sseq@thename infty\endcsname
     % Insert nodes from all pages on or after the current one
     \foreach\sseq@p in {\curpage,...,12,infty}{%
         \csname sseq@savednodes@\sseq@thename\sseq@p\endcsname %
     }%
-%\xdef\nodestime{\the\pdfelapsedtime}
-%
 %
     % Insert differentials from just this page. \sseq@saveddiffs@thename@0 expands to all of these
-%\pdfresettimer
     \csname sseq@saveddiffs@\sseq@thename\curpage\endcsname %
-
-%\xdef\dstime{\the\pdfelapsedtime}
 %
     % dump in savedpaths now. Contains all miscellaneous tikz stuff. Perhaps should add an unclipped version.
     \sseq@modtikzcommands@options
     \sseq@savedpaths %
     \end{tikzpicture}%
-%\par Nodes: \nodestime{} Differentials: \dstime
-    \sseqpage@cleanup % This blanks any options special to this page
+    \sseqpage@cleanup % blank any options special to this page
     \let\sseq@thename\relax %
 }
 
@@ -648,7 +681,6 @@
     \advance\sseq@tempx1\relax
     \edef\sseq@temp{\the\sseq@tempx}
     \sseq@tempx=\sseq@xmin\relax
-    %\advance\sseq@tempx-\sseq@xlabelstep
     \loop
         %\node at (\sseq@x,\sseq@ymin-1) {\sseq@x};%
         \pgftext[at=\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm}]{$\the\sseq@tempx$}
@@ -663,7 +695,6 @@
     \advance\sseq@tempy1\relax
     \edef\sseq@temp{\the\sseq@tempy}
     \sseq@tempy=\sseq@ymin\relax
-    %\advance\sseq@tempy-\sseq@ylabelstep
     \loop
         %\node at (\sseq@x,\sseq@ymin-1) {\sseq@x};%
         \pgftext[at=\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm}]{$\the\sseq@tempy$}
@@ -673,6 +704,7 @@
 }
 
 \def\sseq@clip{
+    %\clip(\sseq@xmin-0.4,\sseq@ymin-0.4) rectangle (\sseq@xmax+0.5,\sseq@ymax+0.5);%
     \sseq@tempxdim=\sseq@xmin cm
     \advance\sseq@tempxdim-0.4cm
     \sseq@tempydim=\sseq@ymin cm
@@ -688,13 +720,10 @@
     \advance\sseq@tempxdim-0.4cm
     \pgfpathlineto{\pgfpoint{\the\sseq@tempxdim}{\the\sseq@tempydim}}
     \pgfusepath{clip}
-    %\clip(\sseq@xmin-0.4,\sseq@ymin-0.4) rectangle (\sseq@xmax+0.5,\sseq@ymax+0.5);%
 }
 
-\def\printpage#1#2{
-    \begin{sseqpage}
-    \name{#1}
-    \page{#2}
+\def\printpage[#1]{
+    \begin{sseqpage}[#1]
     \end{sseqpage}
 }
 
@@ -717,29 +746,31 @@
 \def\sseq@transientcyclestyle#1{\sseq@thetranscyclestyle{#1}}
 
 \def\sseq@xrange#1#2{%
-    \let\sseq@xminmax\@gobble % Don't need to calculate range of nodes if user specifies it
+    \global\let\sseq@xminmax\@gobble % Don't need to calculate range of nodes if user specifies it
     \gdef\sseq@xmin{#1}%
     \gdef\sseq@xmax{#2}%
     % Need to know decremented \xmin and incremented \xmax to decide which nodes to print
-    \sseq@tempcount=#1 \advance\sseq@tempcount-1\edef\sseq@xminmm{\the\sseq@tempcount}%
-    \sseq@tempcount=#2 \advance\sseq@tempcount1\edef\sseq@xmaxpp{\the\sseq@tempcount}%
+    \sseq@tempcount=#1 \advance\sseq@tempcount-1\xdef\sseq@xminmm{\the\sseq@tempcount}%
+    \sseq@tempcount=#2 \advance\sseq@tempcount1\xdef\sseq@xmaxpp{\the\sseq@tempcount}%
 }
 \def\sseq@yrange#1#2{%
-    \let\sseq@yminmax\@gobble %
+    \global\let\sseq@yminmax\@gobble %
     \gdef\sseq@ymin{#1}%
     \gdef\sseq@ymax{#2}%
-    \sseq@tempcount=#1 \advance\sseq@tempcount-1\edef\sseq@yminmm{\the\sseq@tempcount}%
-    \sseq@tempcount=#2 \advance\sseq@tempcount1\edef\sseq@ymaxpp{\the\sseq@tempcount}%
+    \sseq@tempcount=#1 \advance\sseq@tempcount-1\xdef\sseq@yminmm{\the\sseq@tempcount}%
+    \sseq@tempcount=#2 \advance\sseq@tempcount1\xdef\sseq@ymaxpp{\the\sseq@tempcount}%
 }
 
 % If #1 is less than \xmin or greater than \xmax, update \xmin or \xmax appropriately
 % Gets set to \@gobble if user specifies range
-\def\sseq@xminmax#1{%
+\def\sseq@xminmax@active#1{%
+    %\show\sseq@xmin
+    %\show\sseq@xminmm
     \ifnum#1<\sseq@xmin\gdef\sseq@xmin{#1}\fi %
     \ifnum#1>\sseq@xmax\gdef\sseq@xmax{#1}\fi %
 }
 
-\def\sseq@yminmax#1{%
+\def\sseq@yminmax@active#1{%
     \ifnum#1<\sseq@ymin\gdef\sseq@ymin{#1}\fi %
     \ifnum#1>\sseq@ymax\gdef\sseq@ymax{#1}\fi %
 }
@@ -757,13 +788,12 @@
     \edef\temp{\@nx\sseq@doptions@{\the\sseq@tempcount}{#2}}\temp%
 }
 
-\def\sseq@doptions@#1#2{
+\def\sseq@doptions@#1#2#3{
     \def\temp{#2}
     \sseq@iffullcoord(#2){}{\edef\temp{\temp,1}}
 %
-    %\@xp\sseq@g@addto@macro\csname sseq@dstyle#1(#2)\endcsname
     \sseq@x@addto@macro\sseqpage@cleanup{\gdef\@xp\@nx\csname sseq@dstyle#1(\temp)\endcsname{}}
-    \@xp\def\csname sseq@dstyle#1(\temp)\endcsname
+    \sseq@g@deforaddto@macro{sseq@dstyle#1(\temp)}{#3,}
 }
 
 
@@ -781,6 +811,7 @@
 }
 
 \def\sseq@place@@(#1,#2)#3#4{
+    \sseq@xminmax{#1}\sseq@yminmax{#2}
     \sseq@tempcount=\@ifundefined{sseq@coord\sseq@thename(#1,#2)@numnodespp}{1}{\csname sseq@coord\sseq@thename(#1,#2)@numnodespp\endcsname}
     \edef\tempnodenum{\the\sseq@tempcount}
     \@xp\xdef\csname sseq@coord\sseq@thename(#1,#2)@numnodes\endcsname{\the\sseq@tempcount}
@@ -791,20 +822,26 @@
     \sseq@temptoks@ii\@xp{\sseq@scopeoptions}%
     \sseq@temptoks@iii{#4}% local options
     % Classes that eventually die
-    %\edef\temp{\@nx\node[/tikz/sseqpages/second pass,every class,\the\sseq@thetranscyclestyle,\sseq@scopeoptions,#3] (sseq@{#1,#2,\tempnodenum}) at (#1\@xp\@nx\csname sseq@xoffset@\sseq@thename(#1,#2,\tempnodenum)\endcsname,#2\@xp\@nx\csname sseq@yoffset@\sseq@thename(#1,#2,\tempnodenum)\endcsname){};}
-    %\sseq@temptoks\@xp{\temp}%
-    \@xp\xdef\csname sseq@place\sseq@thename(#1,#2,\tempnodenum)\endcsname{\@nx\sseq@place@drawnode{#1}{#2}{\tempnodenum}{\the\sseq@temptoks}{\the\sseq@thetranscyclestyle,\the\sseq@temptoks@ii}{\the\sseq@temptoks@iii}}
-    %\@xp\xdef\csname sseq@place\sseq@thename(#1,#2,\tempnodenum)\endcsname{\the\sseq@temptoks}
-    %\@xp\show\csname sseq@place\sseq@thename(#1,#2,\tempnodenum)\endcsname
+    \@xp\xdef\csname sseq@place\sseq@thename(#1,#2,\tempnodenum)\endcsname{%
+        \begingroup
+        \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
+        \@nx\sseq@place@drawnode{#1}{#2}{\tempnodenum}{\the\sseq@temptoks}{\the\sseq@thetranscyclestyle,\the\sseq@temptoks@ii}{\the\sseq@temptoks@iii}%
+        \endgroup
+    }
 %
     % Classes that live forever
-    \@xp\xdef\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname{\@nx\sseq@place@drawnode{#1}{#2}{\tempnodenum}{\the\sseq@temptoks}{\the\sseq@thepermcyclestyle,\the\sseq@temptoks@ii}{\the\sseq@temptoks@iii}}
+    \@xp\xdef\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname{%
+        \begingroup
+        \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
+        \@nx\sseq@place@drawnode{#1}{#2}{\tempnodenum}{\the\sseq@temptoks}{\the\sseq@thepermcyclestyle,\the\sseq@temptoks@ii}{\the\sseq@temptoks@iii}%
+        \endgroup
+    }
     \sseq@x@deforaddto@macro{sseq@clearinfty\sseq@thename(#1,#2,\tempnodenum)}{\global\let\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname\relax}%
 %
     \sseq@g@addto@macro\sseq@compilesseq{\sseq@setoffsets{#1}{#2}}%
     %\sseq@x@addto@macro\sseq@compilesseq{\xdef\@xp\@nx\csname sseq@place\sseq@thename(#1,#2,\tempnodenum)\endcsname{\@nx\@xp\@nx\@nx\@xp\@nx\csname sseq@place\sseq@thename(#1,#2,\tempnodenum)\endcsname}}
     %\sseq@x@addto@macro\sseq@compilesseq{\xdef\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname{\@nx\@xp\@nx\@nx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname}}
-
+    %\tikzset{every path/.show code}
     \ifnum#1<\sseq@xmaxpp\ifnum#1>\sseq@xminmm\ifnum#2<\sseq@ymaxpp\ifnum#2>\sseq@yminmm %
         \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename infty\endcsname{% no need for defor since infty page initialized at begin{sseqdata}
 %            \@nx\ifx\@xp\@nx\csname sseq@placeinfty\sseq@thename(#1,#2,\tempnodenum)\endcsname\relax\@nx\else %
@@ -820,57 +857,132 @@
 % #2 -- y
 % #3 -- n
 % #4 -- node text
-% #5 -- medium options
+% #5 -- perm/trans cycle style and scopeoptions
 % #6 -- local options
 \def\sseq@place@drawnode#1#2#3#4#5#6{
-    \begingroup
-    \pgfscope
-    \let\tikz@options\pgfutil@empty
-    \pgfqkeys{/tikz/sseqpages/second pass}{#5}
-    \tikzset{every path/.try, every node/.try} % TODO: rework these to not depend on changes issued after using \place
-    \pgfqkeys{/tikz/sseqpages/second pass}{every class,#6}
-    \tikzset{every \tikz@shape\space node/.try}
-    \pgftransformshift{\pgfpoint{#1 cm}{#2 cm}}%
-    \edef\temp{\@nx\pgftransformshift{\@nx\pgfpoint{0\csname sseq@xoffset@\sseq@thename(#1,#2,#3)\endcsname cm}{0\csname sseq@yoffset@\sseq@thename(#1,#2,#3)\endcsname cm}}}
-    \temp
-    \tikz@options
-    \pgfnode{\tikz@shape}{\tikz@anchor}{#4}{sseq@{#1,#2,#3}}{
-      \pgfutil@tempdima=\pgflinewidth%
-      {
-        \tikz@mode%
-        \iftikz@mode@clip \sseq@error{Clip shouldn't happen here, but this error should be caught earlier}{}\fi%
-        \iftikz@mode@draw%
-            \iftikz@mode@double%
-            % Change line width
-                \begingroup%
-                \pgfsys@beginscope%
-                \tikz@double@setup%
-            \fi%
+    \ifsseq@needstikz
+        \sseq@temptoks{#4}
+        \sseq@temptoks@ii{#5,every class,#6}
+        %\let\tikz@quote@parser\sseq@handlequote
+        \edef\temp{
+            \@nx\node[
+                /handlers/first char syntax/the character "/.initial=\@nx\sseq@handlequote,
+                /tikz/sseqpages/second pass,\the\sseq@temptoks@ii
+            ] (sseq@{#1,#2,#3})
+            at (#1\@xp\@nx\csname sseq@xoffset@\sseq@thename(#1,#2,#3)\endcsname,#2\@xp\@nx\csname sseq@yoffset@\sseq@thename(#1,#2,#3)\endcsname){\the\sseq@temptoks};
+        }
+        \temp
+    \else
+        \begingroup
+        \pgfscope
+        \let\tikz@options\pgfutil@empty
+        \let\tikz@alias=\pgfutil@empty
+        \pgfqkeys{/tikz/sseqpages/second pass}{#5}
+        \tikzset{every path/.try, every node/.try} % TODO: rework these to not depend on changes issued after using \place
+        \pgfqkeys{/tikz/sseqpages/second pass}{every class,#6}
+        \tikzset{every \tikz@shape\space node/.try}
+        \pgftransformshift{\pgfpoint{#1 cm}{#2 cm}}%
+        \edef\temp{\@nx\pgftransformshift{\@nx\pgfpoint{0\csname sseq@xoffset@\sseq@thename(#1,#2,#3)\endcsname cm}{0\csname sseq@yoffset@\sseq@thename(#1,#2,#3)\endcsname cm}}}
+        \temp
+        \tikz@options
+        \tikz@node@textfont
+        \sseq@setnodetext{#4}
+        \def\tikz@fig@name{sseq@{#1,#2,#3}}
+        \iftikz@fullytransformed\else\pgftransformresetnontranslations\fi
+        \pgfmultipartnode{\tikz@shape}{\tikz@anchor}{\tikz@fig@name}{\sseq@drawnode}
+        \tikz@alias
+        \endpgfscope
+        \endgroup
+    \fi
+}
+
+\def\sseq@setnodetext#1{
+    \setbox\pgfnodeparttextbox=\hbox{
+        \pgfscope%
+        \tikzset{every text node part/.try}%
+        \ifx\tikz@textopacity\pgfutil@empty%
+        \else%
+         \pgfsetfillopacity{\tikz@textopacity}%
+          \pgfsetstrokeopacity{\tikz@textopacity}%
         \fi%
-        %
-        % Step 10: Do stroke/fill as needed
-        %
-        \edef\temp{\noexpand\pgfusepath{%
-            \iftikz@mode@fill fill,\fi%
-            \iftikz@mode@draw draw,\fi%
-        }}\temp%
-        %
-        % Step 11: Double stroke, if necessary
-        %
-        \iftikz@mode@draw%
-            \iftikz@mode@double%
-                \pgfsys@endscope%
-                \endgroup%
-            \fi%
-        \fi
-      }%
-      \global\pgflinewidth=\pgfutil@tempdima%
+      \ifx\tikz@text@width\pgfutil@empty%
+        \tikz@textfont%
+      \else%
+        \begingroup%
+        	\pgfmathsetlength{\pgf@x}{\tikz@text@width}%
+          \pgfutil@minipage[t]{\pgf@x}\leavevmode\hbox{}%
+            \tikz@textfont%
+            \tikz@text@action%
+      \fi%
+        %\show\tikz@textcolor
+        \ifx\tikz@textcolor\pgfutil@empty%
+        \else%
+          \pgfutil@colorlet{.}{\tikz@textcolor}%
+        \fi%
+        \pgfsetcolor{.}%
+          \tikz@atbegin@node%
+          #1%
+          \tikz@atend@node%
+           \ifx\tikz@text@width\pgfutil@empty%
+           \else%
+              \pgfutil@endminipage%
+            \endgroup%
+          \fi%
+      \endpgfscope%
     }
-    \endpgfscope
-    \endgroup
+    \ifx\tikz@text@width\pgfutil@empty%
+    \else%
+      \pgfmathsetlength{\pgf@x}{\tikz@text@width}%
+      \wd\pgfnodeparttextbox=\pgf@x%
+    \fi%
+    \ifx\tikz@text@height\pgfutil@empty%
+    \else%
+      \pgfmathsetlength{\pgf@x}{\tikz@text@height}%
+      \ht\pgfnodeparttextbox=\pgf@x%
+    \fi%
+    \ifx\tikz@text@depth\pgfutil@empty%
+    \else%
+      \pgfmathsetlength{\pgf@x}{\tikz@text@depth}%
+      \dp\pgfnodeparttextbox=\pgf@x%
+    \fi%
+}
+
+% TODO: shading?
+\def\sseq@drawnode{
+  \pgfutil@tempdima=\pgflinewidth%
+  {
+    \tikz@mode%
+    \iftikz@mode@clip \sseq@error{Clip shouldn't happen here, but this error should be caught earlier}{}\fi % TODO: catch this and similar errors?
+    \iftikz@mode@draw%
+        \iftikz@mode@double%
+        % Change line width
+            \begingroup%
+            \pgfsys@beginscope%
+            \tikz@double@setup%
+        \fi%
+    \fi%
+    %
+    % Step 10: Do stroke/fill as needed
+    %
+    \edef\temp{\noexpand\pgfusepath{%
+        \iftikz@mode@fill fill,\fi%
+        \iftikz@mode@draw draw,\fi%
+    }}\temp%
+    %
+    % Step 11: Double stroke, if necessary
+    %
+    \iftikz@mode@draw%
+        \iftikz@mode@double%
+            \pgfsys@endscope%
+            \endgroup%
+        \fi%
+    \fi
+  }%
+  \global\pgflinewidth=\pgfutil@tempdima%
 }
 
 
+%% Offsets TODO: This section is pretty unfinished
 \def\sseq@setoffsets#1#2{
     \@ifundefined{sseq@xoffset@\sseq@thename(#1,#2,1)}{\sseq@setoffsets@{#1}{#2}}{\sseq@checkoffsets{#1}{#2}}
 }
@@ -942,7 +1054,6 @@
 }
 
 \def\sseq@d@@#1#2(#3,#4){%
-    \conditionally@traceon%
 %
     \begingroup
     \pgfqkeys{/tikz/sseqpages/first pass/differential}{#1}
@@ -1029,7 +1140,7 @@
     \@xp\@xp\@xp\sseq@temptoks@ii\@xp\@xp\@xp{\@xp\temp\csname sseq@dstyle#2\source\endcsname}
     \sseq@x@deforaddto@macro{sseq@saveddiffs@\sseq@thename#2}{
         \begingroup
-        \ifsseq@needstikzdifferential \@nx\sseq@needstikzdifferentialtrue\fi
+        \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
         \@nx\sseq@d@drawedge\source\target{\the\sseq@temptoks}{\the\sseq@temptoks@ii}
         \endgroup
     }
@@ -1049,29 +1160,30 @@
     \endgroup
 }
 
-%\sseq@needstikzdifferentialtrue
+% #1 -- source
+% #2 -- target
+% #3 -- scope options
+% #4 -- local and late options
 \def\sseq@d@drawedge(#1)(#2)#3#4{
-        \sseq@temptoks{#3,#4}
-        \edef\temp{\@nx\draw[/tikz/sseqpages/second pass/differential,every differential,\the\sseq@temptoks] (#1) to (#2);}
-        \temp
-}
-
-\def\sseq@d@drawedge(#1)(#2)#3#4{
-    \ifsseq@needstikzdifferential
+    \ifsseq@needstikz
         \sseq@temptoks{#3,#4}
         \edef\temp{\@nx\draw[/tikz/sseqpages/second pass/differential,every differential,\the\sseq@temptoks] (#1) to (#2);}
         \temp
     \else
         \pgfscope
-        \pgfqkeys{/tikz/sseqpages/second pass}{#3}
+        \pgfqkeys{/tikz/sseqpages/second pass}{draw,#3}
         \tikzset{every path/.try}
         \pgfqkeys{/tikz/sseqpages/second pass}{every differential,#4}
         \tikz@options
+        \tikz@mode
         \pgfpathmoveto{\pgfpointshapeborder{sseq@{#1}}{\pgfpointanchor{sseq@{#2}}{center}}}
-        \xdef\tikz@timer@start{\noexpand\pgfqpoint{\the\pgf@x}{\the\pgf@y}}
+        %\xdef\tikz@timer@start{\noexpand\pgfqpoint{\the\pgf@x}{\the\pgf@y}}
         \pgfpathlineto{\pgfpointshapeborder{sseq@{#2}}{\pgfpointanchor{sseq@{#1}}{center}}}
-        \xdef\tikz@timer@end{\noexpand\pgfqpoint{\the\pgf@x}{\the\pgf@y}}
-        \pgfusepath{stroke}
+        %\xdef\tikz@timer@end{\noexpand\pgfqpoint{\the\pgf@x}{\the\pgf@y}}
+        \edef\temp{\noexpand\pgfusepath{%
+            \iftikz@mode@fill fill,\fi%
+            \iftikz@mode@draw draw,\fi%
+        }}\temp
         %\tikz@node@textfont
         %\def\tikz@time{0.5}
         %\tikz@do@auto@anchor%
@@ -1196,6 +1308,7 @@
 
 
 %% Patch \foreach to use sseq@context
+% TODO: Add stuff for when this fails
 
 \def\sseq@for@clearsavedtoks{\@xp\gdef\csname sseq@for@savedtoks\the\sseq@context@depth\endcsname{}}
 \def\sseq@for@addtosavedtoks{\@xp\sseq@g@addto@macro@noctx\csname sseq@for@savedtoks\the\sseq@context@depth\endcsname}

@@ -5,6 +5,7 @@
 \usepackage{sseqpages}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepgflibrary{shapes.misc}
 \makeatletter
 %\show\sseq@ifundefcoord@
 %\traceon
@@ -28,19 +29,26 @@
 %\sseq@setstdoffsets12{-0.13}{+0.13}
 %\sseq@setstdoffsets22{+0.13}{-0.13}
 
-\begin{sseqdata}[differentials={->,blue},classes={draw},scale=0.9]{mysseq}
+\begin{sseqdata}[execute at begin node=$,execute at end node=$,differentials={->,shorten >=5pt,blue},classes={draw},scale=0.9]{mysseq}
 \degree{-#1}{#1-1}
-\cyclestyles{circle,red,inner sep=0.3ex}{rectangle,green,inner sep=0.3ex}
+\cyclestyles{circle,red,inner sep=0.3ex}{green,inner sep=0.3ex}
 
 \xrange{1}{25}
 \yrange{0}{19}%
 
 \structline(1,7)(1,8)
 
-\place["$\mathbb{Z}$"](1,6)
+\place[alias=hi,xshift=6,text=black,text height=2em,"\mathbb{Z}"](1,6)
+\place[needs tikz,alias=there,text=black,text height=2em,"\mathbb{Z}"](4,6)
+\place[needs tikz, text=black, "\mathbb{Z}"](1,5)
+\place[transform shape,text opacity=0.2,"\mathbb{Z}"](2,6)
+\place[transform shape,needs tikz, "\mathbb{Z}"](2,5)
+\foreach \x in {1,3,...,35} {\place["\mathbb{Z}",double,rounded corners=1pt](\x,0)}
+\draw (hi) -- (there);
+\draw[standard parse, scale=0.5] (10,1)--(10,10);
+\draw[standard parse] (7,0)--(3,6);
 
-\foreach \x in {1,3,...,35} {\place["$\mathbb{Z}$",double,rounded corners=1pt](\x,0)}
-
+%\place[chamfered rectangle,double,"\mathbb{Z}"](3,6)
 \row{1}
 \row{2}
 \row{3}
@@ -59,7 +67,9 @@
 \place(1,12)
 \draw(1,2)--(1,3);
 \node at (1,13) {a!};
-\d[use context,bend left=30]2(3,0)
+\d[draw=none]2(5,1)
+
+\d[bend left=30]2(3,0)
 
 %\d2(4,0)
 \structline(10,7)(10,8)
@@ -82,13 +92,12 @@
 %\@xp\show\csname sseq@clearinfty\sseq@thename(9,3)\endcsname
 
 %\tracingall
-%\d2 (5,0)
 
 \conditionally@traceoff
 \foreach \x in {9,13,...,25}{
     %\d["hippo",/tikz/every to/.prefix code={\tracingall},/tikz/every to/.append code={\show\hi}]2 (\x,0)
-    \d[use context,"\textup{hippo \x}"{sloped, above}]2 (\x,0)
-    \d2 (\x,1)
+    \d[opacity=0.5,use context,"\textup{hippo \x}"{sloped, above}]2 (\x,0)
+    \d[draw=none]2 (\x,1)
 %
 %
     %%
@@ -166,13 +175,14 @@
 
 %\showthe\sseq@x
 
-\node at (6,5) {This will show up in all copies};
+\node at (6,5) {\textup{This will show up in all copies}};
 
 
 %\d[dashed,"hi"] 8 (29,2,,2)
 %\d13 (20,3)
 \end{sseqdata}
 %\show\sseq@savedpaths
+
 
 \begin{sseqdata}[yscale=0.8]{ss2}
 \cyclestyles{draw,circle,fill,inner sep=0.3ex}
@@ -182,28 +192,79 @@
 \xrange{1}{10}
 \yrange{0}{10}
 
+\place[needs tikz](1,0)
 
 \foreach \x in {1,3,...,35} {\place(\x,0)}
 
 \row{1}
 \row{2}
 \row{3}
-\d["\textup{a l a b e l}" {sloped,above}]  4   (9,0)
+\d[needs tikz,"\textup{a l a b e l}" {sloped,above}]  4   (9,0)
 \foreach \x in {2,3,5,6}{
     \d["hi"]2 (\x,1)
 }
 
 \d3(7,0)
-%\tracingall
 
 \end{sseqdata}
 
-\printpage{mysseq}{0}
+\printpage[name=mysseq, page=0,x range={1}{25},y range={0}{19}]
 \newpage
 
-\begin{sseqpage}[name=mysseq,label step=2,differentials=blue]
-\page{0}
+
+\begin{sseqpage}
+\name{mysseq}
+\page{4}
+\draw[red, dashed, ->, "\text{this doesn't go here}" {sloped,below}] (7,0) to (3,3);
+\draw[blue,standard parse, "\text{this doesn't either}" sloped] (7,0) to (1,6);
+\end{sseqpage}
+%\pgfkeys{/tikz/sseqpages/global/mysseqoptions/.show code}
+
+\newpage
+\printpage[name=mysseq, page=2]
+\newpage
+\printpage[name=mysseq, page=3]
+
+\newpage
+\printpage[name=mysseq, page=4]
+\newpage
+\printpage[name=mysseq, page=5]
+\newpage
+\printpage[name=mysseq, page=7]
+\newpage
+\printpage[name=mysseq, page=8]
+\newpage
+\printpage[name=mysseq, page=9]
+\newpage
+\printpage[name=mysseq, page=10]
+\end{document}
+
+
+
+
+\begin{sseqpage}[page=0,label step=2,name=mysseq,scale=0.7]
+\draw["\textup{this is it}" {above,sloped},dotted,->] (2,4) to (3,3);
+\doptions2(5,0){red}
+\doptions2(5,0){dashed}
+\doptions2(9,0){red}
+\doptions2(13,0){red}
+\doptions2(17,0){red}
+\doptions2(21,0){red}
+\doptions2(25,0){red}
+
+\doptions4(11,0){green}
+\doptions4(19,0){green}
+\doptions4(27,0){green}
+
+\doptions9(16,7){blue}
+\doptions9(24,7){blue}
+\doptions7(10,9,1){blue}
+\doptions7(18,9,1){blue}
+\end{sseqpage}
+
+\begin{sseqpage}[page=0,label step=2,name=mysseq,differentials=black]
 \xrange{1}{25}
+\yrange{0}{19}
 \draw["\textup{this is it}" {above,sloped},dotted,->] (2,4) to (3,3);
 %\tracingall
 \doptions2(5,0){red}
@@ -224,35 +285,7 @@
 \doptions7(18,9,1){blue}
 \end{sseqpage}
 
-\begin{sseqpage}
-\name{mysseq}
-\page{4}
-\draw[red, dashed, ->, "\text{this doesn't go here}" {sloped,below}] (7,0) to (3,3);
-\draw[blue,standard parse, "\text{this doesn't either}" sloped] (7,0) to (1,6);
-\end{sseqpage}
-%\pgfkeys{/tikz/sseqpages/global/mysseqoptions/.show code}
-
-
-\newpage
-\printpage{mysseq}{2}
-\newpage
-\printpage{mysseq}{3}
-
-\newpage
-\printpage{mysseq}{4}
-\newpage
-\printpage{mysseq}{5}
-\newpage
-\printpage{mysseq}{7}
-\newpage
-\printpage{mysseq}{8}
-\newpage
-\printpage{mysseq}{9}
-\newpage
-\printpage{mysseq}{10}
 \end{document}
-
-
 
 \newpage
 
