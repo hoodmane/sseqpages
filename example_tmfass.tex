@@ -4,20 +4,23 @@
 \makeatletter
 \begin{document}
 %\pgfset{every differential/.show}
-\begin{sseqdata}[differentials=->, yscale=0.5, xscale=0.5]{tmfass}
+\begin{sseqdata}[differentials=->, yscale=0.8, xscale=0.5, x label step=2]{tmfass}
 \cyclestyles{draw,circle,fill,inner sep=0.3ex}
             {draw,rectangle,fill,inner sep=0.3ex}
 \degree{-1}{#1}
 \xrange{0}{50}
-\yrange{0}{20}
+\yrange{0}{21}
 
 
 \gdef\tower(#1,#2){
     \foreach \y in {0,...,25}{
         \place(#1,#2+\y)
-        \structline(#1,#2+\y)(#1,#2+\y+1)
+        %\structline(#1,#2+\y,1)(#1,#2+\y+1,1)
+        \draw(#1,#2+\y,1)--(#1,#2+\y+1,1);
     }
 }
+
+\structline(24,11,1)(24,12,1)
 
 \gdef\towergroup{
     \tower(0,0)
@@ -132,17 +135,12 @@
 \towergroupa
 \end{scope}
 
+% Make this work
 \foreach \n in {2,3,4}{
-    \begin{scope}[xshift=8*\n,yshift=4*\n]
+    \begin{scope}[use context,xshift=8*\n,yshift=4*\n]
     \towergroupb
     \end{scope}
 }
-
-
-
-
-
-
 
 \d2(18,4)
 
@@ -156,6 +154,7 @@
 \d3(34,13)
 %\d3(30,6)
 \d4(31,8)
+\yrange{0}{20}
 \end{sseqdata}
 
 \printpage[name=tmfass,page=2]

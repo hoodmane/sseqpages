@@ -26,18 +26,20 @@
 
 \begin{document}
 
+%\sseq@errorcheckingfalse
 %\sseq@setstdoffsets12{-0.13}{+0.13}
 %\sseq@setstdoffsets22{+0.13}{-0.13}
-\begin{sseqdata}[execute at begin node=$,execute at end node=$,differentials={->,shorten >=5pt,blue},classes={draw},scale=0.9]{mysseq}
+\begin{sseqdata}[execute at begin node=$,execute at end node=$,differentials={->,shorten >=5pt,blue},classes={draw,fill=white},scale=0.9]{mysseq}
 \degree{-#1}{#1-1}
-\cyclestyles{circle,inner sep=0.3ex}{green,inner sep=0.3ex}
+\cyclestyles{circle,inner sep=0.3ex}{green,fill=white,inner sep=0.3ex}
 
 \xrange{1}{25}
 \yrange{0}{19}%
 
+\draw[background,step=1cm,gray,very thin] (1,0) grid (25,19);
 \structline(1,7)(1,8)
 
-\tikzset{every node/.style=blue}
+\sseqset{every node/.style=blue}
 \place[alias=hi,xshift=6,text=black,text height=2em,"\mathbb{Z}"](1,6)
 \place[needs tikz,alias=there,text=black,text height=2em,"\mathbb{Z}"](4,6)
 \place[needs tikz, text=black, "\mathbb{Z}"](1,5)
@@ -45,10 +47,17 @@
 \place[transform shape,needs tikz, "\mathbb{Z}"](2,5)
 \foreach \x in {1,3,...,35} {\place["\mathbb{Z}",double,rounded corners=1pt](\x,0)}
 \draw (hi) -- (there);
-\draw[standard parse, scale=0.5] (10,1)--(10,10);
-\draw[standard parse] (7,0)--(3,6);
+%\draw (0,0)--(15,20);
+%\draw[standard parse,scale=0.5] (10,1)--(10,10);
+%\draw[standard parse] (7,0)--(3,6);
 
-\tikzset{every node/.style=red}
+\begin{scope}[background, xshift=1cm,scale=0.5]
+%\sseq@g@addtosavedpaths{\show\error}
+\draw (0,0)--(30,30);
+\end{scope}
+
+
+\sseqset{every node/.style=red}
 
 \place[chamfered rectangle,double,"\mathbb{Z}"](3,6)
 \row{1}
@@ -58,6 +67,7 @@
 \cyclestyles{draw,circle,fill,inner sep=0.3ex}
             {draw,green,rectangle,fill,inner sep=0.3ex}
 
+%\begin{scope}[opacity=0.6]
 \foreach \y in {7,15,23}{
     \row{\y}
     \row{\y+1}
@@ -65,6 +75,7 @@
     \row{\y+3}
     \row{\y+4}
 }
+%\end{scope}
 
 \place(1,12)
 \draw(1,2)--(1,3);
@@ -93,13 +104,13 @@
 %\@xp\show\csname sseq@clearinfty\sseq@thename(9,2)\endcsname
 %\@xp\show\csname sseq@clearinfty\sseq@thename(9,3)\endcsname
 
-%\tracingall
 
 \conditionally@traceoff
 \foreach \x in {9,13,...,25}{
     %\d["hippo",/tikz/every to/.prefix code={\tracingall},/tikz/every to/.append code={\show\hi}]2 (\x,0)
     \d[opacity=0.5,use context,"\textup{hippo \x}"{sloped, above}]2 (\x,0)
     \d[draw=none]2 (\x,1)
+    \draw (\x,1) -- (\x,2);
 %
 %
     %%
@@ -170,6 +181,8 @@
     \d9(\x-4,11)
 }
 
+\sseq@replace[fill=none,"\mathbb Z"](10,7)
+
 \draw[<-,green] (2,3)--(0,5) -- (3,5);
 
 
@@ -210,16 +223,25 @@
 
 \end{sseqdata}
 
+\begin{sseqpage}
+\name{mysseq}
+\page{4}
+% \tracingall
+\sseq@classoptions(11,0){red,fill=white}
+\doptions4(19,0){dashed}
+\doptions4(11,0){red}
+
+\draw[red, dashed, ->, "\text{this doesn't go here}" {sloped,below}] (7,0) to (3,3);
+\draw[blue,standard parse, "\text{this doesn't either}" sloped] (7,0) to (1,6);
+\end{sseqpage}
+\end{document}
+\newpage
+
 \printpage[name=mysseq, page=0,x range={1}{25},y range={0}{19}]
 \newpage
 
 
-\begin{sseqpage}
-\name{mysseq}
-\page{4}
-\draw[red, dashed, ->, "\text{this doesn't go here}" {sloped,below}] (7,0) to (3,3);
-\draw[blue,standard parse, "\text{this doesn't either}" sloped] (7,0) to (1,6);
-\end{sseqpage}
+
 %\pgfkeys{/tikz/sseqpages/global/mysseqoptions/.show code}
 
 \newpage
