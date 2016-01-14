@@ -29,6 +29,7 @@
 %\sseq@errorcheckingfalse
 %\sseq@setstdoffsets12{-0.13}{+0.13}
 %\sseq@setstdoffsets22{+0.13}{-0.13}
+\tracingall
 \begin{sseqdata}[execute at begin node=$,execute at end node=$,differentials={->,shorten >=5pt,blue},classes={draw,fill=white},scale=0.9]{mysseq}
 \degree{-#1}{#1-1}
 \cyclestyles{circle,inner sep=0.3ex}{green,fill=white,inner sep=0.3ex}
@@ -223,6 +224,7 @@
 
 \end{sseqdata}
 
+
 \begin{sseqpage}
 \name{mysseq}
 \page{4}
@@ -231,9 +233,10 @@
 \doptions4(19,0){dashed}
 \doptions4(11,0){red}
 
-\draw[red, dashed, ->, "\text{this doesn't go here}" {sloped,below}] (7,0) to (3,3);
+\draw[red, dashed, ->, bend left=30, "\text{this doesn't go here}" {sloped,below}] (7,0) to (3,3);
 \draw[blue,standard parse, "\text{this doesn't either}" sloped] (7,0) to (1,6);
 \end{sseqpage}
+\end{document}
 \end{document}
 \newpage
 

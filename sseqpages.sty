@@ -2,13 +2,12 @@
 \RequirePackage{tikz}
 \RequirePackage{etoolbox}
 
-% TODO: fix bug in scope options context
+% TODO:
 % add calculation of maxpage
-% expose to user more of the \xmax, \xmin, etc
 % option not to render axes
 % offsets
 % Render certain out of range nodes? second range command to allow for nearby nodes to be printed anyways?
-% fix \structline
+% Check if modifications to tikz are alright
 
 \usetikzlibrary{quotes}
 \usepackage{trace}
@@ -172,10 +171,12 @@
     /tikz/sseqpages/second pass/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages}},
     /tikz/sseqpages/second pass/scope/.is family,
     /tikz/sseqpages/second pass/scope/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
+    /tikz/sseqpages/second pass/class/.is family,
+    /tikz/sseqpages/second pass/class/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
     /tikz/sseqpages/second pass/differential/.is family,
     /tikz/sseqpages/second pass/differential/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
     /tikz/sseqpages/second pass/tikz primitives/.is family,
-    /tikz/sseqpages/second pass/tikz primitives/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}}
+    /tikz/sseqpages/second pass/tikz primitives/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
 }
 
 \pgfqkeys{/tikz/sseqpages/first pass/class}{shape/.code={\edef\tikz@shape{\pgfkeyscurrentname}}} % shape=whatever shape passing
@@ -247,7 +248,8 @@
 
 \pgfqkeys{/tikz/sseqpages/second pass}{ % This is only for scope and tikz primitives, but in other cases, it emits an error on first pass.
     use context/.code={},
-    needs tikz/.code={}
+    needs tikz/.code={},
+    class/transform shape/.code={\pgfsettransform{\savetransform}\pgfqkeys{/tikz}{transform shape}}
 }
 
 %% Needs tikz
@@ -418,6 +420,9 @@
     labels/.code={},
     x labels/.code={},
     y labels/.code={},
+    axes gap/.code={\def\sseq@xaxisgap{#1}\def\sseq@yaxisgap{#1}},
+    x axis gap/.code={\def\sseq@xaxisgap{#1}},
+    y axis gap/.code={\def\sseq@yaxisgap{#1}},
     label step/.code={\def\sseq@xlabelstep{#1}\def\sseq@ylabelstep{#1}},
     x label step/.store in=\sseq@xlabelstep,
     y label step/.store in=\sseq@ylabelstep
@@ -554,6 +559,23 @@
 \def\sseq@cleardeathpage{\@xp\sseq@cleardeathpage@}
 \def\sseq@cleardeathpage@(#1){\@xp\global\@xp\let\csname sseq@death\sseq@thename(#1)\endcsname\relax}
 
+
+\def\sseq@whichclass#1#2#3#4{
+    \edef#1{#4}
+    \ifx#1\pgfutil@empty\@ifundefined{sseq@coord\sseq@thename(#2,#3)@numnodes}{\edef#1{1}}
+        {\edef#1{\csname sseq@coord\sseq@thename(#2,#3)@numnodes\endcsname}}
+    \else
+        \ifnum#4<0
+            \@ifundefined{sseq@coord\sseq@thename(#2,#3)@numnodes}{\sseq@error{TODO: error message here}{}}{
+                \sseq@tempcount=\csname sseq@coord\sseq@thename(#2,#3)@numnodes\endcsname\relax
+                \advance\sseq@tempcount#4\relax
+                \advance\sseq@tempcount1\relax
+                \ifnum\sseq@tempcount<1\relax \sseq@error{Source index out of bounds}{}\fi
+                \edef#1{\the\sseq@tempcount}
+            }
+        \fi
+    \fi
+}
 
 %% Parsers
 
@@ -723,6 +745,10 @@
     }%
 %
     \sseq@data@name{#2}%
+    \def\sseq@xaxisgap{0.5cm}
+    \def\sseq@yaxisgap{0.5cm}
+    \def\sseq@maxpage{0}
+    \def\sseq@classplacementtransform{}
 %
     % the default option handler for /tikz/sseqpages/global adds to \sseq@currentoptionpath options
     \let\sseq@currentoptionpath\sseq@thename
@@ -736,11 +762,15 @@
     \gdef\sseq@compilesseq{}%
 %
     \@xp\gdef\csname sseq@savednodes@\sseq@thename infty\endcsname{}
+    \@xp\gdef\csname sseq@savedfeatures@\sseq@thename infty\endcsname{}
     % Page 0 is all pages
     \@xp\gdef\csname sseq@saveddiffs@\sseq@thename0\endcsname{%
-        \foreach\sseq@p in {1,...,14}{%
-            \csname sseq@saveddiffs@\sseq@thename\sseq@p\endcsname %
-        }%
+        \sseq@tempcount=0\relax
+        \loop
+            \advance\sseq@tempcount1
+            \csname sseq@saveddiffs@\sseq@thename\the\sseq@tempcount\endcsname %
+        \ifnum\sseq@tempcount<\sseq@maxpage\repeat
+        \csname sseq@savednodes@\sseq@thename infty\endcsname
     }%
     % These are set up so that if the user specifies no \xrange, the minimum position of any node can be calculated on the fly.
     \xdef\sseq@xmin{\sseq@infinity}%
@@ -760,21 +790,24 @@
     \sseq@modtikzcommands@defer % Defer evaluation of tikz primitives
     \sseq@patchfor % patch \foreach to work with deferred macros
     \pgfkeys{/handlers/first char syntax/the character "/.initial=\sseq@handlequote} % install quotes parsing
-    \selectfont\nullfont
+    \selectfont\nullfont\def\par{}
 }
 
 % Store the savedpaths and ranges
 \def\endsseqdata{
     %\@xp\xdef\csname sseq@savednodes@\sseq@thename infty\endcsname{\csname sseq@savednodes@\sseq@thename infty\endcsname}%
     \sseq@compilesseq
-%
     \sseq@store\sseq@savedbackgroundpaths %
     \sseq@store\sseq@savedforegroundpaths
+    \sseq@store\sseq@classplacementtransform
+%
     \sseq@store\sseq@thepermcyclestyle\sseq@store\sseq@thetranscyclestyle %
-    \sseq@store\sseq@xlabelstep
-    \sseq@store\sseq@ylabelstep
+%
+    \sseq@store\sseq@xlabelstep\sseq@store\sseq@ylabelstep %
+    \sseq@store\sseq@xaxisgap\sseq@store\sseq@yaxisgap %
     \sseq@store\sseq@xmin\sseq@store\sseq@xmax %
     \sseq@store\sseq@ymin\sseq@store\sseq@ymax %
+    \sseq@store\sseq@maxpage
 }
 
 \def\sseqpage{\@ifnextchar[{\sseqpage@}{\sseqpage@[]}} %}
@@ -841,9 +874,22 @@
 %
 %    \@xp\sho\csname sseq@savednodes@\sseq@thename2\endcsname
     % Insert nodes from all pages on or after the current one
-    \foreach\sseq@p in {\sseq@thepage,...,14,infty}{%
-        \csname sseq@savednodes@\sseq@thename\sseq@p\endcsname %
-    }%
+        \sseq@tempcount=\sseq@thepage\relax
+        \advance\sseq@tempcount-1\relax
+        \loop
+            \advance\sseq@tempcount1
+            \csname sseq@savednodes@\sseq@thename\the\sseq@tempcount\endcsname %
+        \ifnum\sseq@tempcount<\sseq@maxpage\repeat
+        \csname sseq@savednodes@\sseq@thename infty\endcsname
+%
+
+        \sseq@tempcount=\sseq@thepage\relax
+        \advance\sseq@tempcount-1\relax
+        \loop
+            \advance\sseq@tempcount1
+            \csname sseq@savedfeatures@\sseq@thename\the\sseq@tempcount\endcsname %
+        \ifnum\sseq@tempcount<\sseq@maxpage\repeat
+        \csname sseq@savedfeatures@\sseq@thename infty\endcsname
 %
     % Insert differentials from just this page. \sseq@saveddiffs@thename@0 expands to all of these
     \csname sseq@saveddiffs@\sseq@thename\sseq@thepage\endcsname %
@@ -857,40 +903,20 @@
 }
 
 \def\sseq@drawaxes{
-    \sseq@tempxdim=\sseq@xmin cm
-    \advance\sseq@tempxdim-1.5cm
-    \sseq@tempydim=\sseq@ymin cm
-    \advance\sseq@tempydim-0.5cm
-
-    \pgfpathmoveto{\pgfpoint{\the\sseq@tempxdim}{\the\sseq@tempydim}}
-    \sseq@tempxdim=\sseq@xmax cm
-    \advance\sseq@tempxdim0.5cm
-    \pgfpathlineto{\pgfpoint{\the\sseq@tempxdim}{\the\sseq@tempydim}}
-    \sseq@tempxdim=\sseq@xmin cm
-    \advance\sseq@tempxdim-0.5cm
-    \sseq@tempydim=\sseq@ymin cm
-    \advance\sseq@tempydim-1.5cm
-    \pgfpathmoveto{\pgfpoint{\the\sseq@tempxdim}{\the\sseq@tempydim}}
-    \sseq@tempydim=\sseq@ymax cm
-    \advance\sseq@tempydim0.5cm
-    \pgfpathlineto{\pgfpoint{\the\sseq@tempxdim}{\the\sseq@tempydim}}
-    \pgfusepath{stroke}
-%   \draw (\sseq@xmin-1.5, \sseq@ymin-0.5) -- (\sseq@xmax+0.5, \sseq@ymin-0.5)%
-%          (\sseq@xmin-0.5, \sseq@ymin-1.5) -- (\sseq@xmin-0.5, \sseq@ymax+0.5);%
-}
-
-\def\sseq@drawaxes{
+    \pgftransformationadjustments
     \bgroup
-    \pgfpathmoveto{\pgfpoint{\sseq@xmax cm+0.5cm}{\sseq@ymin cm-0.5cm}}
-    \pgftransformshift{\pgfpoint{\sseq@xmin cm-0.5cm}{\sseq@ymin cm-0.5cm}}
+    \pgftransforminvert\pgftransformyshift{\sseq@xaxisgap}\pgftransforminvert
+    \pgfpathmoveto{\pgfpoint{\sseq@xmax cm+0.5cm}{\sseq@ymin cm}}
+    \pgftransformshift{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}
     \pgftransformresetnontranslations
-    \pgfpathlineto{\pgfpoint{-1.1cm}{0cm}}
+    \pgfpathlineto{\pgfpoint{-0.9cm-\sseq@yaxisgap}{0cm}}
     \egroup
     \bgroup
-    \pgfpathmoveto{\pgfpoint{\sseq@xmin cm-0.5cm}{\sseq@ymax cm+0.5cm}}
-    \pgftransformshift{\pgfpoint{\sseq@xmin cm-0.5cm}{\sseq@ymin cm-0.5cm}}
+    \pgftransforminvert\pgftransformxshift{\sseq@yaxisgap}\pgftransforminvert
+    \pgfpathmoveto{\pgfpoint{\sseq@xmin cm}{\sseq@ymax cm+0.5cm}}
+    \pgftransformshift{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}
     \pgftransformresetnontranslations
-    \pgfpathlineto{\pgfpoint{0cm}{-1cm}}
+    \pgfpathlineto{\pgfpoint{0cm}{-0.85cm-\sseq@xaxisgap}}
     \egroup
     \pgfusepath{stroke}
 %   \draw (\sseq@xmin-1.5, \sseq@ymin-0.5) -- (\sseq@xmax+0.5, \sseq@ymin-0.5)%
@@ -908,9 +934,9 @@
     \loop
         \bgroup
         %\node at (\sseq@x,\sseq@ymin-1) {\sseq@x};%
-        \pgftransformshift{\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm-0.5cm}}
+        \pgftransformshift{\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm}}
         \pgftransformresetnontranslations
-        \pgftext[at=\pgfpoint{0cm}{-0.5cm}]{$\the\sseq@tempx$}
+        \pgftext[at=\pgfpoint{0cm}{-0.5cm-\sseq@xaxisgap}]{$\the\sseq@tempx$}
         \egroup
         \advance\sseq@tempx\sseq@xlabelstep\relax
     \ifnum\sseq@tempx<\sseq@temp\repeat
@@ -926,9 +952,9 @@
     \loop
         %\node at (\sseq@x,\sseq@ymin-1) {\sseq@x};%
         \bgroup
-        \pgftransformshift{\pgfpoint{\the\sseq@tempx cm-0.5cm}{\the\sseq@tempy cm}}
+        \pgftransformshift{\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm}}
         \pgftransformresetnontranslations
-        \pgftext[at=\pgfpoint{-0.5cm}{0cm}]{$\the\sseq@tempy$}
+        \pgftext[at=\pgfpoint{-0.5cm-\sseq@yaxisgap}{0cm}]{$\the\sseq@tempy$}
         \egroup
         \advance\sseq@tempy\sseq@ylabelstep\relax
     \ifnum\sseq@tempy<\sseq@temp\repeat
@@ -966,10 +992,14 @@
     \def\sseq@thename{#1}%
     \sseq@get\sseq@savedbackgroundpaths %
     \sseq@get\sseq@savedforegroundpaths
-    \sseq@get\sseq@xlabelstep
-    \sseq@get\sseq@ylabelstep
+    \sseq@get\sseq@classplacementtransform
+    \sseq@get\sseq@xlabelstep\sseq@get\sseq@ylabelstep
+    \sseq@get\sseq@xaxisgap\sseq@get\sseq@yaxisgap
     \sseq@get\sseq@xmin  \sseq@get\sseq@xmax %
     \sseq@get\sseq@ymin  \sseq@get\sseq@ymax %
+    \sseq@get\sseq@maxpage
+    \let\xmin\sseq@xmin\let\xmax\sseq@xmax
+    \let\ymin\sseq@ymin\let\ymax\sseq@ymax
 }
 
 \def\sseq@xrange#1#2{%
@@ -986,6 +1016,10 @@
     \gdef\sseq@ymax{#2}%
     \sseq@tempcount=#1 \advance\sseq@tempcount-1\xdef\sseq@yminmm{\the\sseq@tempcount}%
     \sseq@tempcount=#2 \advance\sseq@tempcount1\xdef\sseq@ymaxpp{\the\sseq@tempcount}%
+}
+
+\def\sseq@newmaxpage#1{
+    \ifnum#1>\sseq@maxpage\gdef\sseq@maxpage{#1}\fi
 }
 
 % If #1 is less than \xmin or greater than \xmax, update \xmin or \xmax appropriately
@@ -1227,6 +1261,7 @@
 % #7 -- options
 \def\test#1#2#3#4#5#6#7{}
 \def\sseq@place@drawnode#1#2#3#4#5#6#7{
+    \begingroup
     %\tracingall
     \sseq@tempx=#1\relax
     \advance\sseq@tempx#2\relax
@@ -1237,35 +1272,43 @@
         %\let\tikz@quote@parser\sseq@handlequote
         \sseq@temptoks{#6}
         \sseq@temptoks@ii{#7}
+        \pgftransformshift{\pgfpoint{#1 cm}{#3 cm}}%
+        \pgfgettransform{\savetransform}
+        \pgftransformresetnontranslations
+        \sseq@classplacementtransform
+        \edef\temp{\@nx\pgftransformshift{\@nx\pgfpoint{0\csname sseq@xoffset@\sseq@thename(\tempcoord)\endcsname cm}{0\csname sseq@yoffset@\sseq@thename(\tempcoord)\endcsname cm}}}
+        \temp
+        \pgftransformresetnontranslations
         \edef\temp{
             \@nx\node[
                 /handlers/first char syntax/the character "/.initial=\@nx\sseq@handlequote,
-                /tikz/sseqpages/second pass,
+                /tikz/sseqpages/second pass/class,
                 /utils/exec={\the\sseq@temptoks@ii}
-            ] (sseq@{\tempcoord})
-            at (#1\@xp\@nx\csname sseq@xoffset@\sseq@thename(\tempcoord)\endcsname,#3\@xp\@nx\csname sseq@yoffset@\sseq@thename(\tempcoord)\endcsname){\the\sseq@temptoks};
+            ] (sseq@{\tempcoord}) {\the\sseq@temptoks};
         }
         \temp
     \else
-        \begingroup
         \pgfscope
         \let\tikz@options\pgfutil@empty
         \let\tikz@alias=\pgfutil@empty
         \def\pgfkeysdefaultpath{/tikz/sseqpages/second pass/}
         #7
         \pgftransformshift{\pgfpoint{#1 cm}{#3 cm}}%
+        \iftikz@fullytransformed\pgfgettransform{\savetransform}\else\fi
+        \pgftransformresetnontranslations
+        \sseq@classplacementtransform
+        \edef\temp{\@nx\pgftransformshift{\@nx\pgfpoint{0\csname sseq@xoffset@\sseq@thename(\tempcoord)\endcsname cm}{0\csname sseq@yoffset@\sseq@thename(\tempcoord)\endcsname cm}}}
+        \temp
+        \iftikz@fullytransformed\pgfsettransform{\savetransform}\else\pgftransformresetnontranslations\fi
         \tikz@options
         \tikz@node@textfont
         \sseq@setnodetext{#6}
         \edef\tikz@fig@name{sseq@{\tempcoord}}
-        \iftikz@fullytransformed\else\pgftransformresetnontranslations\fi
-        \edef\temp{\@nx\pgftransformshift{\@nx\pgfpoint{0\csname sseq@xoffset@\sseq@thename(\tempcoord)\endcsname cm}{0\csname sseq@yoffset@\sseq@thename(\tempcoord)\endcsname cm}}}
-        \temp
         \pgfmultipartnode{\tikz@shape}{\tikz@anchor}{\tikz@fig@name}{\sseq@drawnode}
         \tikz@alias
         \endpgfscope
-        \endgroup
     \fi
+    \endgroup
 }
 
 \def\sseq@setnodetext#1{
@@ -1419,22 +1462,29 @@
 \def\sseq@d@@#1#2(#3,#4){
 %
     \begingroup
+    \sseq@newmaxpage{#2}
     \pgfqkeys{/tikz/sseqpages/first pass/differential}{#1}
     \sseq@parsecommas(#3,#4)
     \sseq@arg@checkpresent\d1%
     \sseq@arg@checkpresent\d2%
     \sseq@tempx=\sseq@x
-    \advance\sseq@tempx\sseq@arg1
+    \advance\sseq@tempx\sseq@arg1\relax
     \sseq@tempy=\sseq@y
-    \advance\sseq@tempy\sseq@arg2
+    \advance\sseq@tempy\sseq@arg2\relax
+    \sseq@whichclass\tempn{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}3}
     \edef\sourcecoord{\the\sseq@tempx,\the\sseq@tempy}
     \edef\sourcename{(\sourcecoord\sseq@optargc3)}
-    \edef\source{(\sourcecoord,\sseq@optarg{1}3)}%
+    \edef\source{(\sourcecoord,\tempn)}%
 %
 %
-    \sseq@parsecoords\targetcoord{\the\sseq@tempx + \sseq@targetx{#2},\the\sseq@tempy+\sseq@targety{#2}}%
+    \pgfmathparse{int(\the\sseq@tempx+\sseq@targetx{#2})}
+    \sseq@tempx=\pgfmathresult\relax
+    \pgfmathparse{int(\the\sseq@tempy+\sseq@targety{#2})}
+    \sseq@tempy=\pgfmathresult\relax
+    \sseq@whichclass\tempn{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}4}
+    \edef\targetcoord{\the\sseq@tempx,\the\sseq@tempy}
     \edef\targetname{(\targetcoord\sseq@optargc4)}
-    \edef\target{(\targetcoord,\sseq@optarg{1}4)}%
+    \edef\target{(\targetcoord,\tempn)}%
 %
 %   Errors:
     \ifsseq@fastmode\else
@@ -1468,10 +1518,10 @@
         }{}%
 %
         \ifnum\csname sseq@coord\sseq@thename(\sourcecoord)@numnodes\endcsname=1\relax
-            \@ifundefined{sseq@arg3}{}{\sseq@error{
-                There is only one node at source coordinate (\sourcecoord) so instead of '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' you should say
-                '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(\sourcecoord\sseq@optarggen{,,\sseq@id}{\@gobbletwo}{}4)'%
-            }{}}
+%            \@ifundefined{sseq@arg3}{}{\sseq@error{
+%                There is only one node at source coordinate (\sourcecoord) so instead of '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' you should say
+%                '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(\sourcecoord\sseq@optarggen{,,\sseq@id}{\@gobbletwo}{}4)'%
+%            }{}}
         \else
             \@ifundefined{sseq@arg3}{\sseq@error{
                 There are multiple nodes at source coordinate (\sourcecoord) so instead of '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' you should say
@@ -1480,10 +1530,10 @@
             }{}}{}
         \fi
         \ifnum\csname sseq@coord\sseq@thename(\targetcoord)@numnodes\endcsname=1\relax
-            \@ifundefined{sseq@arg4}{}{\sseq@error{
-                There is only one node at target coordinate (\targetcoord) so instead of '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' you should say
-                '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(\sourcecoord\sseq@optargc3)'%
-            }{}}
+%            \@ifundefined{sseq@arg4}{}{\sseq@error{
+%                There is only one node at target coordinate (\targetcoord) so instead of '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' you should say
+%                '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(\sourcecoord\sseq@optargc3)'%
+%            }{}}
         \else
             \@ifundefined{sseq@arg4}{\sseq@error{
                 There are multiple nodes at target coordinate (\targetcoord) so instead of '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' you should say
@@ -1561,7 +1611,7 @@
     \sseq@g@deforaddto@macro{sseq@feature\the\sseq@featurecount}{#2}%
     \@xp\gdef\csname sseq@featureinfty\the\sseq@featurecount\endcsname{#2}%
     %\@xp\show\csname sseq@featureinfty\the\sseq@featurecount\endcsname
-    \@xp\sseq@x@addto@macro\csname sseq@savednodes@\sseq@thename infty\endcsname{%
+    \@xp\sseq@x@addto@macro\csname sseq@savedfeatures@\sseq@thename infty\endcsname{%
         \@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname
 %        \@nx\ifx\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname\relax\@nx\else %
 %            \@nx\@nx\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname %
@@ -1574,7 +1624,7 @@
         \global\let\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname\relax %
         %\show\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname
         %\sseq@temppage is defined by \d before it calls this.
-        \@nx\sseq@g@deforaddto@macro@noctx{sseq@savednodes@\sseq@thename\@nx\sseq@temppage}{% needs to be defor in case this is placed before the nodes it connects.
+        \@nx\sseq@g@deforaddto@macro@noctx{sseq@savedfeatures@\sseq@thename\@nx\sseq@temppage}{% needs to be defor in case this is placed before the nodes it connects.
             \@xp\@nx\csname sseq@feature\the\sseq@featurecount\endcsname %
         }%
         \global\let\@xp\@nx\csname sseq@transferfeature\the\sseq@featurecount\endcsname\relax %
@@ -1609,11 +1659,11 @@
     \edef\temp{
         \@nx\sseq@structline@@
             \@xp\sseq@iffullcoord\@xp(\source)
-                {\@xp\sseq@fullcoord@to@partialcoord\@xp(\source){,\@xp\sseq@fullcoord@lastelt\@xp(\source)}}
+                {\@xp\sseq@fullcoord@to@partialcoord\@xp(\source){\@xp\sseq@fullcoord@lastelt\@xp(\source)}}
                 {(\source){}}%{\@ifundefined{sseq@coord\sseq@thename(\source)@numnodes}{}{,\csname sseq@coord\sseq@thename(\source)@numnodes\endcsname}}}
             {#2}
             \@xp\sseq@iffullcoord\@xp(\target){
-                \@xp\sseq@fullcoord@to@partialcoord\@xp(\target){,\@xp\sseq@fullcoord@lastelt\@xp(\target)}}
+                \@xp\sseq@fullcoord@to@partialcoord\@xp(\target){\@xp\sseq@fullcoord@lastelt\@xp(\target)}}
                 {(\target){}}%{\@ifundefined{sseq@coord\sseq@thename(\target)@numnodes}{}{,\csname sseq@coord\sseq@thename(\target)@numnodes\endcsname}}}
             {#4}
     }%
@@ -1624,19 +1674,11 @@
     \sseq@tempy=\sseq@y\advance\sseq@tempy#2\relax
     \sseq@tempxb=\sseq@x\advance\sseq@tempxb#5\relax
     \sseq@tempyb=\sseq@y\advance\sseq@tempyb#6\relax
-    \sseq@temptoks\@xp{\sseq@scopeoptions}%/utils/exec=\showthe\sseq@x}
-    \def\sseq@na{#3}
-    \ifx\sseq@na\pgfutil@empty\@ifundefined{sseq@coord\sseq@thename(\the\sseq@tempx,\the\sseq@tempy)@numnodes}{}
-        {\edef\sseq@na{,\csname sseq@coord\sseq@thename(\the\sseq@tempx,\the\sseq@tempy)@numnodes\endcsname}}
-    \fi
-    \def\sseq@nb{#7}
-    \ifx\sseq@nb\pgfutil@empty\@ifundefined{sseq@coord\sseq@thename(\the\sseq@tempxb,\the\sseq@tempyb)@numnodes}{}
-        {\edef\sseq@nb{,\csname sseq@coord\sseq@thename(\the\sseq@tempxb,\the\sseq@tempyb)@numnodes\endcsname}}
-    \fi
-
-    %\edef\temp{(\the\sseq@tempx,\the\sseq@tempy#3)}
+    \sseq@temptoks\@xp{\sseq@scopeoptions}
+    \sseq@whichclass\sseq@na{\the\sseq@tempx}{\the\sseq@tempy}{#3}
+    \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}
     \edef\temp{\@nx\sseq@addcontingentfeature{(\the\sseq@tempx,\the\sseq@tempy)(\the\sseq@tempxb,\the\sseq@tempyb)}
-        {\@nx\draw[/tikz/sseqpages/second pass,\the\sseq@temptoks]\space(#1,#2\sseq@na) to (#5,#6\sseq@nb);}
+        {\@nx\draw[/tikz/sseqpages/second pass,\the\sseq@temptoks]\space(#1,#2,\sseq@na) to (#5,#6,\sseq@nb);}
     }
     \temp
 }
