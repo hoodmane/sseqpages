@@ -12,19 +12,29 @@
 \xrange{0}{50}
 \yrange{0}{21}
 
-\def\sseq@classplacementtransform{\pgftransformscale{1.5}\pgftransformrotate{60}}
+\def\sseq@classplacementtransform{\pgftransformrotate{60}}
+% normal - 8.5 seconds
+%\def\structline(#1)(#2){\draw (#1)--(#2);} % 5.5 seconds
+%\def\structline(#1)(#2){} % 4 sec
 
-\gdef\tower{
+% 360 + 80 + 36 = 476
+% 3 seconds/476  -- a 0.006 second performance cost to each \structline versus \draw, 0.003 second cost to each \draw versus not drawing it
+%\place(0,20)
+%\place(0,21)
+%\structline(0,21-1)(0,21)
+\gdef\tower{% 25
     \place(0,0)
-    \foreach \y in {1,...,25}{
+    \foreach \y in {1,...,22}{
         \place(0,\y)
         \structline(0,\y-1)(0,\y)
     }
 }
+
+
 %
 %\structline(24,11,1)(24,12,1)
 %
-\gdef\towergroup{
+\gdef\towergroup{%9 + 25 = 36
     \tower
     \place(1,1)
     \place(3,1)
@@ -44,7 +54,7 @@
 }
 
 
-\gdef\towergroupa{
+\gdef\towergroupa{%25*2+9+21 = 80
     \towergroup
     \place(0,-1)
     \place(1,0)
@@ -97,7 +107,7 @@
     \d2(7,0)
 }
 
-\gdef\towergroupb{
+\gdef\towergroupb{ %80 + 25 + 15 = 120
     \towergroupa
     \begin{scope}[xshift=8,yshift=-2]
     \tower
@@ -148,15 +158,15 @@
 
 
 
-\towergroup
+\towergroup % 36
 
 \begin{scope}[xshift=8,yshift=4]
-\towergroupa
+\towergroupa % 80
 \end{scope}
 
 \foreach \n in {2,3,4}{
     \begin{scope}[use context,xshift=8*\n,yshift=4*\n]
-    \towergroupb
+    \towergroupb % 120
     \end{scope}
 }
 

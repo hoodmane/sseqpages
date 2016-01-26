@@ -5,7 +5,8 @@
 % TODO:
 % add calculation of maxpage
 % option not to render axes
-% offsets
+% options to add space to the right and on the top of the picture (like y axis gap and x axis gap except mirrored)
+% offset patterns
 % Render certain out of range nodes? second range command to allow for nearby nodes to be printed anyways?
 % Check if modifications to tikz are alright
 
@@ -25,6 +26,7 @@
 \def\sseq@getfirstchar#1#2\sseq@nil{#1} % used in parsecoords
 \def\sseq@uptocomma#1,#2\sseq@nil{#1}
 \def\sseq@fullcoord@to@partialcoord(#1,#2,#3){(#1,#2)}
+\def\sseq@fullcoord@to@partialcoordb(#1,#2,#3){{#1cm}{#2cm}}
 \def\sseq@fullcoord@lastelt(#1,#2,#3){#3}
 
 
@@ -770,7 +772,6 @@
             \advance\sseq@tempcount1
             \csname sseq@saveddiffs@\sseq@thename\the\sseq@tempcount\endcsname %
         \ifnum\sseq@tempcount<\sseq@maxpage\repeat
-        \csname sseq@savednodes@\sseq@thename infty\endcsname
     }%
     % These are set up so that if the user specifies no \xrange, the minimum position of any node can be calculated on the fly.
     \xdef\sseq@xmin{\sseq@infinity}%
@@ -963,9 +964,11 @@
 \def\sseq@clip{
     %\clip(\sseq@xmin-0.4,\sseq@ymin-0.4) rectangle (\sseq@xmax+0.5,\sseq@ymax+0.5);%
     \sseq@tempxdim=\sseq@xmin cm
-    \advance\sseq@tempxdim-0.4cm
+    \advance\sseq@tempxdim-\sseq@yaxisgap cm
+    \advance\sseq@tempxdim0.1cm
     \sseq@tempydim=\sseq@ymin cm
-    \advance\sseq@tempydim-0.4cm
+    \advance\sseq@tempydim-\sseq@xaxisgap cm
+    \advance\sseq@tempydim0.1cm
     \pgfpathmoveto{\pgfpoint{\the\sseq@tempxdim}{\the\sseq@tempydim}}
     \sseq@tempxdim=\sseq@xmax cm
     \advance\sseq@tempxdim0.5cm
@@ -974,7 +977,8 @@
     \advance\sseq@tempydim0.5cm
     \pgfpathlineto{\pgfpoint{\the\sseq@tempxdim}{\the\sseq@tempydim}}
     \sseq@tempxdim=\sseq@xmin cm
-    \advance\sseq@tempxdim-0.4cm
+    \advance\sseq@tempxdim-\sseq@yaxisgap cm
+    \advance\sseq@tempxdim0.1cm
     \pgfpathlineto{\pgfpoint{\the\sseq@tempxdim}{\the\sseq@tempydim}}
     \pgfusepath{clip}
 }
@@ -1276,7 +1280,7 @@
         \pgfgettransform{\savetransform}
         \pgftransformresetnontranslations
         \sseq@classplacementtransform
-        \edef\temp{\@nx\pgftransformshift{\@nx\pgfpoint{0\csname sseq@xoffset@\sseq@thename(\tempcoord)\endcsname cm}{0\csname sseq@yoffset@\sseq@thename(\tempcoord)\endcsname cm}}}
+        \edef\temp{\@nx\pgftransformshift{\@nx\pgfpoint{\csname sseq@xoffset@\sseq@thename(\tempcoord)\endcsname cm}{\csname sseq@yoffset@\sseq@thename(\tempcoord)\endcsname cm}}}
         \temp
         \pgftransformresetnontranslations
         \edef\temp{
@@ -1440,9 +1444,34 @@
 \def\sseq@setstdoffsets#1#2#3#4{\@xp\def\csname sseq@stdxoffset#1/#2\endcsname{#3}\@xp\def\csname sseq@stdyoffset#1/#2\endcsname{#4}}
 \def\sseq@checkoffsets#1#2{} %TODO: Implement this
 
-\sseq@setstdoffsets11{}{}
-\sseq@setstdoffsets12{-0.13}{}
-\sseq@setstdoffsets22{+0.13}{}
+\sseq@setstdoffsets11{0}{0}
+%
+\sseq@setstdoffsets12{-0.13}{0}
+\sseq@setstdoffsets22{0.13}{0}
+%
+\sseq@setstdoffsets13{-0.2}{0}
+\sseq@setstdoffsets23{0}{0}
+\sseq@setstdoffsets33{0.2}{0}
+%
+\sseq@setstdoffsets14{-0.13}{-0.13}
+\sseq@setstdoffsets24{0.13}{-0.13}
+\sseq@setstdoffsets34{-0.13}{0.13}
+\sseq@setstdoffsets44{0.13}{0.13}
+%
+\sseq@setstdoffsets15{-0.16}{-0.16}
+\sseq@setstdoffsets25{0.16}{-0.16}
+\sseq@setstdoffsets35{-0.16}{0.16}
+\sseq@setstdoffsets45{0.16}{0.16}
+\sseq@setstdoffsets55{0}{0}
+%
+\sseq@setstdoffsets16{-0.13}{-0.2}
+\sseq@setstdoffsets26{-0.13}{0}
+\sseq@setstdoffsets36{-0.13}{0.2}
+\sseq@setstdoffsets46{0.13}{-0.2}
+\sseq@setstdoffsets56{0.13}{0}
+\sseq@setstdoffsets66{0.13}{0.2}
+
+
 
 \def\sseq@usestdoffsets#1#2#3#4{
     \@xp\global\@xp\let\csname sseq@xoffset@\sseq@thename(#1,#2,#3)\@xp\endcsname\csname sseq@stdxoffset#3/#4\endcsname
@@ -1548,7 +1577,7 @@
     \sseq@x@deforaddto@macro{sseq@saveddiffs@\sseq@thename#2}{
         \begingroup
         \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
-        \@nx\sseq@d@drawedge\source\target{\the\sseq@doptionslist\the\sseq@temptoks\@nx\pgfkeysalso{\@xp\@nx\csname sseq@dstyle\sseq@thename#2\source\endcsname}}{}
+        \@nx\sseq@d@drawedge\source\target{\the\sseq@doptionslist\the\sseq@temptoks\@nx\pgfkeysalso{\@xp\@nx\csname sseq@dstyle\sseq@thename#2\source\endcsname}}
         \endgroup
     }
 %
@@ -1574,10 +1603,8 @@
 
 % #1 -- source
 % #2 -- target
-% #3 -- scope options
-% #4 -- local and late options
-\def\sseq@d@drawedge(#1)(#2)#3#4{
-    \tikzset{#4}
+% #3 -- options
+\def\sseq@d@drawedge(#1)(#2)#3{
     \ifsseq@needstikz
         \sseq@temptoks{#3}
         \edef\temp{\@nx\draw[draw,/tikz/sseqpages/second pass/differential,/utils/exec={\the\sseq@temptoks}] (#1) to (#2);}
@@ -1588,9 +1615,26 @@
         #3
         \tikz@options
         \tikz@mode
-        \pgfpathmoveto{\pgfpointshapeborder{sseq@{#1}}{\pgfpointanchor{sseq@{#2}}{center}}}
-        %\xdef\tikz@timer@start{\noexpand\pgfqpoint{\the\pgf@x}{\the\pgf@y}}
-        \pgfpathlineto{\pgfpointshapeborder{sseq@{#2}}{\pgfpointanchor{sseq@{#1}}{center}}}
+        \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid
+            \def\tempa{\@nx\pgfpointanchor{sseq@{#1}}{center}}
+        \else
+            \def\tempa{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#1)}
+            \let\tempaf\tempa
+        \fi
+        \@xp\ifx\csname pgf@sh@pi@sseq@{#2}\endcsname\pgfpictureid
+            \def\tempb{\@nx\pgfpointanchor{sseq@{#2}}{center}}
+            \def\tempbf{\@nx\pgfpointshapeborder{sseq@{#2}}{\tempa}}
+        \else
+            \def\tempb{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#2)}
+            \let\tempbf\tempb
+        \fi
+        \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid
+            \def\tempaf{\@nx\pgfpointshapeborder{sseq@{#1}}{\tempb}}
+        \fi
+        \edef\temp{
+            \@nx\pgfpathmoveto{\tempaf}
+            \@nx\pgfpathlineto{\tempbf}
+        }\temp
         %\xdef\tikz@timer@end{\noexpand\pgfqpoint{\the\pgf@x}{\the\pgf@y}}
         \edef\temp{\noexpand\pgfusepath{%
             \iftikz@mode@fill fill,\fi%
@@ -1678,7 +1722,7 @@
     \sseq@whichclass\sseq@na{\the\sseq@tempx}{\the\sseq@tempy}{#3}
     \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}
     \edef\temp{\@nx\sseq@addcontingentfeature{(\the\sseq@tempx,\the\sseq@tempy)(\the\sseq@tempxb,\the\sseq@tempyb)}
-        {\@nx\draw[/tikz/sseqpages/second pass,\the\sseq@temptoks]\space(#1,#2,\sseq@na) to (#5,#6,\sseq@nb);}
+        {\@nx\sseq@d@drawedge(\the\sseq@tempx,\the\sseq@tempy,\sseq@na)(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb){\the\sseq@temptoks}}
     }
     \temp
 }
