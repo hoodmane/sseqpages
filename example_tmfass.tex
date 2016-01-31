@@ -5,12 +5,17 @@
 \begin{document}
 
 %\pgfset{every differential/.show}
-\begin{sseqdata}[differentials={->,blue}, yscale=0.8, xscale=0.5, x label step=2]{tmfass}
-\cyclestyles{draw,circle,fill,inner sep=0.3ex}
-            {draw,rectangle,fill,inner sep=0.3ex}
+\begin{sseqdata}[
+    yscale=0.8, xscale=0.5, 
+    x label step=2,
+    classes={draw,fill,inner sep=0.3ex},
+    permanent cycles=circle,
+    differentials={->,blue}
+]{tmfass}
 \degree{-1}{#1}
 \xrange{0}{50}
-\yrange{0}{21}
+\yrange{0}{20}
+%\def\structline(#1)(#2){\draw(#1)--(#2);}
 
 \def\sseq@classplacementtransform{\pgftransformrotate{60}}
 % normal - 8.5 seconds
@@ -182,11 +187,10 @@
 \d3(34,13)
 %\d3(30,6)
 \d4(31,8)
-\yrange{0}{20}
-\end{sseqdata}\vskip-\baselineskip
+\end{sseqdata}
 \printpage[name=tmfass,page=2]
 \newpage
 \printpage[name=tmfass,page=3]
 \newpage
-\printpage[name=tmfass,page=4]
+%\printpage[name=tmfass,page=4]
 \end{document}

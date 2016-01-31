@@ -1,0 +1,149 @@
+\documentclass{ltxdoc}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{geometry}
+\usepackage{sseqpages}
+\usepackage{environ}
+\usepackage{verbatim}
+\theoremstyle{definition}
+\newtheorem{ex}{Example}
+\parskip=10pt
+\parindent=0pt
+\MakeShortVerb{\|}
+\title{A quick |sseqpages| tutorial}
+
+%\let\ex\comment
+\begin{document}
+The |sseqpages| package provides two environments -- the |sseqdata| environment, for specifying the raw data of a spectral sequence, and the |sseqpage| environment, for printing a page of a spectral sequence. There is also a command |\printpage| for when the body of |sseqpage| is empty.
+
+\begin{ex}
+Here is a very short example to illustrate the most basic usage:
+\begin{verbatim}
+\begin{sseqdata}[degree={#1}{-#1+1}]{example1}
+\place(0,0)
+\place(2,0)
+\place(0,1)
+\place(2,1)
+\d2(0,1)
+\end{sseqdata}
+\printpage[name=example1,page=2]
+\printpage[name=example1,page=3]
+\end{verbatim}
+
+\begin{sseqdata}[degree={#1}{-#1+1},classes={draw}]{example1}
+\place(0,0)
+\place(2,0)
+\place(0,1)
+\place(2,1)
+\d2(0,1)
+\end{sseqdata}
+\printpage[name=example1,page=2]
+\printpage[name=example1,page=3]
+
+The option |degree={#1}{-#1+1}| specifies that the bidegree of the $E_r$ differential is $(r,-r+1)$ -- that is, a page $r$ differential goes right $r$ and down $r-1$. |example1| is name of this spectral sequence. The command |\place(|\meta{x}|,|\meta{y}|)| places a node at (\meta{x},\meta{y}). We place four nodes, then use the command |\d2(2,0)| which places a differential connecting the class at (2,0) to the one at (0,1). Then we use |\printpage| to display pages three and four of the spectral sequence. We see the single differential on page three, and then on page four, its source and target have disappeared.
+\end{ex}
+
+\sseqset{degree={#1}{-#1+1},classes={inner sep=0.2ex},differentials=->} % Make sure to keep this in the code for the next example
+\begin{ex}
+The appearance of example 1 was pretty rough. This example polishes it up a bit.
+
+\begin{verbatim}
+\sseqset{degree={#1}{-#1+1},classes={inner sep=0.2ex},differentials=->}
+\begin{sseqdata}[
+    classes={fill,circle},
+    differentials=blue,
+    permanent cycles={double distance=1,inner sep=0.2ex+0.35pt},
+    transient cycles=red
+]{example2}
+\node[background,font=\small] at (\xmin/2+\xmax/2,\ymax+1) {\textup{Page \sseqthepage{}}};
+\foreach \x in {0,2} \foreach \y in {0,1}{
+    \place["$\mathbb{Z}$"](\x,\y)
+}
+\d2(0,1)
+\end{sseqdata}
+\printpage[name=example1,page=2]
+\printpage[name=example1,page=3]
+\end{verbatim}
+
+\begin{sseqdata}[
+    classes={fill,circle},
+    differentials=blue,
+    permanent cycles={double distance=1,inner sep=0.2ex+0.35pt},
+    transient cycles=red
+]{example2}
+\node[background,font=\small] at (\xmin/2+\xmax/2,\ymax+1) {\textup{Page \sseqthepage{}}};
+\foreach \x in {0,2} \foreach \y in {0,1}{
+    \place(\x,\y)
+}
+\d2(0,1)
+\end{sseqdata}
+\printpage[name=example2,page=2]
+\printpage[name=example2,page=3]
+
+The command |\sseqset| sets options for all spectral sequences in the current scope. Note in particular that these changes are local to the current environment. The option |classes| adds the given options to the style |every class| which controls the appearance of nodes. The classes above were too large for my taste, so I asked for them to be somewhat smaller by default in all future diagrams using the option |inner sep=0.2ex|. Also, the |differentials=->| will make all future differentials end in an arrow tip.
+
+For this particular diagram, I asked for the classes to be filled circles with |classes={fill,circle}|, and for the differentials to be blue by setting |differentials=blue|. To make it easier to distinguish permanent cycles from those that eventually die (``transient cycles''), the options |permanent cycles| and |transient cycles| adds options to the styles |every permanent cycle| and |every transient cycle|, which are used to typeset permanent and transient cycles. In this case, we ask for permanent cycles to be drawn with an extra circle around them, and for transient cycles to be red.
+
+
+|\node[background,font=\small] at (\xmin/2+\xmax/2,\ymax+1) {\textup{Page \sseqthepage{}}};| adds a title to the background that says what page it is.
+\end{ex}
+
+\tikzset{execute at begin node=$, execute at end node=$}% fix this to work with \sseqset
+\begin{ex}
+Named cells and the |\replace| command.
+
+\begin{verbatim}
+\sseqset{execute at begin node=$, execute at end node=$}
+\begin{sseqdata}[
+    classes={draw=none},
+]{example3}
+\foreach \x in {0,2} \foreach \y in {0,1}{
+    \place["\mathbb{Z}"](\x,\y)
+}
+\d["\cdot 2"]2(0,1)
+\replace["\mathbb{Z}/2"](2,0)
+\end{sseqdata}
+\printpage[name=example3,page=2]
+\printpage[name=example3,page=3]
+\end{verbatim}
+
+\begin{sseqdata}[
+    classes={draw=none}
+]{example3}
+\foreach \x in {0,2} \foreach \y in {0,1}{
+    \place["\mathbb{Z}"](\x,\y)
+}
+\d["\cdot 2"]2(0,1)
+\replace["\mathbb{Z}/2"](2,0)
+\end{sseqdata}
+\printpage[name=example3,page=2]
+\printpage[name=example3,page=3]
+
+If you want to put something in the body of the node printed by the |\place| command, this is specified in quotes. For instance the command |\place["\mathbb{Z}"](\x,\y)| puts a $\mathbb{Z}$ in the node. Likewise, to label a differential, place the desired label in quotes, like |\d["\cdot 2"]2(0,1)|. I don't want the $\mathbb{Z}$ to be surrounded by a drawn border so I pass the global option |classes={draw=none}| to tell Tikz not to draw the boundary of the node. Also, all of the labels in this example are in math mode, so I ask Tikz to automatically put every cell in math mode using the options |execute at begin node=$, execute at end node=$|. Lastly, note here the command |\replace["\mathbb{Z}/2"](2,0)|. After a class supports or is hit by a differential (or both), it will disappear on subsequent pages. If you want to put a new node in the same location (or the same node), it is necessary to use the |\replace| command.
+\end{ex}
+
+\begin{ex}
+Hello
+
+\begin{sseqdata}[
+    xscale=1.3,
+    y axis gap=1cm,
+    yscale=0.6,
+    y range={0}{6},
+    y label step=2,
+    classes={draw=none}
+]{example4}
+\foreach \x [count=\n from 0,use context] in {1,x,1/2x^2,1/6x^3,1/24x^4} {
+    \place["\mathbb{Z}\{\x\}"](0,2*\n)
+}
+
+\foreach \x [count=\n,use context] in {a,ax,1/2ax^2,1/6ax^3} {
+    \place["\mathbb{Z}\{\x\}"](3,2*\n-2)
+    \d["\cdot\n" above]3(0,2*\n)
+}
+\end{sseqdata}
+\printpage[name=example4,page=3]
+\end{ex}
+
+
+\end{document} 
