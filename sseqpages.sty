@@ -120,8 +120,11 @@
 %^^A TODO:
 %^^A How should global/.unknown work? THe current version isn't quite right.
 %^^A   Add a separate global/sseqset directory? Or a special version of global/.unknown for \sseqset? Or what?
+%^^A Fix it so that updating saying e.g., "classes={stuff}" as an option to "\begin{sseqpage}" does something.
+%^^A
+%^^A Is the option handling getting too complicated?
+%^^A
 %^^A Is labels / every label broken?
-%^^A add calculation of maxpage
 %^^A option not to render axes
 %^^A options to add space to the right and on the top of the picture (like y axis gap and x axis gap except mirrored)
 %^^A offset patterns
@@ -261,7 +264,8 @@
 \def\sseq@x@addtosavedpaths@ctx{\@xp\sseq@x@addto@macro@ctx\sseq@savedpaths}
 \def\sseq@savedpaths{\sseq@savedforegroundpaths}
 
-%^^A%%^^A% Set up keys
+%^^A%% Set up keys
+%^^A TODO: Check that this section is consistent
 
 \def\sseqset#1{\ifsseq@inprogress\pgfqkeys{/tikz/sseqpages}{#1}\else \pgfqkeys{/tikz/sseqpages/global}{#1}\fi\sseq@redooptions}
 \def\sseq@set{\pgfqkeys{/tikz/sseqpages}}
@@ -278,7 +282,6 @@
         \let\sseq@tempb\pgfkeyscurrentvalue
         \pgfkeysalso{{\sseq@currentoptionpath} options/.append style/.expand twice={\@xp\sseq@tempa\@xp=\@xp{\sseq@tempb}}}
     },
-    /tikz/sseqpages/foreach/.unknown/.code={\sseq@passoptionto{/pgf/foreach}},
     /tikz/sseqpages/first pass/.unknown/.code={},
     /tikz/sseqpages/first pass/scope/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/first pass}},
     /tikz/sseqpages/first pass/class/.unknown/.code={%
@@ -300,6 +303,9 @@
     /tikz/sseqpages/second pass/differential/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
     /tikz/sseqpages/second pass/tikz primitives/.is family,
     /tikz/sseqpages/second pass/tikz primitives/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
+    % One off directories
+    /tikz/sseqpages/foreach/.unknown/.code={\sseq@passoptionto{/pgf/foreach}},
+    /tikz/sseqpages/class placement/.unknown/.code={\sseq@passoptionto{/tikz}}
 }
 
 \pgfqkeys{/tikz/sseqpages/first pass/class}{shape/.code={\edef\tikz@shape{\pgfkeyscurrentname}}} %^^A shape=whatever shape passing
@@ -382,7 +388,7 @@
 \pgfqkeys{/tikz/sseqpages/second pass}{ %^^A This is only for scope and tikz primitives, but in other cases, it emits an error on first pass.
     use context/.code={},
     needs tikz/.code={},
-    class/transform shape/.code={\pgfsettransform{\savetransform}\pgfqkeys{/tikz}{transform shape}}
+    class/transform shape/.code={\pgfsettransform{\savetransform}\pgfqkeys{/tikz/sseqpages/class transform}{transform shape}}
 }
 
 %^^A% Needs tikz
@@ -565,7 +571,18 @@
     y axis gap/.code={\def\sseq@yaxisgap{#1}},
     label step/.code={\def\sseq@xlabelstep{#1}\def\sseq@ylabelstep{#1}},
     x label step/.store in=\sseq@xlabelstep,
-    y label step/.store in=\sseq@ylabelstep
+    y label step/.store in=\sseq@ylabelstep,
+    class placement transform/.code={%
+        \let\tikz@transform\pgfutil@empty
+        \pgfqkeys{/tikz/sseqpages/class placement}{#1}%
+        \global\let\sseq@classplacementtransform\tikz@transform
+    }
+}
+
+\pgfqkeys{/tikz/sseqpages/class placement}{
+    x shift/.code={\sseq@error@noclassplacementshift{x shift}{#1}},
+    y shift/.code={\sseq@error@noclassplacementshift{y shift}{#1}},
+    shift/.code={\sseq@error@noclassplacementshift{shift}{#1}}
 }
 
 \sseq@set{%
@@ -903,7 +920,7 @@
     \def\sseq@xaxisgap{0.5cm}%
     \def\sseq@yaxisgap{0.5cm}%
     \def\sseq@maxpage{0}%
-    \def\sseq@classplacementtransform{}%
+    \gdef\sseq@classplacementtransform{}%
 %
     %^^A the default option handler for /tikz/sseqpages/global adds to \sseq@currentoptionpath options
     \let\sseq@currentoptionpath\sseq@thename
@@ -969,6 +986,7 @@
     \gdef\sseqpage@cleanup{} %^^A For undoing local option settings
     \def\sseq@currentoptionpath{this page}%
     \pgfqkeys{/tikz/sseqpages/global}{#1}%
+    \
     %
     %^^A Defer evaluation of all tikz primitives
     \sseq@modtikzcommands@defer %
@@ -997,7 +1015,7 @@
         every path/.style={},
         every node/.style={}
     }%
-    \sseq@redooptions
+    \sseq@redooptions % This is actually completely pointless...
     %
     \let\sseq@transform\sseq@error@illegaltransform %^^A Disallow most coordinate transforms
     \let\sseq@shifttransform\sseq@checkshifttransform %^^A Allow shifts as long as they are by integers and have no units.

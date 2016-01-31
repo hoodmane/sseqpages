@@ -1,12 +1,13 @@
 \documentclass{ltxdoc}
 \usepackage{amssymb}
 \usepackage{amsthm}
-\usepackage{geometry}
+\usepackage{fullpage}
 \usepackage{sseqpages}
 \usepackage{environ}
 \usepackage{verbatim}
 \theoremstyle{definition}
 \newtheorem{ex}{Example}
+\def\endex{\newpage}
 \parskip=10pt
 \parindent=0pt
 \MakeShortVerb{\|}
@@ -41,6 +42,11 @@ Here is a very short example to illustrate the most basic usage:
 \printpage[name=example1,page=3]
 
 The option |degree={#1}{-#1+1}| specifies that the bidegree of the $E_r$ differential is $(r,-r+1)$ -- that is, a page $r$ differential goes right $r$ and down $r-1$. |example1| is name of this spectral sequence. The command |\place(|\meta{x}|,|\meta{y}|)| places a node at (\meta{x},\meta{y}). We place four nodes, then use the command |\d2(2,0)| which places a differential connecting the class at (2,0) to the one at (0,1). Then we use |\printpage| to display pages three and four of the spectral sequence. We see the single differential on page three, and then on page four, its source and target have disappeared.
+
+%I think these rectangles are too large, and they'd look better if they were filled. If I want to change the appearance on this one page I can say:
+
+%\printpage[name=example1,page=2,classes={inner sep=0.2ex,fill}]
+%TODO: make this strategy ^^ actually work
 \end{ex}
 
 \sseqset{degree={#1}{-#1+1},classes={inner sep=0.2ex},differentials=->} % Make sure to keep this in the code for the next example
@@ -121,6 +127,126 @@ Named cells and the |\replace| command.
 
 If you want to put something in the body of the node printed by the |\place| command, this is specified in quotes. For instance the command |\place["\mathbb{Z}"](\x,\y)| puts a $\mathbb{Z}$ in the node. Likewise, to label a differential, place the desired label in quotes, like |\d["\cdot 2"]2(0,1)|. I don't want the $\mathbb{Z}$ to be surrounded by a drawn border so I pass the global option |classes={draw=none}| to tell Tikz not to draw the boundary of the node. Also, all of the labels in this example are in math mode, so I ask Tikz to automatically put every cell in math mode using the options |execute at begin node=$, execute at end node=$|. Lastly, note here the command |\replace["\mathbb{Z}/2"](2,0)|. After a class supports or is hit by a differential (or both), it will disappear on subsequent pages. If you want to put a new node in the same location (or the same node), it is necessary to use the |\replace| command.
 \end{ex}
+
+\begin{ex}
+Multiple nodes in the same location and the |\structline| command.
+
+\begin{verbatim}
+\begin{sseqdata}[classes={circle,fill},differentials=blue,yscale=0.7]{example4}
+\place(0,2)\place(0,2)
+\place(3,0)\place(3,0)
+\place(3,2)
+
+\place(3,0)
+\foreach \y in {1,...,5} {
+    \place(3,\y)
+    \structline(3,\y-1,-1)(3,\y,-1)
+}
+
+\place(1,3)
+\d2(1,3,,-1)
+\d3(0,2,1,2)
+\d3(0,2,-1,-1)
+\place(0,0)
+\draw[->,green](3,0,1)--(0,0);
+\end{sseqdata}
+\printpage[name=example4,page=3]
+\printpage[name=example4,page=3,class placement transform={rotate=40}]
+\printpage[name=example4,page=4,class placement transform={rotate=40}]
+\end{verbatim}
+
+\begin{sseqdata}[classes={circle,fill},differentials=blue,yscale=0.7]{example4}
+\place(0,2)\place(0,2)
+\place[red](3,0)\place[green](3,0)\place[blue](3,0)
+\place(3,2)
+
+\foreach \y in {1,...,5} {
+    \place(3,\y)
+    \structline(3,\y-1,-1)(3,\y,-1)
+}
+
+\place(1,3)
+\d2(1,3,,-1)
+\d3(0,2,1,2)
+\d3(0,2,-1,-1)
+\place(0,0)
+\draw[->,green](3,0,1)--(0,0);
+\end{sseqdata}
+\printpage[name=example4,page=0]
+\printpage[name=example4,page=0,class placement transform={rotate=40}]
+\printpage[name=example4,page=4,class placement transform={rotate=40}]
+
+If you set |page=0|, then it will draw all differentials that appear on any page all together. 
+
+Multiple nodes in the same location are automatically arranged in a standard pattern. In the future it will be possible for the user to exert a significant amount of control over this pattern, but right now, there's only one choice. The option |class placement transform| allows the user to specify a coordinate transform to adjust the relative position of multiple nodes in the same position. This coordinate transform can only involve rotation and scaling, no translation. In this case, |class placement transform={rotate=40}| rotates the classes in the same position by 40 degrees. %TODO: in the future
+
+To place multiple nodes in the same location, you just call |\place| with the same coordinate twice. To place a differential where the source or target have multiple nodes, you say |\d|\meta{r}|(|\meta{x source}|,|\meta{y source}|,|\meta{n source}|,|\meta{n target}|)| where \meta{n source} and \meta{n target} specify which of the nodes in the source and target location to use. If the number \meta{n} is positive, it counts from the first node placed in that position, whereas if it is negative, it counts from the most recent node placed in that position.
+
+The command |\structline|\meta{source coord}\meta{target coord} places a line from the source class to the target class, but will only draw this line on pages where both the source and target are still alive. If multiple nodes are in the same position, then the syntax for the coordinate is |(|\meta{x}|,|\meta{y}|,|\meta{n}|)|, where as with |\d|, if \meta{n} is negative it counts backwards from the most recently placed node.
+
+Using negative values is particularly useful when drawing repeated structures. This way, independent of how many classes are already present in a given position, the new structure will be properly grouped. Consider, for instance, the following code:
+
+\begin{minipage}{0.7\textwidth}
+\begin{verbatim}
+\def\tower#1{
+    \begin{scope}[#1]
+    \place(0,0)
+    \place(0,2)
+    \foreach \y in {1,...,5} {
+        \place(0,\y)
+        \structline(0,\y-1,-1)(0,\y,-1)
+    }
+    \structline(0,1)(0,2,-2)
+    \structline(0,2,-2)(0,3)
+    \end{scope}
+}   
+\begin{sseqdata}[classes={circle,fill},yscale=0.5]{example5}
+\place(1,1)\place(1,2)
+\place(2,3)\place(2,3)\place(2,5)
+\tower{xshift=0,blue}
+\tower{xshift=1,green}
+\tower{xshift=2,red}
+\end{sseqdata}
+\printpage[name=example5,page=0]
+\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.25\textwidth}
+\def\tower#1{
+    \begin{scope}[#1]
+    \place(0,0)
+    \place(0,2)
+    \foreach \y in {1,...,5} {
+        \place(0,\y)
+        \structline(0,\y-1,-1)(0,\y,-1)
+    }
+    \structline(0,1)(0,2,-2)
+    \structline(0,2,-2)(0,3)
+    \end{scope}
+}
+\begin{sseqdata}[classes={circle,fill}]{example5}
+\place(1,1)\place(1,2)
+\place(2,3)\place(2,3)\place(2,5)
+\tower{xshift=0,blue}
+\tower{xshift=1,green}
+\tower{xshift=2,red}
+\end{sseqdata}
+\printpage[name=example5,page=0]
+\end{minipage}
+\end{ex}
+\end{document}
+
+\begin{ex}
+A
+
+\begin{sseqdata}[classes={draw=none}]{ex5}
+\place["\mathbb Z/2"](1,0)
+\place["\mathbb Z"](1,0)
+\place(0,0)\place(4,4)
+\end{sseqdata}
+\printpage[name=ex5,page=0]\printpage[name=ex5,page=0,class placement transform={scale=3}]
+\end{ex}
+
+\end{document}
 
 \begin{ex}
 Hello
