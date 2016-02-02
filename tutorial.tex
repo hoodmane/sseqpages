@@ -41,7 +41,7 @@ Here is a very short example to illustrate the most basic usage:
 \printpage[name=example1,page=2]
 \printpage[name=example1,page=3]
 
-The option |degree={#1}{-#1+1}| specifies that the bidegree of the $E_r$ differential is $(r,-r+1)$ -- that is, a page $r$ differential goes right $r$ and down $r-1$. |example1| is name of this spectral sequence. The command |\place(|\meta{x}|,|\meta{y}|)| places a node at (\meta{x},\meta{y}). We place four nodes, then use the command |\d2(2,0)| which places a differential connecting the class at (2,0) to the one at (0,1). Then we use |\printpage| to display pages three and four of the spectral sequence. We see the single differential on page three, and then on page four, its source and target have disappeared.
+The option |degree={#1}{-#1+1}| specifies that the bidegree of the $E_r$ differential is $(r,-r+1)$ -- that is, a page $r$ differential goes right $r$ and down $r-1$. |example1| is name of this spectral sequence. The command |\place(|\meta{x}|,|\meta{y}|)| places a node at (\meta{x},\meta{y}). We place four nodes, then use the command |\d2(2,0)| which places a differential connecting the class at (2,0) to the one at (0,1). Then we use |\printpage| to display pages three and four of the spectral sequence. We see the single differential on page two, and then on page three, its source and target have disappeared.
 
 %I think these rectangles are too large, and they'd look better if they were filled. If I want to change the appearance on this one page I can say:
 
@@ -63,12 +63,12 @@ The appearance of example 1 was pretty rough. This example polishes it up a bit.
 ]{example2}
 \node[background,font=\small] at (\xmin/2+\xmax/2,\ymax+1) {\textup{Page \sseqthepage{}}};
 \foreach \x in {0,2} \foreach \y in {0,1}{
-    \place["$\mathbb{Z}$"](\x,\y)
+    \place(\x,\y)
 }
 \d2(0,1)
 \end{sseqdata}
-\printpage[name=example1,page=2]
-\printpage[name=example1,page=3]
+\printpage[name=example2,page=2]
+\printpage[name=example2,page=3]
 \end{verbatim}
 
 \begin{sseqdata}[
@@ -176,7 +176,7 @@ Multiple nodes in the same location and the |\structline| command.
 \printpage[name=example4,page=0,class placement transform={rotate=40}]
 \printpage[name=example4,page=4,class placement transform={rotate=40}]
 
-If you set |page=0|, then it will draw all differentials that appear on any page all together. 
+If you set |page=0|, then it will draw all differentials that appear on any page all together.
 
 Multiple nodes in the same location are automatically arranged in a standard pattern. In the future it will be possible for the user to exert a significant amount of control over this pattern, but right now, there's only one choice. The option |class placement transform| allows the user to specify a coordinate transform to adjust the relative position of multiple nodes in the same position. This coordinate transform can only involve rotation and scaling, no translation. In this case, |class placement transform={rotate=40}| rotates the classes in the same position by 40 degrees. %TODO: in the future
 
@@ -199,7 +199,7 @@ Using negative values is particularly useful when drawing repeated structures. T
     \structline(0,1)(0,2,-2)
     \structline(0,2,-2)(0,3)
     \end{scope}
-}   
+}
 \begin{sseqdata}[classes={circle,fill},yscale=0.5]{example5}
 \place(1,1)\place(1,2)
 \place(2,3)\place(2,3)\place(2,5)
@@ -226,9 +226,9 @@ Using negative values is particularly useful when drawing repeated structures. T
 \begin{sseqdata}[classes={circle,fill}]{example5}
 \place(1,1)\place(1,2)
 \place(2,3)\place(2,3)\place(2,5)
-\tower{xshift=0,blue}
-\tower{xshift=1,green}
-\tower{xshift=2,red}
+\tower{xshift=0,struct lines=blue,classes=blue}
+\tower{xshift=1,struct lines=green}
+\tower{xshift=2,struct lines=red}
 \end{sseqdata}
 \printpage[name=example5,page=0]
 \end{minipage}

@@ -118,7 +118,7 @@
 \RequirePackage{etoolbox}
 
 %^^A TODO:
-%^^A How should global/.unknown work? THe current version isn't quite right.
+%^^A How should global/.unknown work? The current version isn't quite right.
 %^^A   Add a separate global/sseqset directory? Or a special version of global/.unknown for \sseqset? Or what?
 %^^A Fix it so that updating saying e.g., "classes={stuff}" as an option to "\begin{sseqpage}" does something.
 %^^A
@@ -164,7 +164,7 @@
 \newtoks\sseq@thetranscyclestyle
 \newtoks\sseq@classoptionslist
 \newtoks\sseq@doptionslist
-\newtoks\sseq@genoptionslist
+\newtoks\sseq@structlineoptionslist
 
 
 \newcount\sseq@commacount
@@ -392,7 +392,7 @@
 }
 
 %^^A% Needs tikz
-%^^A Force \place or \d to fallback to using tikz to render their output
+%^^A Force \place or \d to fall back to using tikz to render their output
 %^^A Rather than using the faster direct \pgf primitives (largely copied from tikz to maximize compatibility)
 %^^A Drawing with tikz is slower, but I don't want to reimplement these features
 
@@ -441,7 +441,7 @@
 \def\sseq@permanentcyclestyle#1{\sseq@thepermcyclestyle{\pgfkeysalso{#1}}}
 \def\sseq@transientcyclestyle#1{\sseq@thetranscyclestyle{\pgfkeysalso{#1}}}
 
-\def\sseq@redooptions{\sseq@redoclassoptions\sseq@redodifferentialoptions\sseq@redopermtranscycleoptions}%\sseq@redogenoptions}
+\def\sseq@redooptions{\sseq@redoclassoptions\sseq@redodifferentialoptions\sseq@redopermtranscycleoptions\sseq@redostructlineoptions}%\sseq@redogenoptions}
 \def\sseq@redoclassoptions{%
     \sseq@classoptionslist\@xp{\@xp\pgfkeysalso\@xp{\sseq@scopeoptions}}%
     \sseq@addstylecmdtotoks\sseq@classoptionslist{every path}%
@@ -458,6 +458,12 @@
     \sseq@addstylecmdtotoks\sseq@thepermcyclestyle{every permanent cycle}%
     \sseq@addstylecmdtotoks\sseq@thetranscyclestyle{every transient cycle}%
 }
+
+\def\sseq@redostructlineoptions{%
+    \sseq@structlineoptionslist\@xp{\@xp\pgfkeysalso\@xp{\sseq@scopeoptions}}%
+    \sseq@addstylecmdtotoks\sseq@structlineoptionslist{every struct line}%
+}
+
 %\def\sseq@redogenoptions{%
 %    \sseq@genoptionslist\@xp{\@xp\pgfkeysalso\@xp{\sseq@scopeoptions}}
 %    \sseq@addstylecmdtotoks\sseq@genoptionslist{every path}
@@ -495,7 +501,8 @@
     every class/.style={draw},
     every permanent cycle/.code={},
     every transient cycle/.code={},
-    every label/.style={ %^^ATOD? make changes to every label work correctly? (maybe?)
+    every struct line/.code={},    
+    every label/.style={ %^^A TODO? make changes to every label work correctly? (maybe?)
             /tikz/auto,
             /tikz/font=\everymath\expandafter{\the\everymath\scriptstyle},
             /tikz/inner sep=+0.5ex
@@ -507,8 +514,9 @@
     differentials/.code=   {\pgfkeysalso{every differential/.append style={#1}}\sseq@redodifferentialoptions},
     classes/.code=         {\pgfkeysalso{every class/.append style={#1}}\sseq@redoclassoptions},
     labels/.code=          {\pgfkeysalso{every label/.append style={#1}}},%^^A{\sseq@redodifferentialoptions},
-    permanent cycles/.code={\pgfkeysalso{every permanent cycle/.append style={#1}}},
-    transient cycles/.code={\pgfkeysalso{every transient cycle/.append style={#1}}},
+    permanent cycles/.code={\pgfkeysalso{every permanent cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
+    transient cycles/.code={\pgfkeysalso{every transient cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
+    struct lines/.code={\pgfkeysalso{every struct line/.append style={#1}}},    
     cycle styles/.code 2 args={\sseq@cyclestyles{#1}{#2}}
 }
 
@@ -521,8 +529,9 @@
     classes/.code=         {\sseq@set{every class/.append style={#1}}},
     labels/.code=          {\sseq@set{every label/.append style={#1}}},
     degree/.code 2 args={\sseq@degree{#1}{#2}},
-    permanent cycles/.code={\sseq@set{every permanent cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
-    transient cycles/.code={\sseq@set{every transient cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
+    permanent cycles/.code={\sseq@set{every permanent cycle/.append style={#1}}},
+    transient cycles/.code={\sseq@set{every transient cycle/.append style={#1}}},
+    struct lines/.code={\sseq@set{every struct line/.append style={#1}}},
     cycle styles/.code 2 args={\sseq@cyclestyles{#1}{#2}}
 }
 
@@ -534,8 +543,9 @@
     differentials/.code=   {\sseq@set{every differential/.append style={#1}}\sseq@redodifferentialoptions},
     classes/.code=         {\sseq@set{every class/.append style={#1}}\sseq@redoclassoptions},
     labels/.code=          {\sseq@set{every label/.append style={#1}}},%^^A{\sseq@redodifferentialoptions},
-    permanent cycle style/.code={\sseq@thepermcyclestyle={#1}},
-    transient cycle style/.code={\sseq@thetranscyclestyle={#1}},
+    permanent cycles/.code={\sseq@set{every permanent cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
+    transient cycles/.code={\sseq@set{every transient cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
+    struct lines/.code={\pgfkeysalso{every struct line/.append style={#1}}\sseq@redostructlineoptions},    
     cycle styles/.code 2 args={\sseq@cyclestyles{#1}{#2}}
 }
 
@@ -547,8 +557,9 @@
     differentials/.code=   {},
     classes/.code=         {},
     labels/.code=          {},
-    permanent cycle style/.code={},
-    transient cycle style/.code={},
+    permanent cycles/.code={},
+    transient cycles/.code={},
+    struct lines/.code={},
     cycle styles/.code 2 args={}
 }
 
@@ -677,7 +688,6 @@
     \pgfmathparse{#2}%
     \sseq@ifpgfmathresultisunitlessint{%
         \@xp\advance\csname sseq@\sseq@getfirstchar#1\sseq@nil\endcsname\pgfmathresult\relax
-        %^^A\showthe\sseq@x
         \edef\sseq@temp{\@nx\sseq@okaytransform{shift}{{(\pgfmathresult\csname pgf@\sseq@getfirstchar#1\sseq@nil x\endcsname,\pgfmathresult\csname pgf@\sseq@getfirstchar#1\sseq@nil y\endcsname)}}}%
         \sseq@temp
     }{\sseq@error@illegaltransform{#1shift}{#2}}%
@@ -1830,19 +1840,15 @@
 \def\sseq@addcontingentfeature#1#2{%
     \sseq@g@deforaddto@macro{sseq@feature\the\sseq@featurecount}{#2}%
     \@xp\gdef\csname sseq@featureinfty\the\sseq@featurecount\endcsname{#2}%
-    %^^A\@xp\show\csname sseq@featureinfty\the\sseq@featurecount\endcsname
     \@xp\sseq@x@addto@macro\csname sseq@savedfeatures@\sseq@thename infty\endcsname{%
         \@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname
 %^^A        \@nx\ifx\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname\relax\@nx\else %
 %^^A            \@nx\@nx\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname %
 %^^A        \@nx\fi %
     }%
-%^^A    \@xp\show\csname sseq@featureinfty\the\sseq@featurecount\endcsname
     %
     \@xp\xdef\csname sseq@transferfeature\the\sseq@featurecount\endcsname{%
-        %^^A\show\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname
         \global\let\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname\relax %
-        %^^A\show\@xp\@nx\csname sseq@featureinfty\the\sseq@featurecount\endcsname
         %^^A\sseq@temppage is defined by \d before it calls this.
         \@nx\sseq@g@deforaddto@macro@noctx{sseq@savedfeatures@\sseq@thename\@nx\sseq@temppage}{%^^A needs to be defor in case this is placed before the nodes it connects.
             \@xp\@nx\csname sseq@feature\the\sseq@featurecount\endcsname
@@ -1863,21 +1869,20 @@
             \@xp\@nx\csname sseq@transferfeature\the\sseq@featurecount\endcsname
         }%
     %
-    %^^A\@xp\show\csname sseq@feature\the\sseq@featurecount\endcsname
         \@xp\sseq@addcontingentfeature@
     \fi
 }
 
-\def\sseq@structline(#1)(#2){\edef\temp{\@nx\sseq@structline@\sseq@anchorsplit{#1}\sseq@anchorsplit{#2}}\temp}
-\def\sseq@structline@#1#2#3#4{%
+\def\sseq@structline{\@ifnextchar[{\sseq@structline@}{\sseq@structline@[]}}%]
+\def\sseq@structline@[#1](#2)(#3){\edef\temp{\@nx\sseq@structline@@\sseq@anchorsplit{#2}\sseq@anchorsplit{#3}}\temp{#1}}
+\def\sseq@structline@@#1#2#3#4#5{%
     \sseq@parsecoords\source{#1}%
     %^^A\@xp\sseq@iffullcoord\@xp(\source){}{\edef\source{\source,1}}%
     \sseq@parsecoords\target{#3}%
     %^^A\def\temp{#4}%
-  %^^A  \show\temp
     %^^A\@xp\sseq@iffullcoord\@xp(\target){}{\edef\target{\target,1}}%
     \edef\temp{%
-        \@nx\sseq@structline@@
+        \@nx\sseq@structline@@@
             \@xp\sseq@iffullcoord\@xp(\source)%
                 {\@xp\sseq@fullcoord@to@partialcoord\@xp(\source){\@xp\sseq@fullcoord@lastelt\@xp(\source)}}%
                 {(\source){}}%^^A{\@ifundefined{sseq@coord\sseq@thename(\source)@numnodes}{}{,\csname sseq@coord\sseq@thename(\source)@numnodes\endcsname}}}%
@@ -1887,19 +1892,19 @@
                 {(\target){}}%^^A{\@ifundefined{sseq@coord\sseq@thename(\target)@numnodes}{}{,\csname sseq@coord\sseq@thename(\target)@numnodes\endcsname}}}%
             {#4}%
     }%
-    \temp
+    \temp{#5}
     %
 }
-\def\sseq@structline@@(#1,#2)#3#4(#5,#6)#7#8{%
+\def\sseq@structline@@@(#1,#2)#3#4(#5,#6)#7#8#9{%
     \sseq@tempx=\sseq@x\advance\sseq@tempx#1\relax
     \sseq@tempy=\sseq@y\advance\sseq@tempy#2\relax
     \sseq@tempxb=\sseq@x\advance\sseq@tempxb#5\relax
     \sseq@tempyb=\sseq@y\advance\sseq@tempyb#6\relax
-    \sseq@temptoks\@xp{\sseq@scopeoptions}%
+    \sseq@temptoks\@xp{\pgfkeysalso{#9}}%
     \sseq@whichclass\sseq@na{\the\sseq@tempx}{\the\sseq@tempy}{#3}%
     \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}%
     \edef\temp{\@nx\sseq@addcontingentfeature{(\the\sseq@tempx,\the\sseq@tempy)(\the\sseq@tempxb,\the\sseq@tempyb)}%
-        {\@nx\sseq@d@drawedge(\the\sseq@tempx,\the\sseq@tempy,\sseq@na)(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb){\the\sseq@temptoks}}%
+        {\@nx\sseq@d@drawedge(\the\sseq@tempx,\the\sseq@tempy,\sseq@na)(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb){\the\sseq@structlineoptionslist\the\sseq@temptoks}}%
     }%
     \temp
 }
