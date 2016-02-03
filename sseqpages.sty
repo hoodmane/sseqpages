@@ -121,6 +121,7 @@
 %^^A How should global/.unknown work? The current version isn't quite right.
 %^^A   Add a separate global/sseqset directory? Or a special version of global/.unknown for \sseqset? Or what?
 %^^A Fix it so that updating saying e.g., "classes={stuff}" as an option to "\begin{sseqpage}" does something.
+%^^A Add better error when user doesn't specify degree.
 %^^A
 %^^A Is the option handling getting too complicated?
 %^^A
@@ -292,6 +293,7 @@
         \fi
     },
     /tikz/sseqpages/first pass/differential/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/first pass}},
+    /tikz/sseqpages/first pass/struct line/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/first pass}},
     /tikz/sseqpages/first pass/tikz primitives/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/first pass}},
     /tikz/sseqpages/second pass/.is family,
     /tikz/sseqpages/second pass/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages}},
@@ -301,6 +303,8 @@
     /tikz/sseqpages/second pass/class/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
     /tikz/sseqpages/second pass/differential/.is family,
     /tikz/sseqpages/second pass/differential/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
+    /tikz/sseqpages/second pass/struct line/.is family,
+    /tikz/sseqpages/second pass/struct line/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
     /tikz/sseqpages/second pass/tikz primitives/.is family,
     /tikz/sseqpages/second pass/tikz primitives/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
     % One off directories
@@ -319,6 +323,7 @@
     /tikz/sseqpages/first pass/scope/handle quote/.code={\sseq@error{Quotes are not allowed as options to a scope}{}},
     /tikz/sseqpages/first pass/class/handle quote/.code={\@xp\def\@xp\sseq@classnodetext\@xp{\sseq@removequotes#1}},
     /tikz/sseqpages/first pass/differential/handle quote/.code=\sseq@needstikztrue,
+    /tikz/sseqpages/first pass/struct line/handle quote/.code=\sseq@needstikztrue,
     /tikz/sseqpages/second pass/class/handle quote/.code={},
     /tikz/sseqpages/handle quote/.code={\tikzset{every to/.append style={#1}}}
 }
@@ -1075,7 +1080,7 @@
 }
 
 \def\sseq@drawaxes{%
-    \pgftransformationadjustments
+    %\pgftransformationadjustments
     \bgroup
     \pgfgettransformentries{\a}{\b}{\c}{\d}{\sx}{\sy}\pgfsettransformentries{\a}{\b}{\c}{\d}{\sx}{-\sseq@xaxisgap+\sy}%
     \pgfpathmoveto{\pgfpoint{\sseq@xmax cm+0.5cm}{\sseq@ymin cm}}%
@@ -1763,7 +1768,7 @@
     \sseq@x@deforaddto@macro{sseq@saveddiffs@\sseq@thename#2}{%
         \begingroup
         \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
-        \@nx\sseq@d@drawedge\source\target{\the\sseq@doptionslist\the\sseq@temptoks\@nx\pgfkeysalso{\@xp\@nx\csname sseq@dstyle\sseq@thename#2\source\endcsname}}%
+        \@nx\sseq@d@drawedge\source\target{differential}{\the\sseq@doptionslist\the\sseq@temptoks\@nx\pgfkeysalso{\@xp\@nx\csname sseq@dstyle\sseq@thename#2\source\endcsname}}%
         \endgroup
     }%
 %
@@ -1790,15 +1795,16 @@
 %^^A #1 -- source
 %^^A #2 -- target
 %^^A #3 -- options
-\def\sseq@d@drawedge(#1)(#2)#3{%
+\def\sseq@d@drawedge(#1)(#2)#3#4{%
     \ifsseq@needstikz
-        \sseq@temptoks{#3}%
+%        \show\hi
+        \sseq@temptoks{#4}%
         \edef\temp{\@nx\draw[draw,/tikz/sseqpages/second pass/differential,/utils/exec={\the\sseq@temptoks}] (#1) to (#2);}%
         \temp
     \else
         \pgfscope
         \pgfqkeysalso{/tikz/sseqpages/second pass/differential}{draw}%
-        #3%
+        #4%
         \tikz@options
         \tikz@mode
         \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid
@@ -1896,15 +1902,20 @@
     %
 }
 \def\sseq@structline@@@(#1,#2)#3#4(#5,#6)#7#8#9{%
+    \pgfqkeys{/tikz/sseqpages/first pass/struct line}{#9}
     \sseq@tempx=\sseq@x\advance\sseq@tempx#1\relax
     \sseq@tempy=\sseq@y\advance\sseq@tempy#2\relax
     \sseq@tempxb=\sseq@x\advance\sseq@tempxb#5\relax
     \sseq@tempyb=\sseq@y\advance\sseq@tempyb#6\relax
-    \sseq@temptoks\@xp{\pgfkeysalso{#9}}%
+    \sseq@temptoks{\pgfkeysalso{#9}}%
     \sseq@whichclass\sseq@na{\the\sseq@tempx}{\the\sseq@tempy}{#3}%
     \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}%
     \edef\temp{\@nx\sseq@addcontingentfeature{(\the\sseq@tempx,\the\sseq@tempy)(\the\sseq@tempxb,\the\sseq@tempyb)}%
-        {\@nx\sseq@d@drawedge(\the\sseq@tempx,\the\sseq@tempy,\sseq@na)(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb){\the\sseq@structlineoptionslist\the\sseq@temptoks}}%
+        {
+            \ifsseq@needstikz\@nx\sseq@needstikztrue\fi\@nx
+            \sseq@d@drawedge (\the\sseq@tempx,\the\sseq@tempy,\sseq@na)(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb)%
+                {struct line}{\the\sseq@structlineoptionslist\the\sseq@temptoks}
+        }%
     }%
     \temp
 }

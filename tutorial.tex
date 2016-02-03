@@ -5,6 +5,8 @@
 \usepackage{sseqpages}
 \usepackage{environ}
 \usepackage{verbatim}
+
+\usetikzlibrary{arrows}
 \theoremstyle{definition}
 \newtheorem{ex}{Example}
 \def\endex{\newpage}
@@ -14,6 +16,7 @@
 \title{A quick |sseqpages| tutorial}
 
 \begin{document}
+
 The |sseqpages| package provides two environments -- the |sseqdata| environment, for specifying the raw data of a spectral sequence, and the |sseqpage| environment, for printing a page of a spectral sequence. There is also a command |\printpage| for when the body of |sseqpage| is empty. This package is built very closely on top of Tikz, so for the most part, standard Tikz options carry over to do the same thing when used with |sseqpages|. Because of this, the package is much easier to use if you already know how to use Tikz. Since that seems to be a minority of potential users, I will make sure to explain exactly what features are inherited from Tikz.
 
 \begin{ex}
@@ -47,7 +50,12 @@ The option |degree={#1}{-#1+1}| specifies that the bidegree of the $E_r$ differe
 %TODO: make this strategy ^^ actually work
 \end{ex}
 
-\sseqset{degree={#1}{-#1+1},classes={inner sep=0.2ex},differentials=->} % Make sure to keep this in the code for the next example
+%\tikzset{arrows={Classical TikZ Rightarrow[length=5mm]}}
+%\begin{tikzpicture}
+%\draw[->] (0,0)--(1,1);
+%\end{tikzpicture}
+
+\sseqset{degree={#1}{-#1+1},classes={inner sep=0.2ex},differentials={->}} % Make sure to keep this in the code for the next example
 \begin{ex}
 The appearance of example 1 was pretty rough. This example polishes it up a bit. The |sseqpages| package offers a number of "style" options that control the appearance of certain features of the spectral sequence. For instance, |classes| controls the appearance of every class and |differentials| controls the appearance of every differential. There are also options |permanent cycles| and |transient cycles|, that respectively affect the appearance of only classes that never support or are hit by a differential, or that are eventually hit by a differential.
 
@@ -182,7 +190,7 @@ Multiple nodes in the same location and the |\structline| command.
 \printpage[name=example4,page=0,class placement transform={rotate=40}]
 \printpage[name=example4,page=4,class placement transform={rotate=40}]
 
-Note the option |yscale=0.7|. This is a Tikz coordinate transformation option that rescales the y-axis to be 0.7 times its original length.
+The option |yscale=0.7| is a Tikz coordinate transformation option that rescales the y-axis to be 0.7 times its original length.
 
 If you set |page=0|, then |sseqpages| will draw all differentials of any length as well as all classes. In this example, we see the differentials of length three and one differential of length two in the same diagram.
 
@@ -228,7 +236,7 @@ Using negative values is particularly useful when drawing repeated structures. T
         \place(0,\y)
         \structline(0,\y-1,-1)(0,\y,-1)
     }
-    \structline[yellow](0,1)(0,2,-2)
+    \structline[bend left=20,"hi"',text=black](0,1)(0,2,-2)
     \structline(0,2,-2)(0,3)
     \end{scope}
 }
