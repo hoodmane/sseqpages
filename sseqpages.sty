@@ -501,7 +501,7 @@
     every class/.style={draw},
     every permanent cycle/.code={},
     every transient cycle/.code={},
-    every struct line/.code={},    
+    every struct line/.code={},
     every label/.style={ %^^A TODO? make changes to every label work correctly? (maybe?)
             /tikz/auto,
             /tikz/font=\everymath\expandafter{\the\everymath\scriptstyle},
@@ -516,7 +516,7 @@
     labels/.code=          {\pgfkeysalso{every label/.append style={#1}}},%^^A{\sseq@redodifferentialoptions},
     permanent cycles/.code={\pgfkeysalso{every permanent cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
     transient cycles/.code={\pgfkeysalso{every transient cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
-    struct lines/.code={\pgfkeysalso{every struct line/.append style={#1}}},    
+    struct lines/.code={\pgfkeysalso{every struct line/.append style={#1}}\sseq@redostructlineoptions},
     cycle styles/.code 2 args={\sseq@cyclestyles{#1}{#2}}
 }
 
@@ -545,7 +545,7 @@
     labels/.code=          {\sseq@set{every label/.append style={#1}}},%^^A{\sseq@redodifferentialoptions},
     permanent cycles/.code={\sseq@set{every permanent cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
     transient cycles/.code={\sseq@set{every transient cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
-    struct lines/.code={\pgfkeysalso{every struct line/.append style={#1}}\sseq@redostructlineoptions},    
+    struct lines/.code={\sseq@set{every struct line/.append style={#1}}\sseq@redostructlineoptions},
     cycle styles/.code 2 args={\sseq@cyclestyles{#1}{#2}}
 }
 
