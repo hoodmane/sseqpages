@@ -4,42 +4,26 @@
 \makeatletter
 \begin{document}
 
-%\pgfset{every differential/.show}
 \begin{sseqdata}[
-    yscale=0.8, xscale=0.5,
-    x label step=2,
+    x range={0}{50},
+    y range={0}{20},
+    x label step=2,    
+    degree={-1}{#1},
     classes={draw,fill,inner sep=0.3ex},
     permanent cycles=circle,
     differentials={->,blue},
-    struct lines=red
+    struct lines=red,
+    yscale=0.8, xscale=0.5
 ]{tmfass}
-\degree{-1}{#1}
-\xrange{0}{50}
-\yrange{0}{20}
-%\def\structline(#1)(#2){\draw(#1)--(#2);}
 
-\def\sseq@classplacementtransform{\pgftransformrotate{60}}
-% normal - 8.5 seconds
-%\def\structline(#1)(#2){\draw (#1)--(#2);} % 5.5 seconds
-%\def\structline(#1)(#2){} % 4 sec
-
-% 360 + 80 + 36 = 476
-% 3 seconds/476  -- a 0.006 second performance cost to each \structline versus \draw, 0.003 second cost to each \draw versus not drawing it
-%\place(0,20)
-%\place(0,21)
-%\structline(0,21-1)(0,21)
 \gdef\tower{% 25
     \place(0,0)
     \foreach \y in {1,...,22}{
         \place(0,\y)
-    \structline(0,\y-1)(0,\y)
+        \structline(0,\y-1,-1)(0,\y,-1)
     }
 }
 
-
-%
-%\structline(24,11,1)(24,12,1)
-%
 \gdef\towergroup{%9 + 25 = 36
     \tower
     \place(1,1)
@@ -171,7 +155,7 @@
 \end{scope}
 
 \foreach \n in {2,3,4}{
-    \begin{scope}[use context,xshift=8*\n,yshift=4*\n]
+    \begin{scope}[use context,xshift=8*\n,yshift=4*\n] % use context?
     \towergroupb % 120
     \end{scope}
 }

@@ -247,7 +247,7 @@
         {\sseq@context@tempcount=\csname sseq@context@\sseq@macroname#1\endcsname\relax}%
     \ifnum\sseq@context@tempcount<\sseq@context@depth\relax %
         \loop %
-            \advance\sseq@context@tempcount1\relax%
+            \advance\sseq@context@tempcount1\relax
             \sseq@for@addsavedtoksntomacro{\the\sseq@context@tempcount}{#1}%
         \ifnum\sseq@context@tempcount<\sseq@context@depth\repeat %
         \@xp\edef\csname sseq@context@\sseq@macroname#1\endcsname{\the\sseq@context@depth}%
@@ -281,15 +281,15 @@
     /tikz/sseqpages/global/.unknown/.code={%
         \let\sseq@tempa\pgfkeyscurrentname
         \let\sseq@tempb\pgfkeyscurrentvalue
-        \pgfkeysalso{{\sseq@currentoptionpath} options/.append style/.expand twice={\@xp\sseq@tempa\@xp=\@xp{\sseq@tempb}}}
+        \pgfkeysalso{{\sseq@currentoptionpath} options/.append style/.expand twice={\@xp\sseq@tempa\@xp=\@xp{\sseq@tempb}}}%
     },
     /tikz/sseqpages/first pass/.unknown/.code={},
     /tikz/sseqpages/first pass/scope/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/first pass}},
     /tikz/sseqpages/first pass/class/.unknown/.code={%
         \expandafter\ifx\csname pgf@sh@s@\pgfkeyscurrentname\endcsname\relax %^^A is it the name of a shape?
-            \sseq@passoptionto{/tikz/sseqpages/first pass}
+            \sseq@passoptionto{/tikz/sseqpages/first pass}%
         \else
-            \edef\tikz@shape{\pgfkeyscurrentname} %^^A if so, store it
+            \edef\tikz@shape{\pgfkeyscurrentname}%^^A if so, store it
         \fi
     },
     /tikz/sseqpages/first pass/differential/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/first pass}},
@@ -334,9 +334,9 @@
     \let\sseq@transform\sseq@okaytransform %^^A Allow all coordinate transformations
     \let\sseq@shifttransform\sseq@okaytransform
     \let\sseq@firstpass@shifttransform\@gobbletwo
-    \def\place{\sseq@error{You cannot use \@nx\place\sseq@macroname in standard parse mode}{}}
-    \def\replace{\sseq@error{You cannot use \@nx\replace\sseq@macroname in standard parse mode}{}}
-    \def\d{\sseq@error{You cannot use \@nx\d\sseq@macroname in standard parse mode}{}}
+    \def\place{\sseq@error{You cannot use \@nx\place\sseq@macroname in standard parse mode}{}}%
+    \def\replace{\sseq@error{You cannot use \@nx\replace\sseq@macroname in standard parse mode}{}}%
+    \def\d{\sseq@error{You cannot use \@nx\d\sseq@macroname in standard parse mode}{}}%
 }
 
 \def\sseq@nodeparse{%
@@ -655,11 +655,11 @@
 }
 
 \def\sseq@error@optionillegal#1#2#3{%
-    \sseq@temptoks{#2}
+    \sseq@temptoks{#2}%
     \sseq@error{%
         You said '#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else=\pgfkeyscurrentvalue\fi', but the option '#1' is
         illegal in the sseqdata and sseqpage environments#3%
-    }{}
+    }{}%
 }
 
 \def\sseq@error@optionglobalonly#1{%
@@ -667,7 +667,7 @@
         You said '#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else=\pgfkeyscurrentvalue\fi', but the option '#1' is
         only allowed as a global option (as in '\@nx\begin{sseqdata}[#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else=\pgfkeyscurrentvalue\fi]' or
         '\@nx\begin{sseqpage}[#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else=\pgfkeyscurrentvalue\fi]')%
-    }{}
+    }{}%
 }
 
 \def\sseq@okaytransform#1#2{\pgfkeysalso{/tikz/#1=#2}}
@@ -678,11 +678,11 @@
         no coordinate transforms are allowed in the body of sseqpages or sseqdata other
         than shifts by unit-free integers. If you need a coordinate transformation,
         first use the option 'standard parse'%
-    }{}
+    }{}%
 }
 
 \def\sseq@firstpass@checkshifttransform#1#2{%
-    \pgfmathparse{#2}%
+    \pgfmathparse{int(#2)}%
     \sseq@ifpgfmathresultisunitlessint{%
         \@xp\advance\csname sseq@\sseq@getfirstchar#1\sseq@nil\endcsname\pgfmathresult\relax
     }{\sseq@error@illegaltransform{#1}{#2}}%
@@ -690,7 +690,7 @@
 \let\sseq@firstpass@shifttransform\sseq@firstpass@checkshifttransform
 
 \def\sseq@checkshifttransform#1#2{%^^A TODO: on second pass, usually shouldn't have to check?
-    \pgfmathparse{#2}%
+    \pgfmathparse{int(#2)}%
     \sseq@ifpgfmathresultisunitlessint{%
         \@xp\advance\csname sseq@\sseq@getfirstchar#1\sseq@nil\endcsname\pgfmathresult\relax
         \edef\sseq@temp{\@nx\sseq@okaytransform{shift}{{(\pgfmathresult\csname pgf@\sseq@getfirstchar#1\sseq@nil x\endcsname,\pgfmathresult\csname pgf@\sseq@getfirstchar#1\sseq@nil y\endcsname)}}}%
@@ -732,21 +732,31 @@
 \def\sseq@cleardeathpage@(#1){\@xp\global\@xp\let\csname sseq@death\sseq@thename(#1)\endcsname\relax}
 
 
-\def\sseq@whichclass#1#2#3#4{%
+\def\sseq@whichclass#1#2#3#4#5{%
     \edef#1{#4}%
-    \ifx#1\pgfutil@empty\@ifundefined{sseq@coord\sseq@thename(#2,#3)@numnodes}{\edef#1{1}}%
-        {\edef#1{\csname sseq@coord\sseq@thename(#2,#3)@numnodes\endcsname}}%
+    %\message{\sseq@thiscall}
+    %\@xp\show\csname sseq@coord\sseq@thename(#2,#3)@numnodes\endcsname
+    \ifx#1\pgfutil@empty % If no index is provided, just use 1
+        \edef#1{1}%
+        %\@ifundefined{sseq@coord\sseq@thename(#2,#3)@numnodes}
+        %    {\edef#1{1}}%
+        %    {\edef#1{\csname sseq@coord\sseq@thename(#2,#3)@numnodes\endcsname}}%
     \else
-        \ifnum#4<0%
-            \@ifundefined{sseq@coord\sseq@thename(#2,#3)@numnodes}{\sseq@error{TODO: error message here}{}}{%
+        \ifnum#4<0% Negative case -- why this command exists
+            \@ifundefined{sseq@coord\sseq@thename(#2,#3)@numnodes}{% TODO: Consider suppressing this command if #1=-1? (probably not a good idea).
+                \sseq@error{Error: negative index #4 provided for #5 of \sseq@thiscmdname '\sseq@thiscall' but no classes yet exist in #5 position (#2,#3). 
+                    Negative indices count from the most recent class in the given position; in particular, there must be at least one existing class}{}
+            }{%
                 \sseq@tempcount=\csname sseq@coord\sseq@thename(#2,#3)@numnodes\endcsname\relax
                 \advance\sseq@tempcount#4\relax
                 \advance\sseq@tempcount1\relax
-                \ifnum\sseq@tempcount<1\relax \sseq@error{Source index out of bounds}{}\fi
+                \ifnum\sseq@tempcount<1\relax 
+                    \sseq@error{Error: index #4 provided for the #5 of \sseq@thiscmdname '\sseq@thiscall' is out of bounds -- fewer than \@gobble#4 classes exist at #5 position (#2,#3)}{}
+                \fi
                 \edef#1{\the\sseq@tempcount}%
             }%
         \fi
-    \fi
+    \fi % TODO: Check here whether the given class is dead
 }
 
 %^^A% Parsers
@@ -768,7 +778,7 @@
 \def\sseq@parsecommas(#1){\let\\\sseq@pc@stdslsl\sseq@commacount0\relax\sseq@parsecommas@{}#1,,,,,\sseq@nil}
 
 \def\sseq@parsecommas@#1#2,{%
-    \advance\sseq@commacount1\relax%
+    \advance\sseq@commacount1\relax
     \ifnum\sseq@commacount<4 % This causes an error without a space I think?
         \def\next{\sseq@parsecommas@{#1\\{#2}}}%
     \else %
@@ -782,7 +792,7 @@
 }
 
 \def\sseq@pc@stdslsl#1{%^^A This is the callback that we map over the texlist of arguments at the end of \sseq@parsecommas
-    \advance\sseq@commacount1\relax%
+    \advance\sseq@commacount1\relax
     \ifx&#1& %^^A This without a space before the %^^A breaks????
         \@xp\let\csname sseq@arg\the\sseq@commacount\endcsname\relax %
     \else %
@@ -954,7 +964,7 @@
     \@xp\gdef\csname sseq@saveddiffs@\sseq@thename0\endcsname{%
         \sseq@tempcount=0\relax
         \loop
-            \advance\sseq@tempcount1\relax%
+            \advance\sseq@tempcount1\relax
             \csname sseq@saveddiffs@\sseq@thename\the\sseq@tempcount\endcsname %
         \ifnum\sseq@tempcount<\sseq@maxpage\repeat
     }%
@@ -1008,6 +1018,7 @@
     \pgfkeys{/handlers/first char syntax/the character "/.initial=\sseq@handlequote}%
     \sseq@patchfor %
     \selectfont\nullfont
+    \def\par{}%
 }
 
 \def\endsseqpage{%
@@ -1054,7 +1065,7 @@
         \sseq@tempcount=\sseq@thepage\relax
         \advance\sseq@tempcount-1\relax
         \loop
-            \advance\sseq@tempcount1\relax%
+            \advance\sseq@tempcount1\relax
             \csname sseq@savednodes@\sseq@thename\the\sseq@tempcount\endcsname %
         \ifnum\sseq@tempcount<\sseq@maxpage\repeat
         \csname sseq@savednodes@\sseq@thename infty\endcsname
@@ -1063,7 +1074,7 @@
         \sseq@tempcount=\sseq@thepage\relax
         \advance\sseq@tempcount-1\relax
         \loop
-            \advance\sseq@tempcount1\relax%
+            \advance\sseq@tempcount1\relax
             \csname sseq@savedfeatures@\sseq@thename\the\sseq@tempcount\endcsname %
         \ifnum\sseq@tempcount<\sseq@maxpage\repeat
         \csname sseq@savedfeatures@\sseq@thename infty\endcsname
@@ -1303,9 +1314,8 @@
 
 
 %^^A% Placement
-
+% TODO: Maybe add error checking for whether x,y are integers? any other error checking?
 \def\sseq@place{\@ifnextchar[{\sseq@place@}{\sseq@place@[]}}%^^A}
-
 \def\sseq@place@[#1](#2,#3){%
     \begingroup
     \pgfqkeys{/tikz/sseqpages/first pass/class}{#1}%
@@ -1314,7 +1324,6 @@
     \edef\next{\@nx\sseq@place@@(\temp){\the\sseq@temptoks}}%
     \next{#1}%
 }
-
 \def\sseq@place@@(#1,#2)#3#4{%
     \sseq@tempx=#1\relax
     \advance\sseq@tempx\sseq@x\relax
@@ -1325,7 +1334,7 @@
     \sseq@tempcount=\@ifundefined{sseq@coord\sseq@thename(\tempcoord)@numnodespp}{1}{\csname sseq@coord\sseq@thename(\tempcoord)@numnodespp\endcsname}%
     \edef\tempnodenum{\the\sseq@tempcount}%
     \@xp\xdef\csname sseq@coord\sseq@thename(\tempcoord)@numnodes\endcsname{\the\sseq@tempcount}%
-    \advance\sseq@tempcount1\relax%
+    \advance\sseq@tempcount1\relax
     \@xp\xdef\csname sseq@coord\sseq@thename(\tempcoord)@numnodespp\endcsname{\the\sseq@tempcount}
 %
     \sseq@temptoks{#3}%^^A node text
@@ -1388,7 +1397,7 @@
     \sseq@ifundefcoord\coord{\sseq@error{There never was a class at \coordname\sseq@macroname\ so I cannot replace it}{}}{}%
     \sseq@ifdead\coord{}{\sseq@error{I cannot replace the class at \coordname\sseq@macroname\ because it seems to be alive and well}{}}%
     \sseq@tempcount=\csname sseq@placenum\sseq@thename\coord\endcsname\relax
-    \advance\sseq@tempcount1\relax%
+    \advance\sseq@tempcount1\relax
     \edef\tempclassversion{\the\sseq@tempcount}%
     \@xp\xdef\csname sseq@placenum\sseq@thename\coord\endcsname{\the\sseq@tempcount}%
 %
@@ -1457,6 +1466,7 @@
             \sseq@temptoks{#6}%
             \sseq@temptoks@ii{#7}%
             \pgftransformshift{\pgfpoint{#1 cm}{#3 cm}}%
+            \pgftransformshift{\pgfpoint{#2 cm}{#4 cm}}%
             \pgfgettransform{\savetransform}%
             \pgftransformresetnontranslations
             \sseq@classplacementtransform
@@ -1682,6 +1692,8 @@
 \def\sseq@d@@#1#2(#3,#4){%
 %
     \begingroup
+    \def\sseq@thiscmdname{differential }
+    \def\sseq@thiscall{\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)}%
     \sseq@newmaxpage{#2}%
     \pgfqkeys{/tikz/sseqpages/first pass/differential}{#1}%
     \sseq@parsecommas(#3,#4)%
@@ -1691,7 +1703,7 @@
     \advance\sseq@tempx\sseq@arg1\relax
     \sseq@tempy=\sseq@y
     \advance\sseq@tempy\sseq@arg2\relax
-    \sseq@whichclass\tempn{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}3}%
+    \sseq@whichclass\tempn{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}3}{source}%
     \edef\sourcecoord{\the\sseq@tempx,\the\sseq@tempy}%
     \edef\sourcename{(\sourcecoord\sseq@optargc3)}%
     \edef\source{(\sourcecoord,\tempn)}%
@@ -1701,7 +1713,7 @@
     \sseq@tempx=\pgfmathresult\relax
     \pgfmathparse{int(\the\sseq@tempy+\sseq@targety{#2})}%
     \sseq@tempy=\pgfmathresult\relax
-    \sseq@whichclass\tempn{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}4}%
+    \sseq@whichclass\tempn{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}4}{target}%
     \edef\targetcoord{\the\sseq@tempx,\the\sseq@tempy}%
     \edef\targetname{(\targetcoord\sseq@optargc4)}%
     \edef\target{(\targetcoord,\tempn)}%
@@ -1710,20 +1722,20 @@
     \ifsseq@fastmode\else
         \sseq@ifundefcoord\source{%
             \sseq@error{%
-                Source \sourcename\sseq@macroname\ of differential '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' can't support
+                Source \sourcename\sseq@macroname\ of differential '\sseq@thiscall' can't support
                 a differential because a class in that position never existed%
             }{}%
         }{}%
         \sseq@ifundefcoord\target{%
             \sseq@error{%
-                Target \targetname\sseq@macroname\ of differential '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' can't accept
+                Target \targetname\sseq@macroname\ of differential '\sseq@thiscall' can't accept
                 a differential because a class in that position never existed%
             }{}%
         }{}%
         \sseq@ifdead\source{%
             \ifnum\sseq@getdeathpage\source=#2\else
                 \sseq@error{%
-                    Source \sourcename\sseq@macroname\ of differential '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' can't support
+                    Source \sourcename\sseq@macroname\ of differential '\sseq@thiscall' can't support
                     a differential because it already perished on page \sseq@getdeathpage\source %
                 }{}%
             \fi
@@ -1731,7 +1743,7 @@
         \sseq@ifdead\target{%
             \ifnum\sseq@getdeathpage\target=#2\else
                 \sseq@error{%
-                    Target \targetname\sseq@macroname\ of differential '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' can't accept
+                    Target \targetname\sseq@macroname\ of differential '\sseq@thiscall' can't accept
                     a differential because it already perished on page \sseq@getdeathpage\target %
                 }{}%
             \fi
@@ -1744,7 +1756,7 @@
 %^^A            }{}}
         \else
             \@ifundefined{sseq@arg3}{\sseq@error{%
-                There are multiple nodes at source coordinate (\sourcecoord) so instead of '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' you should say
+                There are multiple nodes at source coordinate (\sourcecoord) so instead of '\sseq@thiscall' you should say
                 '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(\sourcecoord,n\sseq@optargc4)' where n specifies which of the
                 \csname sseq@coord\sseq@thename(\sourcecoord)@numnodes\endcsname\sseq@macroname\ nodes at (\sourcecoord) should be the source%
             }{}}{}%
@@ -1756,7 +1768,7 @@
 %^^A            }{}}%
         \else
             \@ifundefined{sseq@arg4}{\sseq@error{%
-                There are multiple nodes at target coordinate (\targetcoord) so instead of '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3,#4)' you should say
+                There are multiple nodes at target coordinate (\targetcoord) so instead of '\sseq@thiscall' you should say
                 '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(\sourcecoord,\sseq@optarg{}3,n)' where n specifies which of the
                 \csname sseq@coord\sseq@thename(\targetcoord)@numnodes\endcsname\sseq@macroname\ nodes at (\targetcoord) should be the target%
             }{}}{}%
@@ -1797,7 +1809,6 @@
 %^^A #3 -- options
 \def\sseq@d@drawedge(#1)(#2)#3#4{%
     \ifsseq@needstikz
-%        \show\hi
         \sseq@temptoks{#4}%
         \edef\temp{\@nx\draw[draw,/tikz/sseqpages/second pass/differential,/utils/exec={\the\sseq@temptoks}] (#1) to (#2);}%
         \temp
@@ -1862,7 +1873,7 @@
         \global\let\@xp\@nx\csname sseq@transferfeature\the\sseq@featurecount\endcsname\relax
     }%
     \sseq@addcontingentfeature@#1(\sseq@nil,)%
-    \global\advance\sseq@featurecount1\relax%
+    \global\advance\sseq@featurecount1\relax
 }
 
 \def\sseq@addcontingentfeature@(#1,#2){%
@@ -1880,8 +1891,14 @@
 }
 
 \def\sseq@structline{\@ifnextchar[{\sseq@structline@}{\sseq@structline@[]}}%]
-\def\sseq@structline@[#1](#2)(#3){\edef\temp{\@nx\sseq@structline@@\sseq@anchorsplit{#2}\sseq@anchorsplit{#3}}\temp{#1}}
-\def\sseq@structline@@#1#2#3#4#5{%
+\def\sseq@structline@[#1](#2)(#3){%
+    \edef\temp{\@nx\sseq@structline@@\sseq@anchorsplit{#2}\sseq@anchorsplit{#3}}%
+    \temp{#1}{\string\structline\ifx\sseq@nil#1\sseq@nil \else[#1]\fi(#2)(#3)}%
+}
+\def\sseq@structline@@#1#2#3#4#5#6{%
+    \begingroup
+    \def\sseq@thiscmdname{structure line }% To pass error information to \sseq@whichclass
+    \def\sseq@thiscall{#6}%
     \sseq@parsecoords\source{#1}%
     %^^A\@xp\sseq@iffullcoord\@xp(\source){}{\edef\source{\source,1}}%
     \sseq@parsecoords\target{#3}%
@@ -1898,24 +1915,25 @@
                 {(\target){}}%^^A{\@ifundefined{sseq@coord\sseq@thename(\target)@numnodes}{}{,\csname sseq@coord\sseq@thename(\target)@numnodes\endcsname}}}%
             {#4}%
     }%
-    \temp{#5}
-    %
+    \temp{#5}%
+    \endgroup
 }
 \def\sseq@structline@@@(#1,#2)#3#4(#5,#6)#7#8#9{%
-    \pgfqkeys{/tikz/sseqpages/first pass/struct line}{#9}
-    \sseq@tempx=\sseq@x\advance\sseq@tempx#1\relax
-    \sseq@tempy=\sseq@y\advance\sseq@tempy#2\relax
+    \pgfqkeys{/tikz/sseqpages/first pass/struct line}{#9}%
+    \sseq@tempx=\sseq@x\relax\advance\sseq@tempx#1\relax
+    \sseq@tempy=\sseq@y\relax\advance\sseq@tempy#2\relax
     \sseq@tempxb=\sseq@x\advance\sseq@tempxb#5\relax
     \sseq@tempyb=\sseq@y\advance\sseq@tempyb#6\relax
     \sseq@temptoks{\pgfkeysalso{#9}}%
-    \sseq@whichclass\sseq@na{\the\sseq@tempx}{\the\sseq@tempy}{#3}%
-    \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}%
-    \edef\temp{\@nx\sseq@addcontingentfeature{(\the\sseq@tempx,\the\sseq@tempy)(\the\sseq@tempxb,\the\sseq@tempyb)}%
-        {
-            \ifsseq@needstikz\@nx\sseq@needstikztrue\fi\@nx
-            \sseq@d@drawedge (\the\sseq@tempx,\the\sseq@tempy,\sseq@na)(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb)%
-                {struct line}{\the\sseq@structlineoptionslist\the\sseq@temptoks}
-        }%
+    \sseq@whichclass\sseq@na{\the\sseq@tempx}{\the\sseq@tempy}{#3}{source}%
+    \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}{target}%
+    \edef\temp{\@nx\sseq@addcontingentfeature{(\the\sseq@tempx,\the\sseq@tempy)(\the\sseq@tempxb,\the\sseq@tempyb)}{%
+            \begingroup
+                \ifsseq@needstikz\@nx\sseq@needstikztrue\fi\@nx
+                \sseq@d@drawedge (\the\sseq@tempx,\the\sseq@tempy,\sseq@na)(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb)%
+                    {struct line}{\the\sseq@structlineoptionslist\the\sseq@temptoks}%
+            \endgroup
+        }
     }%
     \temp
 }

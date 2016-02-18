@@ -9,10 +9,16 @@
 \def\column#1[#2]{\foreach \y in {0,...,6} {\place[#2](#1,2*\y)}}
 
 \sseqset{labels={auto}, classes={draw=none}}
-\begin{sseqdata}[execute at begin node=$,execute at end node=$,labels=below,differentials={->},xscale=1.8,y axis gap=0.7cm]{K(Z,3)}
-\xrange{0}{12}
-\yrange{0}{10}
-\degree{#1}{-#1+1}
+\begin{sseqdata}[
+    x range={0}{12},
+    y range={0}{10},
+    degree={#1}{-#1+1},
+    differentials={->},
+    labels=below,    
+    xscale=1.8,
+    y axis gap=0.7cm,
+    execute at begin node=$,execute at end node=$,   
+]{K(Z,3)}
 
 \begin{scope}[background]
 \node at (\xmax/2,11) {\textup{Serre SS Page \sseqthepage{}}};

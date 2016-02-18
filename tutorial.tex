@@ -137,7 +137,7 @@ Named cells and the |\replace| command.
 
 All of the labels in this document are in math mode, so I ask Tikz to automatically put every node in math mode using the options |execute at begin node=$, execute at end node=$|. This includes both the names of classes and any labels given for differentials.
 
-If you want to put something in the body of the node printed by the |\place| command, this is specified in quotes. For instance the command |\place["\mathbb{Z}"](\x,\y)| puts a $\mathbb{Z}$ in the node. Likewise, to label a differential, place the desired label in quotes, like |\d["\cdot 2"]2(0,1)|. (For differentials, this uses Tikz |edge quotes|.)  I don't want the $\mathbb{Z}$ to be surrounded by a drawn border so I pass the global option |classes={draw=none}| to tell Tikz not to draw the boundary of the node.  
+If you want to put something in the body of the node printed by the |\place| command, this is specified in quotes. For instance the command |\place["\mathbb{Z}"](\x,\y)| puts a $\mathbb{Z}$ in the node. Likewise, to label a differential, place the desired label in quotes, like |\d["\cdot 2"]2(0,1)|. (For differentials, this uses Tikz |edge quotes|.)  I don't want the $\mathbb{Z}$ to be surrounded by a drawn border so I pass the global option |classes={draw=none}| to tell Tikz not to draw the boundary of the node.
 
 Note also the use of the command |\replace["\mathbb{Z}/2"](2,0)|. After a class supports or is hit by a differential (or both), it will disappear on subsequent pages. If you want to put a new node in the same location (or the same node), it is necessary to use the |\replace| command.
 \end{ex}
@@ -151,7 +151,7 @@ Multiple nodes in the same location and the |\structline| command.
 \place(3,0)\place(3,0)
 \place(3,2)
 
-\place(3,0)
+\place(3,0)\place(3,4)
 \foreach \y in {1,...,5} {
     \place(3,\y)
     \structline(3,\y-1,-1)(3,\y,-1)
@@ -178,7 +178,7 @@ Multiple nodes in the same location and the |\structline| command.
     \place(3,\y)
     \structline(3,\y-1,-1)(3,\y,-1)
 }
-
+\place(3,4)
 \place(1,3)
 \d2(1,3,,-1)
 \d3(0,2,1,2)
@@ -236,7 +236,7 @@ Using negative values is particularly useful when drawing repeated structures. T
         \place(0,\y)
         \structline(0,\y-1,-1)(0,\y,-1)
     }
-    \structline[bend left=20,"hi"',text=black](0,1)(0,2,-2)
+    \structline[yellow](0,1)(0,2,-2)
     \structline(0,2,-2)(0,3)
     \end{scope}
 }
