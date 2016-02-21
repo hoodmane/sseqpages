@@ -5,7 +5,6 @@
 % Is the option handling getting too complicated? (Yes.)
 %   Fix it so that updating saying e.g., "classes={stuff}" as an option to "\begin{sseqpage}" does something.
 %   Special style option for rendering of nodes that are hit on this particular page
-%   make "every differential label" and "every struct line label" work
 %   add separate options to actual modify class labels and class text body
 %
 % option not to render axes
@@ -21,12 +20,12 @@
 \RequirePackage{tikz}
 \@ifpackagelater{tikz}{2015/08/07}{%
     \@ifpackagelater{tikz}{2015/08/08}{%
-        % future version of tikz, put a warning here?
+        \PackageWarning{sseqpages}{You are using a version of Tikz later than the version sseqpages was developed for. Something might go wrong}
     }{%
         % Current version of tikz
     }
 }{%
-    % not current version of tikz, put an error here
+    \sseq@error{The sseqpages package does not support Tikz versions earlier than 3.0.1a. Please update your version of Tikz}
 }
 \RequirePackage{etoolbox}
 
@@ -62,15 +61,8 @@
 \newtoks\sseq@temptoks
 \newtoks\sseq@temptoks@ii
 \newtoks\sseq@temptoks@iii
-\newtoks\sseq@classoptionslist
-\newtoks\sseq@thepermcyclestyle
-\newtoks\sseq@thetranscyclestyle
-\newtoks\sseq@doptionslist
-\newtoks\sseq@structlineoptionslist
-\newtoks\sseq@theeveryclasslabelstyle
-\newtoks\sseq@theeverydifferentiallabelstyle
-\newtoks\sseq@theeverystructlinelabelstyle
-
+\newtoks\sseq@scopeoptions
+\newtoks\sseq@thislabelstyle
 
 \newcount\sseq@commacount
 \newcount\sseq@context@depth
@@ -172,7 +164,8 @@
 %%% Set up keys
 % TODO: Check that this section is consistent
 
-\def\sseqset#1{\ifsseq@inprogress\pgfqkeys{/tikz/sseqpages}{#1}\else \pgfqkeys{/tikz/sseqpages/global}{#1}\fi\sseq@redooptions}
+% TODO: is this the right definition of \sseqset? Seems questionable.
+\def\sseqset#1{\ifsseq@inprogress\pgfqkeys{/tikz/sseqpages}{#1}\else \pgfqkeys{/tikz/sseqpages/global}{#1}\fi}
 \def\sseq@set{\pgfqkeys{/tikz/sseqpages}}
 \def\sseq@passoptionto#1{\sseq@temptoks\@xp{\pgfkeyscurrentvalue}\edef\sseq@temp{\@nx\pgfqkeys{#1}{\pgfkeyscurrentname=\the\sseq@temptoks}}\sseq@temp}
 
@@ -284,18 +277,18 @@
         \begingroup
         \sseq@temptoks{#1}
         \sseq@temptoks@ii{#2}
-        \pgfqkeys{/tikz/sseqpages/first pass/class/labels}{/utils/exec={\the\sseq@theeveryclasslabelstyle},#2}%
+        \pgfqkeys{/tikz/sseqpages/first pass/class/labels}{/utils/exec={\the\sseq@labelstyle\the\sseq@classlabelstyle},#2}%
         \ifsseq@classlabel
             \sseq@x@addto@macro@noctx\sseq@classlabelnodes{%
                 \@nx\ifsseq@needstikz
-                    node[/tikz/sseqpages/second pass/class/labels,/utils/exec={\the\sseq@theeveryclasslabelstyle},\the\sseq@temptoks@ii]{\the\sseq@temptoks}%
+                    node[/tikz/sseqpages/second pass/class/labels,/utils/exec={\the\sseq@labelstyle\the\sseq@classlabelstyle},\the\sseq@temptoks@ii]{\the\sseq@temptoks}%
                 \@nx\else
-                    \@nx\node[/tikz/sseqpages/second pass/class/labels,/utils/exec={\the\sseq@theeveryclasslabelstyle},\the\sseq@temptoks@ii]{\the\sseq@temptoks};%
+                    \@nx\node[/tikz/sseqpages/second pass/class/labels,/utils/exec={\the\sseq@labelstyle\the\sseq@classlabelstyle},\the\sseq@temptoks@ii]{\the\sseq@temptoks};%
                 \@nx\fi
             }%
         \else
             \gdef\sseq@classnodetext{#1}%
-            \xdef\sseq@classnodetextoptions{/tikz/sseqpages/second pass/class/node texts,/utils/exec={\the\sseq@theeveryclasslabelstyle},\the\sseq@temptoks@ii}%
+            \xdef\sseq@classnodetextoptions{/tikz/sseqpages/second pass/class/node texts,/utils/exec={\the\sseq@labelstyle\the\sseq@classlabelstyle},\the\sseq@temptoks@ii}%
         \fi
         \endgroup
     }%
@@ -432,152 +425,37 @@
 
 
 %% Style options
-\def\sseq@cyclestyles#1#2{\sseq@permanentcyclestyle{#1}\sseq@transientcyclestyle{#2}}
-\def\sseq@permanentcyclestyle#1{\sseq@thepermcyclestyle{\pgfkeysalso{#1}}}
-\def\sseq@transientcyclestyle#1{\sseq@thetranscyclestyle{\pgfkeysalso{#1}}}
 
-\def\sseq@redooptions{\sseq@redoclassoptions\sseq@redodifferentialoptions\sseq@redopermtranscycleoptions\sseq@redostructlineoptions\sseq@redolabeloptions}%\sseq@redogenoptions}
-\def\sseq@redoclassoptions{%
-    \sseq@classoptionslist\@xp{\@xp\pgfkeysalso\@xp{\sseq@scopeoptions}}%
-    \sseq@addstylecmdtotoks\sseq@classoptionslist{every path}%
-    \sseq@addstylecmdtotoks\sseq@classoptionslist{every node}%
-    \sseq@addstylecmdtotoks\sseq@classoptionslist{every class}%
-}
-\def\sseq@redodifferentialoptions{%
-    \sseq@doptionslist\@xp{\@xp\pgfkeysalso\@xp{\sseq@scopeoptions}}%
-    \sseq@addstylecmdtotoks\sseq@doptionslist{every path}%
-    \sseq@addstylecmdtotoks\sseq@doptionslist{every differential}%
-}
-\def\sseq@redopermtranscycleoptions{%
-    \sseq@thepermcyclestyle{}\sseq@thetranscyclestyle{}%
-    \sseq@addstylecmdtotoks\sseq@thepermcyclestyle{every permanent cycle}%
-    \sseq@addstylecmdtotoks\sseq@thetranscyclestyle{every transient cycle}%
-}
+\bgroup\catcode` =\active
+\gdef\sseq@activespace{ }
+\egroup
+\def\sseq@newstyles{\bgroup\catcode` =\active\sseq@newstyles@}
+\def\sseq@newstyles@#1{\egroup\sseq@newstyles@@#1\sseq@nil}
+\def\sseq@newstyles@@#1,{\sseq@newsseqstyle{#1}\sseq@newstyles@@goblespaces}
+\def\sseq@newstyles@@goblespaces{\@xp\@ifnextchar\sseq@activespace{\@xp\sseq@newstyles@@goblespaces\@gobble}{\@ifnextchar\sseq@nil{\@gobble}{\sseq@newstyles@@}}}
 
-\def\sseq@redostructlineoptions{%
-    \sseq@structlineoptionslist\@xp{\@xp\pgfkeysalso\@xp{\sseq@scopeoptions}}%
-    \sseq@addstylecmdtotoks\sseq@structlineoptionslist{every struct line}%
-}
-\def\sseq@redolabeloptions{
-    \sseq@theeveryclasslabelstyle{}\sseq@theeverydifferentiallabelstyle{}\sseq@theeverystructlinelabelstyle{}
-    \sseq@addstylecmdtotoks\sseq@theeveryclasslabelstyle{every label}
-    \sseq@addstylecmdtotoks\sseq@theeveryclasslabelstyle{every class label}
-    \sseq@addstylecmdtotoks\sseq@theeverydifferentiallabelstyle{every label}
-    \sseq@addstylecmdtotoks\sseq@theeverydifferentiallabelstyle{every differential label}
-    \sseq@addstylecmdtotoks\sseq@theeverystructlinelabelstyle{every label}
-    \sseq@addstylecmdtotoks\sseq@theeverystructlinelabelstyle{every struct line label}
+\def\sseq@set@newstyle#1{\pgfqkeys{/tikz/sseqpages}{#1}\pgfqkeys{/tikz/sseqpages/global}{#1}\pgfqkeys{/tikz/sseqpages/first pass}{#1}}
+
+
+\def\sseq@newsseqstyle#1{%
+    \@xp\def\sseq@activespace{}
+    \edef\sseq@tempcmd{\csname sseq@#1style\endcsname}%
+    \@xp\let\sseq@activespace\space
+    \@xp\newtoks\sseq@tempcmd
+    \sseq@set@newstyle{
+        every #1/.ecode={\sseq@tempcmd{\@nx\pgfkeysalso{##1}}},
+        #1s/.ecode={\sseq@tempcmd\@nx\@xp{\@nx\the\sseq@tempcmd\@nx\pgfkeysalso{##1}}}
+    }%
 }
 
-%\def\sseq@redogenoptions{%
-%    \sseq@genoptionslist\@xp{\@xp\pgfkeysalso\@xp{\sseq@scopeoptions}}
-%    \sseq@addstylecmdtotoks\sseq@genoptionslist{every path}
-%    \sseq@addstylecmdtotoks\sseq@genoptionslist{every node}
-%}
-
-\def\sseq@addstylecmdtotoks#1#2{%
-    \pgfkeysgetvalue{/tikz/sseqpages/#2/.@cmd}{\sseq@tempcmd}%
-    \ifx\sseq@tempcmd\relax\else
-        \@xp\def\@xp\sseq@temp\@xp{\sseq@tempcmd\pgfeov}%
-        \ifx\sseq@temp\pgfutil@empty\else
-            #1\@xp\@xp\@xp{\@xp\the\@xp#1\sseq@tempcmd\pgfeov}%
-        \fi
-    \fi
+\sseq@newstyles{ % Make sure to put a comma after the last entry
+    sseq, path, node,
+    class, permanent cycle, transient cycle,
+    edge, differential, struct line,
+    label, class label,  edge label, differential label, struct line label,
 }
 
-\def\sseq@addsetstylecmdtotoks#1#2{%
-    \pgfkeysgetvalue{/tikz/sseqpages/#2/.@cmd}{\sseq@tempcmd}%
-    \ifx\sseq@tempcmd\relax\else
-        \@xp\def\@xp\sseq@temp\@xp{\sseq@tempcmd\pgfeov}%
-        \ifx\sseq@temp\pgfutil@empty\else
-            \sseq@temptoks\@xp{\sseq@tempcmd\pgfeov}%
-            \edef\sseq@temp{\@nx#1{\the#1\@nx\pgfkeysalso{#2/.code={\the\sseq@temptoks}}}}%
-            \sseq@temp
-        \fi
-    \fi
-}
-
-\sseq@set{%
-    every sseq/.code={},
-    every page/.code={},
-    every path/.code={},
-    every node/.code={},
-    every differential/.code={},
-    every class/.style={draw},
-    every permanent cycle/.code={},
-    every transient cycle/.code={},
-    every struct line/.code={},
-    every label/.style={ % TODO? make changes to every label work correctly? (maybe?)
-            /tikz/auto,
-            /tikz/font=\everymath\expandafter{\the\everymath\scriptstyle},
-            /tikz/inner sep=+0.5ex
-    },
-    every class label/.code={},
-    every differential label/.code={},
-    every struct line label/.code={},
-    sseqs/.code=           {\pgfkeysalso{every sseq/.append style={#1}}}, % TODO: should sseqs and pages exist? Currently they have no use case I don't think.
-    pages/.code=           {\pgfkeysalso{every page/.append style={#1}}},
-    paths/.code=           {\pgfkeysalso{every path/.append style={#1}}\sseq@redooptions},
-    nodes/.code=           {\pgfkeysalso{every node/.append style={#1}}\sseq@redooptions},
-    classes/.code=         {\pgfkeysalso{every class/.append style={#1}}\sseq@redoclassoptions},
-    permanent cycles/.code={\pgfkeysalso{every permanent cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
-    transient cycles/.code={\pgfkeysalso{every transient cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
-    cycle styles/.code 2 args={\sseq@cyclestyles{#1}{#2}},
-    differentials/.code=   {\pgfkeysalso{every differential/.append style={#1}}\sseq@redodifferentialoptions},
-    struct lines/.code={\pgfkeysalso{every struct line/.append style={#1}}\sseq@redostructlineoptions},
-    labels/.code=          {\pgfkeysalso{every label/.append style={#1}}\sseq@redolabeloptions},
-    class labels/.code=         {\pgfkeysalso{every class label/.append style={#1}}\sseq@redolabeloptions},
-    differential labels/.code=  {\pgfkeysalso{every differential label/.append style={#1}}\sseq@redolabeloptions},
-    struct line labels/.code=  {\pgfkeysalso{every struct line label/.append style={#1}}\sseq@redolabeloptions}
-}
-
-\pgfqkeys{/tikz/sseqpages/global}{%
-    sseqs/.code=           {\sseq@set{every sseq/.append style={#1}}},
-    pages/.code=           {\sseq@set{every page/.append style={#1}}},
-    paths/.code=           {\sseq@set{every path/.append style={#1}}},
-    nodes/.code=           {\sseq@set{every node/.append style={#1}}},
-    classes/.code=         {\sseq@set{every class/.append style={#1}}},
-    permanent cycles/.code={\sseq@set{every permanent cycle/.append style={#1}}},
-    transient cycles/.code={\sseq@set{every transient cycle/.append style={#1}}},
-    cycle styles/.code 2 args={\sseq@cyclestyles{#1}{#2}},
-    differentials/.code=   {\sseq@set{every differential/.append style={#1}}},
-    struct lines/.code={\sseq@set{every struct line/.append style={#1}}},
-    labels/.code=          {\sseq@set{every label/.append style={#1}}},
-    class labels/.code=         {\sseq@set{every class label/.append style={#1}}},
-    differential labels/.code=  {\sseq@set{every differential label/.append style={#1}}},
-    struct line labels/.code=  {\sseq@set{every struct line label/.append style={#1}}}
-}
-
-\pgfqkeys{/tikz/sseqpages/first pass}{%
-    sseqs/.code=           {\sseq@set{every sseq/.append style={#1}}},
-    pages/.code=           {\sseq@set{every page/.append style={#1}}},
-    paths/.code=           {\sseq@set{every path/.append style={#1}}\sseq@redooptions},
-    nodes/.code=           {\sseq@set{every node/.append style={#1}}\sseq@redooptions},
-    classes/.code=         {\sseq@set{every class/.append style={#1}}\sseq@redoclassoptions},
-    permanent cycles/.code={\sseq@set{every permanent cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
-    transient cycles/.code={\sseq@set{every transient cycle/.append style={#1}}\sseq@redopermtranscycleoptions},
-    cycle styles/.code 2 args={\sseq@cyclestyles{#1}{#2}}
-    differentials/.code=   {\sseq@set{every differential/.append style={#1}}\sseq@redodifferentialoptions},
-    struct lines/.code={\sseq@set{every struct line/.append style={#1}}\sseq@redostructlineoptions},
-    labels/.code=          {\sseq@set{every label/.append style={#1}}\sseq@redolabeloptions},
-    class labels/.code=         {\sseq@set{every class label/.append style={#1}}\sseq@redolabeloptions},
-    differential labels/.code=  {\sseq@set{every differential label/.append style={#1}}\sseq@redolabeloptions},
-    struct line labels/.code=  {\sseq@set{every struct line label/.append style={#1}}\sseq@redolabeloptions}
-}
-
-\pgfqkeys{/tikz/sseqpages/second pass}{ % Is this right?
-    sseqs/.code=           {},
-    pages/.code=           {},
-    paths/.code=           {},
-    nodes/.code=           {},
-    differentials/.code=   {},
-    classes/.code=         {},
-    labels/.code=          {},
-    permanent cycles/.code={},
-    transient cycles/.code={},
-    struct lines/.code={},
-    cycle styles/.code 2 args={}
-}
-
+\sseq@set@newstyle{classes/.style={classs={#1}}}% "class" has a nonstandard plural
 
 %% Global options
 \def\sseq@xlabelstep{1}
@@ -664,6 +542,14 @@
     xshift/.code={},
     yshift/.code={}
 }
+
+\pgfqkeys{/tikz/sseqpages}{
+    description/.style={
+        /tikz/anchor=center,
+        /tikz/fill=white
+    }
+}
+
 
 \def\sseq@error@optionillegal#1#2#3{%
     \sseq@temptoks{#2}%
@@ -873,6 +759,7 @@
 
 \def\sseq@defer@tikzcommand@getoptions#1[#2]{\ifx#2\sseq@nil\else\sseq@temptoks\@xp{\the\sseq@temptoks#2,}\@xp\sseq@defer@tikzcommand@getoptions\fi}
 
+% TODO: This could be cleaned up
 % Ensure that \sseq@scopeoptions gets inserted exactly once, before all other options.
 \def\sseq@changeoptiondirectory#1#2[#3]{%
     \ifx\sseq@nil#3%
@@ -904,12 +791,10 @@
 }
 
 % TODO: respect the style "every scope"?
-\def\sseq@scopeoptions{}
 \def\sseq@scope{\@ifnextchar[{\sseq@scope@}{\sseq@scope@[]}}
 \def\sseq@scope@[#1]{%
     \pgfqkeys{/tikz/sseqpages/first pass/scope}{#1}%
-    \@xp\def\@xp\sseq@scopeoptions\@xp{\sseq@scopeoptions#1,}%
-    \sseq@redooptions
+    \sseq@scopeoptions\@xp{\the\sseq@scopeoptions\pgfkeysalso{#1}}%
     \sseq@g@addtosavedpaths{\begin{scope}[/tikz/sseqpages/second pass/scope,#1]}%
 }
 \def\sseq@endscope{\sseq@g@addtosavedpaths{\end{scope}}}
@@ -960,7 +845,6 @@
     % the default option handler for /tikz/sseqpages/global adds to \sseq@currentoptionpath options
     \let\sseq@currentoptionpath\sseq@thename
     \pgfqkeys{/tikz/sseqpages/global}{{\sseq@thename} options/.code={},#1}%
-    \sseq@redooptions
     %To give these options global scope we say \global\let\sseq@<name of sseq>options\sseq@<name of sseq>options
     \edef\temp{\global\let\@xp\@nx\csname pgfk@/tikz/sseqpages/global/{\sseq@thename} options/.@cmd\endcsname\@xp\@nx\csname pgfk@/tikz/sseqpages/global/{\sseq@thename} options/.@cmd\endcsname}%
     \temp
@@ -1036,21 +920,20 @@
       /tikz/edge quotes mean={%
         edge node={node [%execute at begin node=$,%$
                          %execute at end node=$,%$
-                         auto=right,/tikz/sseqpages,every label,##2]{##1}}}}%
+                         auto=right,/tikz/sseqpages,/utils/exec={\the\sseq@thislabelstyle},##2]{##1}}}}%
 %
     % Set it up so that options are dumped out but not expanded
     % So \temp will look like \begin{tikzpicture}[option=\mycommand{stuff},...] with \mycommand not yet expanded.
     \let\sseq@transform\sseq@okaytransform % Allow all coordinate transforms in global options
     \let\sseq@shifttransform\sseq@okaytransform
     %
-    \edef\temp{\@nx\begin{tikzpicture}[/tikz/sseqpages,every sseq,/tikz/sseqpages/global/{\sseq@thename} options,/tikz/sseqpages/global/{this page} options]}%
+    \edef\temp{\@nx\begin{tikzpicture}[/tikz/sseqpages,/utils/exec={\the\sseq@sseqstyle},/tikz/sseqpages/global/{\sseq@thename} options,/tikz/sseqpages/global/{this page} options]}%
     \temp
     \tikzset{%
         z=0pt,
         every path/.style={},
         every node/.style={}
     }%
-    \sseq@redooptions % This is actually completely pointless...
     %
     \let\sseq@transform\sseq@error@illegaltransform % Disallow most coordinate transforms
     \let\sseq@shifttransform\sseq@checkshifttransform % Allow shifts as long as they are by integers and have no units.
@@ -1069,7 +952,6 @@
     % Patch in modified tikz parsing rule
     \let\tikz@@@parse@regular\sseq@tikz@@@parse@regular
 %
-%    \@xp\sho\csname sseq@savednodes@\sseq@thename2\endcsname
     % Insert nodes from all pages on or after the current one
         \sseq@tempcount=\sseq@thepage\relax
         \advance\sseq@tempcount-1\relax
@@ -1358,13 +1240,17 @@
     \sseq@temptoks@ii{\pgfkeysalso{#4}}% local options
 %
     \@xp\gdef\csname sseq@placenum\sseq@thename(\tempcoord,\tempnodenum)\endcsname{0}% to make \replace work correctly
+%
     % Classes that eventually die
     % we use deforaddto@macro here because this macro gets moved, so any context needs to be installed as part of the sseq@place command
     \sseq@x@deforaddto@macro{sseq@place\sseq@thename(\tempcoord,\tempnodenum)0}{%
         \begingroup
         \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
-        \@nx\sseq@place@drawnode{#1}{\the\sseq@x}{#2}{\the\sseq@y}{\tempnodenum}{\the\sseq@temptoks}%
-            {\the\sseq@classoptionslist\the\sseq@thetranscyclestyle\the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename(\tempcoord,\tempnodenum)\endcsname}}%
+        \@nx\sseq@place@drawnode{#1}{\the\sseq@x}{#2}{\the\sseq@y}{\tempnodenum}{\the\sseq@temptoks}{%
+            \the\sseq@scopeoptions
+            \the\sseq@pathstyle\the\sseq@nodestyle\the\sseq@classstyle\the\sseq@transientcyclestyle
+            \the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename(\tempcoord,\tempnodenum)\endcsname}%
+        }%
         \endgroup
     }%
 %
@@ -1372,8 +1258,11 @@
     \@xp\xdef\csname sseq@placeinfty\sseq@thename(\tempcoord,\tempnodenum)0\endcsname{%
         \begingroup
         \ifsseq@needstikz \@nx\sseq@needstikztrue \edef\@nx\tikz@shape{\tikz@shape}\fi
-        \@nx\sseq@place@drawnode{#1}{\the\sseq@x}{#2}{\the\sseq@y}{\tempnodenum}{\the\sseq@temptoks}%
-            {\the\sseq@classoptionslist\the\sseq@thepermcyclestyle\the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename(\tempcoord,\tempnodenum)\endcsname}}%
+        \@nx\sseq@place@drawnode{#1}{\the\sseq@x}{#2}{\the\sseq@y}{\tempnodenum}{\the\sseq@temptoks}{%
+            \the\sseq@scopeoptions
+            \the\sseq@pathstyle\the\sseq@nodestyle\the\sseq@classstyle\the\sseq@permanentcyclestyle
+            \the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename(\tempcoord,\tempnodenum)\endcsname}%
+        }%
         \endgroup
     }%
 %
@@ -1424,8 +1313,11 @@
         \@nx\ifnum\@nx\sseq@thepage>\sseq@getdeathpage\coord\relax
         \begingroup
         \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
-        \@nx\sseq@place@drawnode{\sseq@arg1}{\the\sseq@x}{\sseq@arg2}{\the\sseq@y}{\sseq@optarg{1}3}{\the\sseq@temptoks}%
-            {\the\sseq@classoptionslist\the\sseq@thetranscyclestyle\the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename\coord\endcsname}}%
+        \@nx\sseq@place@drawnode{\sseq@arg1}{\the\sseq@x}{\sseq@arg2}{\the\sseq@y}{\sseq@optarg{1}3}{\the\sseq@temptoks}{%
+            \the\sseq@scopeoptions
+            \the\sseq@pathstyle\the\sseq@nodestyle\the\sseq@classstyle\the\sseq@transientcyclestyle
+            \the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename\coord\endcsname}%
+        }%
         \endgroup
         \@nx\fi
     }%
@@ -1435,8 +1327,11 @@
         \@nx\ifnum\@nx\sseq@thepage>\sseq@getdeathpage\coord\relax
         \begingroup
         \ifsseq@needstikz \@nx\sseq@needstikztrue \edef\@nx\tikz@shape{\tikz@shape}\fi
-        \@nx\sseq@place@drawnode{\sseq@arg1}{\the\sseq@x}{\sseq@arg2}{\the\sseq@y}{\sseq@optarg{1}3}{\the\sseq@temptoks}%
-            {\the\sseq@classoptionslist\the\sseq@thepermcyclestyle\the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename\coord\endcsname}}%
+        \@nx\sseq@place@drawnode{\sseq@arg1}{\the\sseq@x}{\sseq@arg2}{\the\sseq@y}{\sseq@optarg{1}3}{\the\sseq@temptoks}{%
+            \the\sseq@scopeoptions
+            \the\sseq@pathstyle\the\sseq@nodestyle\the\sseq@classstyle\the\sseq@permanentcyclestyle
+            \the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename\coord\endcsname}%
+        }%
         \endgroup
         \@nx\fi
     }%
@@ -1800,7 +1695,13 @@
     \sseq@x@deforaddto@macro{sseq@saveddiffs@\sseq@thename#2}{%
         \begingroup
         \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
-        \@nx\sseq@d@drawedge\source\target{differential}{\the\sseq@doptionslist\the\sseq@temptoks\@nx\pgfkeysalso{\@xp\@nx\csname sseq@dstyle\sseq@thename#2\source\endcsname}}%
+        \@nx\sseq@d@drawedge\source\target{differential}{%
+                \sseq@thislabelstyle{\the\sseq@labelstyle\the\sseq@edgelabelstyle\the\sseq@differentiallabelstyle}%
+                \the\sseq@scopeoptions
+                \the\sseq@pathstyle\the\sseq@edgestyle\the\sseq@differentialstyle
+                \the\sseq@temptoks
+                \@nx\pgfkeysalso{\@xp\@nx\csname sseq@dstyle\sseq@thename#2\source\endcsname}%
+        }%
         \endgroup
     }%
 %
@@ -1949,9 +1850,14 @@
     \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}{target}%
     \edef\temp{\@nx\sseq@addcontingentfeature{(\the\sseq@tempx,\the\sseq@tempy)(\the\sseq@tempxb,\the\sseq@tempyb)}{%
             \begingroup
-                \ifsseq@needstikz\@nx\sseq@needstikztrue\fi\@nx
-                \sseq@d@drawedge (\the\sseq@tempx,\the\sseq@tempy,\sseq@na)(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb)%
-                    {struct line}{\the\sseq@structlineoptionslist\the\sseq@temptoks}%
+                \ifsseq@needstikz\@nx\sseq@needstikztrue\fi
+                \@nx\sseq@d@drawedge (\the\sseq@tempx,\the\sseq@tempy,\sseq@na)(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb)%
+                    {struct line}{
+                        \sseq@thislabelstyle{\the\sseq@labelstyle\the\sseq@edgelabelstyle\the\sseq@structlinelabelstyle}
+                        \the\sseq@scopeoptions
+                        \the\sseq@pathstyle\the\sseq@edgestyle\the\sseq@structlinestyle
+                        \the\sseq@temptoks
+                    }%
             \endgroup
         }
     }%
@@ -2137,4 +2043,4 @@
     {\else\pgffor@remember@expanded %
         \sseq@for@addtosavedtoks{\pgffor@remember@expanded}}
     {}{\no}
-\pretocmd\sseq@pgffor@atendforeach{\sseq@for@clearsavedtoks}{}{\no}
+\pretocmd\sseq@pgffor@atendforeach{\sseq@for@clearsavedtoks}{}{\no} 
