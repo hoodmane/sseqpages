@@ -2,7 +2,6 @@
 \usepackage[landscape,margin=1cm,top=2cm]{geometry}
 \usepackage{sseqpages}
 \begin{document}
-
 \begin{sseqdata}[
     execute at begin node=$,execute at end node=$,
     degree={-1}{#1-1},
@@ -65,5 +64,8 @@
 \tower[xshift=14,yshift=2]{2}
 \tower[xshift=14,yshift=4]{3}
 \end{sseqdata}
+
 \printpage[name=adamsSS,page=0]
+
+\printpage[name=adamsSS,page=0,struct lines=blue,struct line labels={text=black}]
 \end{document} 

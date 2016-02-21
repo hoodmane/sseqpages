@@ -3,8 +3,7 @@
 \usepackage{sseqpages}
 \usepackage{amssymb}
 \def\Z{\mathbb{Z}}
-\makeatletter
-%\sseq@fastmodetrue
+% Last time test: 1.1 sec
 \begin{document}
 \def\column#1[#2]{\foreach \y in {0,...,6} {\place[#2](#1,2*\y)}}
 
@@ -18,6 +17,7 @@
     xscale=1.8,
     y axis gap=0.7cm,
     execute at begin node=$,execute at end node=$,
+    this page cycles=red
 ]{K(Z,3)}
 
 \begin{scope}[background]

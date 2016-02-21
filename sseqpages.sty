@@ -3,15 +3,15 @@
 %   Add a separate global/sseqset directory? Or a special version of global/.unknown for \sseqset? Or what?
 %
 % Is the option handling getting too complicated? (Yes.)
-%   Fix it so that updating saying e.g., "classes={stuff}" as an option to "\begin{sseqpage}" does something.
-%   Special style option for rendering of nodes that are hit on this particular page
-%   add separate options to actual modify class labels and class text body
+% add separate options to actual modify class labels and class text body
+% add a late option hook that forces an option to be executed last and use it to fix "description"
 %
 % option not to render axes
 % options to add space to the right and on the top of the picture (like y axis gap and x axis gap except mirrored)
 % named standard offset patterns with options
 %
-% Make a version
+% Either make fastmode actually perform noticeably better or remove it
+%
 % Email tikz people
 
 \NeedsTeXFormat{LaTeX2e}
@@ -56,7 +56,9 @@
 \newif\ifsseq@needstikz
 \newif\ifsseq@classlabel
 \newif\ifsseq@outofrange
-\newif\ifsseq@inprogress
+\newif\ifsseq@thispage
+
+\def\sseqfastmode{\sseq@fastmodetrue} %TODO: Delete this, it's just for testing convenience
 
 \newtoks\sseq@temptoks
 \newtoks\sseq@temptoks@ii
@@ -165,7 +167,8 @@
 % TODO: Check that this section is consistent
 
 % TODO: is this the right definition of \sseqset? Seems questionable.
-\def\sseqset#1{\ifsseq@inprogress\pgfqkeys{/tikz/sseqpages}{#1}\else \pgfqkeys{/tikz/sseqpages/global}{#1}\fi}
+\def\sseqset{\pgfqkeys{/tikz/sseqpages/global}}
+\def\sseqset@inprogress{\pgfqkeys{/tikz/sseqpages}}
 \def\sseq@set{\pgfqkeys{/tikz/sseqpages}}
 \def\sseq@passoptionto#1{\sseq@temptoks\@xp{\pgfkeyscurrentvalue}\edef\sseq@temp{\@nx\pgfqkeys{#1}{\pgfkeyscurrentname=\the\sseq@temptoks}}\sseq@temp}
 
@@ -277,18 +280,24 @@
         \begingroup
         \sseq@temptoks{#1}
         \sseq@temptoks@ii{#2}
-        \pgfqkeys{/tikz/sseqpages/first pass/class/labels}{/utils/exec={\the\sseq@labelstyle\the\sseq@classlabelstyle},#2}%
+        \pgfqkeys{/tikz/sseqpages/first pass/class/labels}{/utils/exec={\the\sseq@classstyle\the\sseq@classlabelstyle},#2}%
         \ifsseq@classlabel
             \sseq@x@addto@macro@noctx\sseq@classlabelnodes{%
                 \@nx\ifsseq@needstikz
-                    node[/tikz/sseqpages/second pass/class/labels,/utils/exec={\the\sseq@labelstyle\the\sseq@classlabelstyle},\the\sseq@temptoks@ii]{\the\sseq@temptoks}%
+                    node[
+                        /tikz/sseqpages/second pass/class/labels,
+                        /utils/exec={\sseq@thelabelstyle\sseq@theclasslabelstyle},\the\sseq@temptoks@ii
+                    ]{\the\sseq@temptoks}%
                 \@nx\else
-                    \@nx\node[/tikz/sseqpages/second pass/class/labels,/utils/exec={\the\sseq@labelstyle\the\sseq@classlabelstyle},\the\sseq@temptoks@ii]{\the\sseq@temptoks};%
+                    \@nx\node[
+                        /tikz/sseqpages/second pass/class/labels,
+                        /utils/exec={\sseq@thelabelstyle\sseq@theclasslabelstyle},\the\sseq@temptoks@ii
+                    ]{\the\sseq@temptoks};%
                 \@nx\fi
             }%
         \else
             \gdef\sseq@classnodetext{#1}%
-            \xdef\sseq@classnodetextoptions{/tikz/sseqpages/second pass/class/node texts,/utils/exec={\the\sseq@labelstyle\the\sseq@classlabelstyle},\the\sseq@temptoks@ii}%
+            \xdef\sseq@classnodetextoptions{/tikz/sseqpages/second pass/class/node texts,/utils/exec={\sseq@thelabelstyle\sseq@theclasslabelstyle},\the\sseq@temptoks@ii}%
         \fi
         \endgroup
     }%
@@ -440,6 +449,7 @@
 \def\sseq@newsseqstyle#1{%
     \@xp\def\sseq@activespace{}
     \edef\sseq@tempcmd{\csname sseq@#1style\endcsname}%
+    \@xp\edef\csname sseq@the#1style\endcsname{\@nx\the\sseq@tempcmd\@nx\@nx\@nx\the\sseq@tempcmd}
     \@xp\let\sseq@activespace\space
     \@xp\newtoks\sseq@tempcmd
     \sseq@set@newstyle{
@@ -450,8 +460,8 @@
 
 \sseq@newstyles{ % Make sure to put a comma after the last entry
     sseq, path, node,
-    class, permanent cycle, transient cycle,
-    edge, differential, struct line,
+    class, permanent cycle, transient cycle, this page cycle,
+    edge, differential, struct line, this page struct line,
     label, class label,  edge label, differential label, struct line label,
 }
 
@@ -809,7 +819,6 @@
 \def\sseqdata{\@ifnextchar[{\sseqdata@}{\sseqdata@[]}}%}
 
 \def\sseqdata@[#1]#2{%
-    \sseq@inprogresstrue
     \let\sseq@xminmax\sseq@xminmax@active
     \let\sseq@yminmax\sseq@yminmax@active
     % These are set up so that if the user specifies no \xrange, the minimum position of any node can be calculated on the fly.
@@ -848,6 +857,7 @@
     %To give these options global scope we say \global\let\sseq@<name of sseq>options\sseq@<name of sseq>options
     \edef\temp{\global\let\@xp\@nx\csname pgfk@/tikz/sseqpages/global/{\sseq@thename} options/.@cmd\endcsname\@xp\@nx\csname pgfk@/tikz/sseqpages/global/{\sseq@thename} options/.@cmd\endcsname}%
     \temp
+    \let\sseqset\sseqset@inprogress % Not sure if this is right/necessary. Probably is though.
     \gdef\sseq@savedbackgroundpaths{}%
     \gdef\sseq@savedforegroundpaths{}%
     \gdef\sseq@compilesseq{}%
@@ -890,7 +900,6 @@
 \def\sseqpage{\@ifnextchar[{\sseqpage@}{\sseqpage@[]}} %}
 
 \def\sseqpage@[#1]{%
-    \sseq@inprogresstrue
     \let\sseq@savedbackgroundpaths\sseq@novalue
     \let\sseq@savedforegroundpaths\sseq@novalue
     \let\sseq@xaxisgap\sseq@novalue
@@ -934,6 +943,7 @@
         every path/.style={},
         every node/.style={}
     }%
+    \let\sseqset\sseqset@inprogress % Not sure if this is right/necessary. Probably is though.
     %
     \let\sseq@transform\sseq@error@illegaltransform % Disallow most coordinate transforms
     \let\sseq@shifttransform\sseq@checkshifttransform % Allow shifts as long as they are by integers and have no units.
@@ -954,7 +964,9 @@
 %
     % Insert nodes from all pages on or after the current one
         \sseq@tempcount=\sseq@thepage\relax
-        \advance\sseq@tempcount-1\relax
+        \sseq@thispagetrue
+        \csname sseq@savednodes@\sseq@thename\the\sseq@tempcount\endcsname
+        \sseq@thispagefalse
         \loop
             \advance\sseq@tempcount1\relax
             \csname sseq@savednodes@\sseq@thename\the\sseq@tempcount\endcsname %
@@ -963,7 +975,9 @@
 %
 %
         \sseq@tempcount=\sseq@thepage\relax
-        \advance\sseq@tempcount-1\relax
+        \sseq@thispagetrue        
+        \csname sseq@savedfeatures@\sseq@thename\the\sseq@tempcount\endcsname
+        \sseq@thispagefalse
         \loop
             \advance\sseq@tempcount1\relax
             \csname sseq@savedfeatures@\sseq@thename\the\sseq@tempcount\endcsname %
@@ -1157,7 +1171,7 @@
     \@xp\ifx\csname sseq@classstyle\sseq@thename(\temp)\endcsname\pgfutil@empty
         \sseq@x@addto@macro\sseqpage@cleanup{\gdef\@xp\@nx\csname sseq@classstyle\sseq@thename(\temp)\endcsname{}}%
     \fi
-    \@xp\sseq@g@addto@macro\csname sseq@classstyle\sseq@thename(\temp)\endcsname{#2,}%
+    \@xp\sseq@g@addto@macro\csname sseq@classstyle\sseq@thename(\temp)\endcsname{\pgfkeysalso{#2}}%
 }
 
 \def\sseq@doptions#1(#2){%
@@ -1199,7 +1213,7 @@
     \@xp\ifx\csname sseq@dstyle\sseq@thename#1(\temp)\endcsname\pgfutil@empty
         \sseq@x@addto@macro\sseqpage@cleanup{\gdef\@xp\@nx\csname sseq@dstyle\sseq@thename#1(\temp)\endcsname{}}%
     \fi
-    \@xp\sseq@g@addto@macro\csname sseq@dstyle\sseq@thename#1(\temp)\endcsname{#3,}%
+    \@xp\sseq@g@addto@macro\csname sseq@dstyle\sseq@thename#1(\temp)\endcsname{\pgfkeysalso{#3}}%
 }
 
 
@@ -1248,8 +1262,9 @@
         \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
         \@nx\sseq@place@drawnode{#1}{\the\sseq@x}{#2}{\the\sseq@y}{\tempnodenum}{\the\sseq@temptoks}{%
             \the\sseq@scopeoptions
-            \the\sseq@pathstyle\the\sseq@nodestyle\the\sseq@classstyle\the\sseq@transientcyclestyle
-            \the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename(\tempcoord,\tempnodenum)\endcsname}%
+            \sseq@thepathstyle\sseq@thenodestyle\sseq@theclassstyle\sseq@thetransientcyclestyle\@nx\ifsseq@thispage\sseq@thethispagecyclestyle\@nx\fi
+            \the\sseq@temptoks@ii
+            \@xp\@nx\csname sseq@classstyle\sseq@thename(\tempcoord,\tempnodenum)\endcsname
         }%
         \endgroup
     }%
@@ -1260,8 +1275,9 @@
         \ifsseq@needstikz \@nx\sseq@needstikztrue \edef\@nx\tikz@shape{\tikz@shape}\fi
         \@nx\sseq@place@drawnode{#1}{\the\sseq@x}{#2}{\the\sseq@y}{\tempnodenum}{\the\sseq@temptoks}{%
             \the\sseq@scopeoptions
-            \the\sseq@pathstyle\the\sseq@nodestyle\the\sseq@classstyle\the\sseq@permanentcyclestyle
-            \the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename(\tempcoord,\tempnodenum)\endcsname}%
+            \sseq@thepathstyle\sseq@thenodestyle\sseq@theclassstyle\sseq@thepermanentcyclestyle
+            \the\sseq@temptoks@ii
+            \@xp\@nx\csname sseq@classstyle\sseq@thename(\tempcoord,\tempnodenum)\endcsname
         }%
         \endgroup
     }%
@@ -1315,8 +1331,10 @@
         \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
         \@nx\sseq@place@drawnode{\sseq@arg1}{\the\sseq@x}{\sseq@arg2}{\the\sseq@y}{\sseq@optarg{1}3}{\the\sseq@temptoks}{%
             \the\sseq@scopeoptions
-            \the\sseq@pathstyle\the\sseq@nodestyle\the\sseq@classstyle\the\sseq@transientcyclestyle
-            \the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename\coord\endcsname}%
+            \sseq@thepathstyle\sseq@thenodestyle\sseq@theclassstyle
+            \sseq@thetransientcyclestyle\@nx\ifsseq@thispage\sseq@thethispagecyclestyle\@nx\fi
+            \the\sseq@temptoks@ii
+            \@xp\@nx\csname sseq@classstyle\sseq@thename\coord\endcsname
         }%
         \endgroup
         \@nx\fi
@@ -1329,8 +1347,8 @@
         \ifsseq@needstikz \@nx\sseq@needstikztrue \edef\@nx\tikz@shape{\tikz@shape}\fi
         \@nx\sseq@place@drawnode{\sseq@arg1}{\the\sseq@x}{\sseq@arg2}{\the\sseq@y}{\sseq@optarg{1}3}{\the\sseq@temptoks}{%
             \the\sseq@scopeoptions
-            \the\sseq@pathstyle\the\sseq@nodestyle\the\sseq@classstyle\the\sseq@permanentcyclestyle
-            \the\sseq@temptoks@ii\@nx\pgfkeysalso{\@xp\@nx\csname sseq@classstyle\sseq@thename\coord\endcsname}%
+            \sseq@thepathstyle\sseq@thenodestyle\sseq@theclassstyle\sseq@thepermanentcyclestyle
+            \the\sseq@temptoks@ii\@xp\@nx\csname sseq@classstyle\sseq@thename\coord\endcsname%
         }%
         \endgroup
         \@nx\fi
@@ -1696,11 +1714,11 @@
         \begingroup
         \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
         \@nx\sseq@d@drawedge\source\target{differential}{%
-                \sseq@thislabelstyle{\the\sseq@labelstyle\the\sseq@edgelabelstyle\the\sseq@differentiallabelstyle}%
+                \sseq@thislabelstyle{\sseq@thelabelstyle\sseq@theedgelabelstyle\sseq@thedifferentiallabelstyle}%
                 \the\sseq@scopeoptions
-                \the\sseq@pathstyle\the\sseq@edgestyle\the\sseq@differentialstyle
+                \sseq@thepathstyle\sseq@theedgestyle\sseq@thedifferentialstyle
                 \the\sseq@temptoks
-                \@nx\pgfkeysalso{\@xp\@nx\csname sseq@dstyle\sseq@thename#2\source\endcsname}%
+                \@xp\@nx\csname sseq@dstyle\sseq@thename#2\source\endcsname
         }%
         \endgroup
     }%
@@ -1853,9 +1871,9 @@
                 \ifsseq@needstikz\@nx\sseq@needstikztrue\fi
                 \@nx\sseq@d@drawedge (\the\sseq@tempx,\the\sseq@tempy,\sseq@na)(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb)%
                     {struct line}{
-                        \sseq@thislabelstyle{\the\sseq@labelstyle\the\sseq@edgelabelstyle\the\sseq@structlinelabelstyle}
+                        \sseq@thislabelstyle{\sseq@thelabelstyle\sseq@theedgelabelstyle\sseq@thestructlinelabelstyle}
                         \the\sseq@scopeoptions
-                        \the\sseq@pathstyle\the\sseq@edgestyle\the\sseq@structlinestyle
+                        \sseq@thepathstyle\sseq@theedgestyle\sseq@thestructlinestyle\@nx\ifsseq@thispage\sseq@thethispagestructlinestyle\@nx\fi
                         \the\sseq@temptoks
                     }%
             \endgroup
