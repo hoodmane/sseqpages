@@ -1,14 +1,20 @@
 % TODO:
-% How should global/.unknown work? The current version isn't quite right.
-%   Add a separate global/sseqset directory? Or a special version of global/.unknown for \sseqset? Or what?
+% Is should global/.unknown right now? 
 %
-% Is the option handling getting too complicated? (Yes.)
 % add separate options to actual modify class labels and class text body
 % add a late option hook that forces an option to be executed last and use it to fix "description"
 %
-% option not to render axes
-% options to add space to the right and on the top of the picture (like y axis gap and x axis gap except mirrored)
 % named standard offset patterns with options
+%
+% option not to render axes
+% Maybe try to fix it so that global tikz rotations actually work?
+% Fix xshift, yshift, other transformations in labels (sseqpages shouldn't complain about coordinate transformations there)
+% User interface to change length of the axes and clipping at right and top of the picture (like y axis gap and x axis gap except mirrored)
+% User interface to control arrow head for edges that go off page (option to turn ellipses off)
+%
+% still need context environment
+% add error checking for modified tikz code
+% Fix the bug that's emitting the "+0.0pt"s that causes that "there is no _ in font nullfont" warnings
 %
 % Either make fastmode actually perform noticeably better or remove it
 %
@@ -32,6 +38,8 @@
 
 \usetikzlibrary{quotes}
 \usetikzlibrary{positioning}
+\usetikzlibrary{intersections}
+\usepgflibrary{arrows.meta}
 \usepackage{trace}
 
 % Ensure \@xp and \@nx have the correct values in case that amsmath isn't loaded
@@ -79,6 +87,10 @@
 \newcount\sseq@tempyb
 \newdimen\sseq@tempxdim
 \newdimen\sseq@tempydim
+\newdimen\sseq@tempxadim
+\newdimen\sseq@tempyadim
+\newdimen\sseq@tempxbdim
+\newdimen\sseq@tempybdim
 \sseq@context@depth\z@
 \sseq@context@tempcount\z@
 \sseq@featurecount\z@
@@ -517,8 +529,8 @@
 
 %% setup for coordinate transformation keys
 \sseq@set{%
-    x/.code={\sseq@transform{x}{#1}}, % TODO: Either make it possible to use x or y or (more likely) make it illegal.
-    y/.code={\sseq@transform{y}{#1}},
+    x/.code={\sseq@error@optionillegal{x}{#1}}, 
+    y/.code={\sseq@error@optionillegal{y}{#1}},
     z/.code={\sseq@error@optionillegal{z}{#1}{}},
     xshift/.code={\sseq@shifttransform{xshift}{#1}},
     yshift/.code={\sseq@shifttransform{yshift}{#1}},
@@ -761,7 +773,7 @@
 \def\sseq@defer@tikzcommand#1#2;{%
     \begingroup
     \sseq@temptoks{}%
-    \sseq@changeoptiondirectory@{#1}#2;[\sseq@nil]%
+    \sseq@changeoptiondirectory{#1}#2;[\sseq@nil]%
     \edef\temp{\@nx\pgfqkeys{/tikz/sseqpages/first pass/tikz primitives}{\the\sseq@temptoks}}\temp
     \sseq@x@addtosavedpaths@ctx{\the\sseq@temptoks@ii}%@ctx variant so that tikz primitives always "use context"
     \endgroup
@@ -769,23 +781,12 @@
 
 \def\sseq@defer@tikzcommand@getoptions#1[#2]{\ifx#2\sseq@nil\else\sseq@temptoks\@xp{\the\sseq@temptoks#2,}\@xp\sseq@defer@tikzcommand@getoptions\fi}
 
-% TODO: This could be cleaned up
-% Ensure that \sseq@scopeoptions gets inserted exactly once, before all other options.
-\def\sseq@changeoptiondirectory#1#2[#3]{%
-    \ifx\sseq@nil#3%
-        \sseq@temptoks{}%
-        \sseq@temptoks@ii{#1[/tikz/sseqpages/second pass/tikz primitives]#2}%\sseq@scopeoptions
-    \else
-        \sseq@temptoks{#3}%
-        \sseq@ifhop{\sseq@changeoptiondirectory@{#1#2[/tikz/sseqpages/second pass/tikz primitives,#3]}}%\sseq@scopeoptions,
-    \fi
-}
-\def\sseq@changeoptiondirectory@#1#2[#3]{% same as the first part except no need to insert \sseq@scopeoptions
+\def\sseq@changeoptiondirectory#1#2[#3]{
     \ifx\sseq@nil#3%
         \sseq@temptoks@ii{#1#2}%
     \else
         \sseq@temptoks\@xp{\the\sseq@temptoks,#3}%
-        \sseq@ifhop{\sseq@changeoptiondirectory@{#1#2[/tikz/sseqpages/second pass/tikz primitives,#3]}}%
+        \sseq@ifhop{\sseq@changeoptiondirectory{#1#2[/tikz/sseqpages/second pass/tikz primitives,#3]}}%
     \fi
 }
 
@@ -800,7 +801,7 @@
     \fi
 }
 
-% TODO: respect the style "every scope"?
+% TODO: deal with the style "every scope" (by emptying it defensively I think)
 \def\sseq@scope{\@ifnextchar[{\sseq@scope@}{\sseq@scope@[]}}
 \def\sseq@scope@[#1]{%
     \pgfqkeys{/tikz/sseqpages/first pass/scope}{#1}%
@@ -995,27 +996,43 @@
     \let\sseq@thename\relax %
 }
 
+\def\sseq@xlabelgap{0.5cm}
+\def\sseq@ylabelgap{0.5cm}
+\def\sseq@xaxis@start@extend{0.4cm}
+\def\sseq@yaxis@start@extend{0.4cm}
+\def\sseq@xaxis@end@extend{0.5cm}
+\def\sseq@yaxis@end@extend{0.5cm}
+\def\sseq@xclip@axisgap{0.1cm}
+\def\sseq@yclip@axisgap{0.1cm}
+\def\sseq@xclip@extend{0.1cm}
+\def\sseq@yclip@extend{0.2cm}
+
 \def\sseq@drawaxes{%
-    %\pgftransformationadjustments
     \bgroup
-    \pgfgettransformentries{\a}{\b}{\c}{\d}{\sx}{\sy}\pgfsettransformentries{\a}{\b}{\c}{\d}{\sx}{-\sseq@xaxisgap+\sy}%
-    \pgfpathmoveto{\pgfpoint{\sseq@xmax cm+0.5cm}{\sseq@ymin cm}}%
-    \pgftransformshift{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}%
-    \pgftransformresetnontranslations
-    \pgfpathlineto{\pgfpoint{-0.9cm-\sseq@yaxisgap}{0cm}}%
-    \egroup
-    \bgroup
-    \pgfgettransformentries{\a}{\b}{\c}{\d}{\sx}{\sy}\pgfsettransformentries{\a}{\b}{\c}{\d}{-\sseq@yaxisgap+\sx}{\sy}%
-    \pgfpathmoveto{\pgfpoint{\sseq@xmin cm}{\sseq@ymax cm+0.5cm}}%
-    \pgftransformshift{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}%
-    \pgftransformresetnontranslations
-    \pgfpathlineto{\pgfpoint{0cm}{-0.85cm-\sseq@xaxisgap}}%
+    \pgfgettransformentries{\a}{\b}{\c}{\d}{\sx}{\sy}
+% x axis
+    \pgfsettransformentries{\a}{\b}{\c}{\d}{\sseq@xaxis@end@extend+\sx}{-\sseq@xaxisgap+\sy}%
+    \pgfpathmoveto{\pgfpoint{\sseq@xmax cm}{\sseq@ymin cm}}%
+    \sseq@tempxdim=\sx
+    \advance\sseq@tempxdim-\sseq@yaxisgap
+    \advance\sseq@tempxdim-\sseq@ylabelgap
+    \advance\sseq@tempxdim-\sseq@xaxis@start@extend
+    \pgfsettransformentries{\a}{\b}{\c}{\d}{\sseq@tempxdim}{-\sseq@xaxisgap+\sy}%
+    \pgfpathlineto{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}%
+%
+    \pgfsettransformentries{\a}{\b}{\c}{\d}{-\sseq@yaxisgap+\sx}{\sseq@yaxis@end@extend+\sy}%
+    \pgfpathmoveto{\pgfpoint{\sseq@xmin cm}{\sseq@ymax cm}}%
+    \sseq@tempydim=\sy
+    \advance\sseq@tempydim-\sseq@xaxisgap
+    \advance\sseq@tempydim-\sseq@xlabelgap
+    \advance\sseq@tempydim-\sseq@yaxis@start@extend
+    \pgfsettransformentries{\a}{\b}{\c}{\d}{-\sseq@yaxisgap+\sx}{\sseq@tempydim}%
+    \pgfpathlineto{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}%
     \egroup
     \pgfusepath{stroke}%
 %   \draw (\sseq@xmin-1.5, \sseq@ymin-0.5) -- (\sseq@xmax+0.5, \sseq@ymin-0.5)%
 %          (\sseq@xmin-0.5, \sseq@ymin-1.5) -- (\sseq@xmin-0.5, \sseq@ymax+0.5);%
 }
-
 
 \def\sseq@drawxlabels{%
     \sseq@tempy=\sseq@ymin\relax
@@ -1029,7 +1046,7 @@
         %\node at (\sseq@x,\sseq@ymin-1) {\sseq@x};%
         \pgftransformshift{\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm}}%
         \pgftransformresetnontranslations
-        \pgftext[at=\pgfpoint{0cm}{-0.5cm-\sseq@xaxisgap}]{$\the\sseq@tempx$}%
+        \pgftext[at=\pgfpoint{0cm}{-\sseq@xlabelgap-\sseq@xaxisgap}]{$\the\sseq@tempx$}%
         \egroup
         \advance\sseq@tempx\sseq@xlabelstep\relax
     \ifnum\sseq@tempx<\sseq@temp\repeat
@@ -1047,31 +1064,40 @@
         \bgroup
         \pgftransformshift{\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm}}%
         \pgftransformresetnontranslations
-        \pgftext[at=\pgfpoint{-0.5cm-\sseq@yaxisgap}{0cm}]{$\the\sseq@tempy$}%
+        \pgftext[at=\pgfpoint{-\sseq@ylabelgap-\sseq@yaxisgap}{0cm}]{$\the\sseq@tempy$}%
         \egroup
         \advance\sseq@tempy\sseq@ylabelstep\relax
     \ifnum\sseq@tempy<\sseq@temp\repeat
 }
 
+
+
 \def\sseq@clip{%
     %\clip(\sseq@xmin-0.4,\sseq@ymin-0.4) rectangle (\sseq@xmax+0.5,\sseq@ymax+0.5);%
     \bgroup
     \pgfgettransformentries{\a}{\b}{\c}{\d}{\sx}{\sy}%
-    \sseq@tempxdim=-\sseq@yaxisgap\relax
-    \advance\sseq@tempxdim\sx\relax
-    \advance\sseq@tempxdim0.1cm\relax
-    \sseq@tempydim=-\sseq@xaxisgap\relax
-    \advance\sseq@tempydim\sy\relax
-    \advance\sseq@tempydim0.1cm\relax
-    \pgfsettransformentries{\a}{\b}{\c}{\d}{\sseq@tempxdim}{\sseq@tempydim}%
+    \sseq@tempxadim=\sx\relax
+    \advance\sseq@tempxadim-\sseq@yaxisgap\relax
+    \advance\sseq@tempxadim\sseq@xclip@axisgap\relax
+    \sseq@tempyadim=-\sseq@xaxisgap\relax
+    \advance\sseq@tempyadim\sy\relax
+    \advance\sseq@tempyadim\sseq@yclip@axisgap\relax
+    \sseq@tempxbdim=\sx
+    \advance\sseq@tempxbdim\sseq@xaxis@end@extend
+    \advance\sseq@tempxbdim\sseq@xclip@extend    
+    \sseq@tempybdim=\sy
+    \advance\sseq@tempybdim\sseq@yaxis@end@extend
+    \advance\sseq@tempybdim\sseq@yclip@extend
+    \pgfsettransformentries{\a}{\b}{\c}{\d}{\sseq@tempxadim}{\sseq@tempxadim}%
     \pgfpathmoveto{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}%
-    \pgfsettransformentries{\a}{\b}{\c}{\d}{\sseq@tempxdim}{0.5cm+\sy}%
+    \pgfsettransformentries{\a}{\b}{\c}{\d}{\sseq@tempxadim}{\sseq@tempybdim}%
     \pgfpathlineto{\pgfpoint{\sseq@xmin cm}{\sseq@ymax cm}}%
-    \pgfsettransformentries{\a}{\b}{\c}{\d}{0.5cm+\sx}{0.5cm+\sy}%
+    \pgfsettransformentries{\a}{\b}{\c}{\d}{\sseq@tempxbdim}{\sseq@tempybdim}%
     \pgfpathlineto{\pgfpoint{\sseq@xmax cm}{\sseq@ymax cm}}%
-    \pgfsettransformentries{\a}{\b}{\c}{\d}{0.5cm+\sx}{\sseq@tempydim}%
+    \pgfsettransformentries{\a}{\b}{\c}{\d}{\sseq@tempxbdim}{\sseq@tempyadim}%
     \pgfpathlineto{\pgfpoint{\sseq@xmax cm}{\sseq@ymin cm}}%
     \egroup
+    \pgfgetpath\sseq@theclippath % This stores the clipping so I can find intersections later
     \pgfusepath{clip}% This has to be after the egroup or else the clipping gets screwed up
 }
 
@@ -1743,54 +1769,137 @@
     \endgroup
 }
 
-% #1 -- source
-% #2 -- target
-% #3 -- options
-\def\sseq@d@drawedge(#1)(#2)#3#4{%
-    \ifsseq@needstikz
-        \sseq@temptoks{#4}%
-        \edef\temp{\@nx\draw[draw,/tikz/sseqpages/second pass/differential,/utils/exec={\the\sseq@temptoks}] (#1) to (#2);}%
-        \temp
+%
+\pgfdeclarearrow{
+    name = ...,
+    parameters = { \the\pgfarrowlength\the\pgflinewidth},
+    setup code = {
+        % The different end values:
+        \pgfarrowssetlineend{-\pgfarrowlength}
+        \pgfarrowssetbackend{-0.6\pgfarrowlength}
+        % The hull
+        \pgfarrowshullpoint{-\pgfarrowlength}{0pt}
+        \pgfarrowshullpoint{\pgfarrowlength}{0pt}
+        % Saves: Only the length:
+        \pgfarrowssavethe\pgfarrowlength
+        \pgfarrowssavethe\pgflinewidth
+    },
+    drawing code = {
+        \pgfpathcircle{\pgfpoint{-0.7\pgfarrowlength}{0pt}}{1.5\pgflinewidth}
+        \pgfpathcircle{\pgfpoint{-0.4\pgfarrowlength}{0pt}}{1.5\pgflinewidth}
+        \pgfpathcircle{\pgfpoint{-0.1\pgfarrowlength}{0pt}}{1.5\pgflinewidth}
+        \pgfpathclose
+        \pgfusepathqfill
+    },
+    defaults = { length = 0.3cm }
+}
+
+\def\sseq@ifinrange(#1){\sseq@ifinrange@#1,\sseq@nil}
+
+\def\sseq@ifinrange@#1,#2,#3\sseq@nil{%
+    \sseq@tempx=#1\relax\sseq@tempy=#2\relax
+    \sseq@outofrangetrue
+    \ifnum\sseq@tempx<\sseq@xmaxpp\relax\ifnum\sseq@tempx>\sseq@xminmm\relax\ifnum\sseq@tempy<\sseq@ymaxpp\relax\ifnum\sseq@tempy>\sseq@yminmm\relax
+    \sseq@outofrangefalse
+    \fi\fi\fi\fi
+    \ifsseq@outofrange
+        \@xp\pgfutil@secondoftwo
     \else
-        \pgfscope
-        \pgfqkeysalso{/tikz/sseqpages/second pass/differential}{draw}%
-        #4%
-        \tikz@options
-        \tikz@mode
-        \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid
-            \def\tempa{\@nx\pgfpointanchor{sseq@{#1}}{center}}%
-        \else
-            \def\tempa{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#1)}%
-            \let\tempaf\tempa
-        \fi
-        \@xp\ifx\csname pgf@sh@pi@sseq@{#2}\endcsname\pgfpictureid
-            \def\tempb{\@nx\pgfpointanchor{sseq@{#2}}{center}}%
-            \def\tempbf{\@nx\pgfpointshapeborder{sseq@{#2}}{\tempa}}%
-        \else
-            \def\tempb{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#2)}%
-            \let\tempbf\tempb
-        \fi
-        \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid
-            \def\tempaf{\@nx\pgfpointshapeborder{sseq@{#1}}{\tempb}}%
-        \fi
-        \edef\temp{%
-            \@nx\pgfpathmoveto{\tempaf}%
-            \@nx\pgfpathlineto{\tempbf}%
-        }\temp
-        %\xdef\tikz@timer@end{\noexpand\pgfqpoint{\the\pgf@x}{\the\pgf@y}}
-        \edef\temp{\noexpand\pgfusepath{%
-            \iftikz@mode@fill fill,\fi%
-            \iftikz@mode@draw draw,\fi%
-        }}\temp
-        %\tikz@node@textfont
-        %\def\tikz@time{0.5}%
-        %\tikz@do@auto@anchor%
-        %\tikz@timer%
-        %\tikz@timer@line
-        %\tikz@transform
-        %\pgfnode{rectangle}{\tikz@anchor}{hi}{}{\pgfusepath{draw}}%
-        \endpgfscope
+        \@xp\pgfutil@firstoftwo
     \fi
+}
+
+% #1 -- source (full)
+% #2 -- target (full)
+% #3 -- which type of edge (not used, TODO: remove)
+% #4 -- options
+\def\sseq@d@drawedge(#1)(#2)#3#4{%
+    % First calculate actual start and end of the edge
+    \begingroup\pgfscope
+    \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid % Check if source is a named coordinate
+        \def\tempa{\pgfpointanchor{sseq@{#1}}{center}}% if so, start by taking the center of that coordinate
+    \else
+        \def\tempa{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#1)}% else, just take the coordinate in question
+        \let\tempaf\tempa
+    \fi
+    \@xp\ifx\csname pgf@sh@pi@sseq@{#2}\endcsname\pgfpictureid % Check if the target is a named coordinate
+        \def\tempb{\pgfpointanchor{sseq@{#2}}{center}}
+        \def\tempbf{\pgfpointshapeborder{sseq@{#2}}{\tempa}}%also ta
+    \else
+        \def\tempb{\pgfpoint\sseq@fullcoord@to@partialcoordb(#2)}%
+        \let\tempbf\tempb
+    \fi
+    \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid
+        \def\tempaf{\pgfpointshapeborder{sseq@{#1}}{\tempb}}%
+    \fi
+%
+    \def\pgfkeysdefaultpath{/tikz/sseqpages/second pass/differential/}
+    #4%
+    \tikz@options
+    \pgfpathmoveto{\tempaf}%
+    \pgfpathlineto{\tempbf}%
+    \pgfgetpath\thispath
+    \pgfusepath{discard}
+    \pgfintersectionofpaths{\pgfsetpath\sseq@theclippath}{\pgfsetpath\thispath}
+    \ifcase\pgfintersectionsolutions\relax
+        \ifsseq@needstikz
+            \sseq@temptoks{#4}%
+            \edef\temp{\@nx\draw[/tikz/sseqpages/second pass/differential,/utils/exec={\the\sseq@temptoks}] (#1) to (#2);}%
+            \temp
+        \else
+            \pgfsetpath\thispath
+            \pgfusepath{stroke}
+        \fi
+    \or
+        \bgroup
+        \pgftransformreset
+        \sseq@ifinrange(#1){
+            \ifsseq@needstikz
+                \pgfcoordinate{tempa}{\tempaf}
+                \pgfcoordinate{tempb}{\pgfpointintersectionsolution{1}}
+                \sseq@temptoks{#4}%
+                \edef\temp{\@nx\draw[-...,/tikz/sseqpages/second pass/differential,/utils/exec={\the\sseq@temptoks}] (tempa) to (tempb);}%
+                \temp
+            \else    
+                \pgfsetarrowsend{...}
+                \pgfpathmoveto{\tempaf}
+                \pgfpathlineto{\pgfpointintersectionsolution{1}}
+                \pgfusepath{stroke}
+            \fi
+        }{
+            \ifsseq@needstikz
+                \pgfcoordinate{tempa}{\pgfpointintersectionsolution{1}}
+                \pgfcoordinate{tempb}{\tempbf}
+                \sseq@temptoks{#4}%
+                \edef\temp{\@nx\draw[...-,/tikz/sseqpages/second pass/differential,/utils/exec={\the\sseq@temptoks}] (tempa) to (tempb);}%
+                \temp
+            \else            
+                \pgfsetarrowsstart{...}
+                \pgfpathmoveto{\pgfpointintersectionsolution{1}}
+                \pgfpathlineto{\tempbf}
+                \pgfusepath{stroke}                
+            \fi
+        }
+        \egroup
+    \or
+        \pgftransformreset
+        \ifsseq@needstikz
+            \pgfcoordinate{tempa}{\pgfpointintersectionsolution{1}}
+            \pgfcoordinate{tempb}{\pgfpointintersectionsolution{2}}
+            \sseq@temptoks{#4}%
+            \edef\temp{\@nx\draw[...-...,/tikz/sseqpages/second pass/differential,/utils/exec={\the\sseq@temptoks}] (tempa) to (tempb);}%
+            \temp
+        \else
+            \pgfsetarrowsstart{...}
+            \pgfsetarrowsend{...}
+            \pgfpathmoveto{\pgfpointintersectionsolution{1}}
+            \pgfpathlineto{\pgfpointintersectionsolution{2}}
+            \pgfusepath{stroke}
+        \fi
+    \else
+        \sseq@error{This shouldn't happen.}
+    \fi
+    \endpgfscope\endgroup
 }
 
 \def\sseq@addcontingentfeature#1#2{%

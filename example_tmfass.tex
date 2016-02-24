@@ -1,14 +1,17 @@
 \documentclass{article}
 \usepackage[landscape,margin=0cm,top=2cm]{geometry}
 \usepackage{sseqpages}
+% Last time test: 4.9 sec
 \begin{document}
 \begin{sseqdata}[
-    x range={0}{50},
+    x range={0}{25},
     y range={0}{20},
     x label step=2,
     degree={-1}{#1},
     classes={draw,fill,inner sep=0.3ex},
     permanent cycles=circle,
+    this page cycles=yellow,
+    this page struct lines=purple,    
     differentials={->,blue},
     struct lines=red,
     yscale=0.8, xscale=0.5
@@ -172,8 +175,8 @@
 \d4(31,8)
 \end{sseqdata}
 \printpage[name=tmfass,page=2]
-\newpage
-\printpage[name=tmfass,page=3]
-\newpage
-\printpage[name=tmfass,page=4]
+%\newpage
+%\printpage[name=tmfass,page=3]
+%\newpage
+%\printpage[name=tmfass,page=4]
 \end{document}
