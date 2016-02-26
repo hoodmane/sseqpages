@@ -4,7 +4,7 @@
 % Last time test: 4.9 sec
 \begin{document}
 \begin{sseqdata}[
-    x range={0}{25},
+    x range={0}{50},
     y range={0}{20},
     x label step=2,
     degree={-1}{#1},
@@ -17,7 +17,7 @@
     yscale=0.8, xscale=0.5
 ]{tmfass}
 
-\gdef\tower{% 25
+\sseqnewgroup\tower{% 25
     \place(0,0)
     \foreach \y in {1,...,22}{
         \place(0,\y)
@@ -25,8 +25,8 @@
     }
 }
 
-\gdef\towergroup{%9 + 25 = 36
-    \tower
+\sseqnewgroup\towergroup{%9 + 25 = 36
+    \tower(0,0)
     \place(1,1)
     \place(3,1)
     \place(2,2)
@@ -45,14 +45,12 @@
 }
 
 
-\gdef\towergroupa{%25*2+9+21 = 80
-    \towergroup
+\sseqnewgroup\towergroupa{%25*2+9+21 = 80
+    \towergroup(0,0)
     \place(0,-1)
     \place(1,0)
     \structline(0,-1)(1,0)
-    \begin{scope}[xshift=4,yshift=-1]
-    \tower
-    \end{scope}
+    \tower(4,-1)
 %
     \place(6,0)
     \place(6,1)
@@ -77,7 +75,7 @@
     \structline(10,0,-1)(10,1,-1)
     \structline(12,0,-1)(12,1,-1)
     \structline(12,1,-1)(12,2,-1)
-
+%
     \structline(4,-1,-1)(7,0,-1)
     \structline(4,0,-1)(7,1,-1)
     \structline(6,0,-1)(9,1,-1)
@@ -90,7 +88,7 @@
     \structline(9,0,-1)(10,1,-1)
     \structline(10,0,-1)(13,1,-1)
     \structline(12,0,-1)(13,1,-1)
-
+%
     \d2(4,-1)
     \d2(4,0)
     \d2(4,1)
@@ -98,11 +96,9 @@
     \d2(7,0)
 }
 
-\gdef\towergroupb{ %80 + 25 + 15 = 120
-    \towergroupa
-    \begin{scope}[xshift=8,yshift=-2]
-    \tower
-    \end{scope}
+\sseqnewgroup\towergroupb{ %80 + 25 + 15 = 120
+    \towergroupa(0,0)
+    \tower(8,-2)
     \place(10,-1)
     \place(13,-1)
     \place(13,0)
@@ -147,18 +143,14 @@
 %\structline(0,0)(1,1)
 %\end{scope}
 
+\makeatletter
 
+\towergroup(0,0) % 36
 
-\towergroup % 36
-
-\begin{scope}[xshift=8,yshift=4]
-\towergroupa % 80
-\end{scope}
+\towergroupa(8,4) % 80
 
 \foreach \n in {2,3,4}{
-    \begin{scope}[use context,xshift=8*\n,yshift=4*\n] % use context?
-    \towergroupb % 120
-    \end{scope}
+    \towergroupb(8*\n,4*\n) % 120
 }
 
 \d2(18,4)
@@ -175,8 +167,8 @@
 \d4(31,8)
 \end{sseqdata}
 \printpage[name=tmfass,page=2]
-%\newpage
-%\printpage[name=tmfass,page=3]
-%\newpage
-%\printpage[name=tmfass,page=4]
+\newpage
+\printpage[name=tmfass,page=3]
+\newpage
+\printpage[name=tmfass,page=4]
 \end{document}

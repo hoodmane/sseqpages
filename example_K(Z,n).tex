@@ -1,12 +1,14 @@
 \documentclass{article}
 \usepackage[landscape,margin=0.5cm,top=2cm]{geometry}
-\usepackage{sseqpages}
+\usepackage[]{sseqpages}
 \usepackage{amssymb}
 \def\Z{\mathbb{Z}}
 % Last time test: 1.1 sec
 \begin{document}
 \def\column#1[#2]{\foreach \y in {0,...,6} {\place[#2](#1,2*\y)}}
-
+\makeatletter
+\def\sseq@xaxis@end@extend{0.8cm}
+%\def\sseq@yaxis@end@extend{2cm}
 \sseqset{labels={auto}, classes={draw=none}}
 \begin{sseqdata}[
     x range={0}{12},
@@ -14,10 +16,14 @@
     degree={#1}{-#1+1},
     differentials={->},
     labels=below,
+    %rotate=90,rotate labels=false,
     xscale=1.8,
+    %yscale=0.5,
+   % draw axes=false,
     y axis gap=0.7cm,
+    %draw axes=false,
     execute at begin node=$,execute at end node=$,
-    this page cycles=red
+    this page cycles=red,
 ]{K(Z,3)}
 
 \begin{scope}[background]
@@ -31,6 +37,7 @@
 
 \foreach\y in {1,...,6} {\d[use context, "\cdot \y"']3(0,2*\y) \ifnum\y>2 \replace[use context,"\Z/\y"](3,2*\y-2)\fi}
 
+%\node at (1.68,1.24){\cdot 1};
 \column6["\Z/2"]
 \d3(3,2)
 \d3(3,6)
@@ -104,9 +111,9 @@
 \end{sseqdata}
 
 %\@xp\show\csname sseq@saveddiffs@K(Z,3)0\endcsname
-\printpage[name={K(Z,3)}, page=0]
+\printpage[name={K(Z,3)}, page=0,no differentials]
 \newpage
-\printpage[name={K(Z,3)}, page=3]
+\printpage[name={K(Z,3)}, page=3,draw axes]
 \newpage
 \printpage[name={K(Z,3)}, page=5]
 \newpage

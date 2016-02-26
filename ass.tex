@@ -10,20 +10,19 @@
     xscale=1.25
 ]{adamsSS}
 
-\gdef\tower[#1]#2{
-    \begin{scope}[#1]
+\sseqnewgroup\tower[1]{
     \place(0,0)
-    \foreach \y in {2,...,#2} {
+    \foreach \y in {2,...,#1} {
         \place(0, \y-1)
         \structline(0, \y-2, -1)(0, \y-1, -1)
     }
-    \end{scope}
 }
 
-\gdef\etaclass(#1,#2){
-    \place(#1,#2)
-    \structline["\cdot\eta"](#1-1,#2-1,-1)(#1,#2,-1)
+\sseqnewcmd\etaclass{
+    \place(\x,\y)
+    \structline[\options,"\cdot\eta"](\x-1,\y-1,-1)(\x,\y,-1)
 }
+
 
 \place(0,0)
 
@@ -44,7 +43,7 @@
 
 \place(6,2)
 
-\tower[xshift=7,yshift=1]{4}
+\tower(7,1){4}
 
 \etaclass(8,2)
 \place(8,3)
@@ -58,9 +57,9 @@
 \place(11,6) \structline(11,6)(11,7)
 \place(11,5) \structline(11,5)(11,6)
 
-\tower[xshift=14,yshift=2]{2}
-\tower[xshift=14,yshift=4]{3}
-\tower[xshift=15,yshift=1]{8}
+\tower(14,2){2}
+\tower(14,4){3}
+\tower(15,1){8}
 
 \etaclass(16,2)
 \etaclass(17,3)
@@ -68,7 +67,7 @@
 \place(16,6)
 \place(16,7)
 
-\tower[xshift=17,yshift=4]{3}
+\tower(17,4){3}
 \etaclass(17,7) \structline(17,7)(17,6)
 \etaclass(17,8)
 \place(17,9)
@@ -80,4 +79,4 @@
 
 \end{sseqdata}
 
-\printpage[name=adamsSS,page=0,struct lines=blue,struct line labels={text=black}]
+\printpage[name=adamsSS,page=0,struct lines=blue,struct line labels={text=black}] 
