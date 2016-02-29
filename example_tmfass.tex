@@ -8,31 +8,32 @@
     y range={0}{20},
     x label step=2,
     degree={-1}{#1},
-    classes={draw,fill,inner sep=0.3ex},
+    classes={fill,inner sep=0.3ex},
     permanent cycles=circle,
-    this page cycles=yellow,
-    this page struct lines=purple,    
+  %  this page cycles={fill=none},
+  %  this page struct lines={draw=none},
     differentials={->,blue},
     struct lines=red,
-    yscale=0.8, xscale=0.5
-]{tmfass}
+    yscale=0.8, xscale=0.5,
+    name=tmfass
+]
 
 \sseqnewgroup\tower{% 25
-    \place(0,0)
+    \class(0,0)
     \foreach \y in {1,...,22}{
-        \place(0,\y)
+        \class(0,\y)
         \structline(0,\y-1,-1)(0,\y,-1)
     }
 }
 
 \sseqnewgroup\towergroup{%9 + 25 = 36
     \tower(0,0)
-    \place(1,1)
-    \place(3,1)
-    \place(2,2)
-    \place(3,2)
-    \place(3,3)
-    \place(6,2)
+    \class(1,1)
+    \class(3,1)
+    \class(2,2)
+    \class(3,2)
+    \class(3,3)
+    \class(6,2)
     \structline(3,1,-1)(3,2,-1)
     \structline(3,2,-1)(3,3,-1)
     \structline(0,0,-1)(1,1,-1)
@@ -47,25 +48,25 @@
 
 \sseqnewgroup\towergroupa{%25*2+9+21 = 80
     \towergroup(0,0)
-    \place(0,-1)
-    \place(1,0)
-    \structline(0,-1)(1,0)
+    \class(0,-1)
+    \class(1,0)
+    \structline(0,-1,-1)(1,0,-1)
     \tower(4,-1)
 %
-    \place(6,0)
-    \place(6,1)
-    \place(7,-1)
-    \place(7,0)
-    \place(7,1)
-    \place(9,0)
-    \place(9,1)
-    \place(9,2)
-    \place(10,0)
-    \place(10,1)
-    \place(12,0)
-    \place(12,1)
-    \place(12,2)
-    \place(13,1)
+    \class(6,0)
+    \class(6,1)
+    \class(7,-1)
+    \class(7,0)
+    \class(7,1)
+    \class(9,0)
+    \class(9,1)
+    \class(9,2)
+    \class(10,0)
+    \class(10,1)
+    \class(12,0)
+    \class(12,1)
+    \class(12,2)
+    \class(13,1)
     \structline(6,0,-1)(6,1,-1)
     \structline(6,1,-1)(6,2,-1)
     \structline(7,-1,-1)(7,0,-1)
@@ -99,16 +100,16 @@
 \sseqnewgroup\towergroupb{ %80 + 25 + 15 = 120
     \towergroupa(0,0)
     \tower(8,-2)
-    \place(10,-1)
-    \place(13,-1)
-    \place(13,0)
-    \place(15,0)
-    \place(16,-1)\place(16,-1)
-    \place(16,0)
-    \place(16,1)
-    \place(17,0)
-    \place(18,0)
-    \place(18,1)
+    \class(10,-1)
+    \class(13,-1)
+    \class(13,0)
+    \class(15,0)
+    \class(16,-1)\class(16,-1)
+    \class(16,0)
+    \class(16,1)
+    \class(17,0)
+    \class(18,0)
+    \class(18,1)
     \structline(10,-1,-1)(10,0,-1)
     \structline(13,0,-1)(13,1,-1)
     \structline(13,-1,-1)(13,0,-1)
@@ -132,11 +133,11 @@
 %\tower
 %\begin{scope}[yshift=3]
 %\structline(0,1,2)(0,0)
-%\place(0,1)
-%\place(0,1)
-%\place(0,0)
+%\class(0,1)
+%\class(0,1)
+%\class(0,0)
 %\end{scope}
-%\place(1,0)
+%\class(1,0)
 %\d3(1,0)
 
 %\begin{scope}[xshift=0,yshift=1]
@@ -165,8 +166,14 @@
 \d3(34,13)
 %\d3(30,6)
 \d4(31,8)
+
+
+%\d2(25,13,,1)
+\d2(25,13,,2)
 \end{sseqdata}
-\printpage[name=tmfass,page=2]
+\begin{sseqpage}[name=tmfass,page=2]
+%\doptions[green]2(25,13)
+\end{sseqpage}
 \newpage
 \printpage[name=tmfass,page=3]
 \newpage

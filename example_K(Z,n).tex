@@ -5,7 +5,7 @@
 \def\Z{\mathbb{Z}}
 % Last time test: 1.1 sec
 \begin{document}
-\def\column#1[#2]{\foreach \y in {0,...,6} {\place[#2](#1,2*\y)}}
+\def\column#1[#2]{\foreach \y in {0,...,6} {\class[#2](#1,2*\y)}}
 \makeatletter
 \def\sseq@xaxis@end@extend{0.8cm}
 %\def\sseq@yaxis@end@extend{2cm}
@@ -24,7 +24,8 @@
     %draw axes=false,
     execute at begin node=$,execute at end node=$,
     this page cycles=red,
-]{K(Z,3)}
+    name={K(Z,3)}
+]
 
 \begin{scope}[background]
 \node at (\xmax/2,11) {\textup{Serre SS Page \sseqthepage{}}};
@@ -32,18 +33,18 @@
 \node[shift only,rotate=90] at (-1.25,\ymax/2) {H^*(K(\Z,2))};
 \end{scope}
 
-\column0[use context, needs tikz,"\Z\{\ifnum\y>0x\ifnum\y>1 ^{\y}\fi\else1\fi\}"]
-\column3[use context,"\Z\{a\ifnum\y>0x\ifnum\y>1 ^{\y}\fi\fi\}"]
+\column0["\Z\{\ifnum\y>0x\ifnum\y>1 ^{\y}\fi\else1\fi\}"]
+\column3["\Z\{a\ifnum\y>0x\ifnum\y>1 ^{\y}\fi\fi\}"]
 
-\foreach\y in {1,...,6} {\d[use context, "\cdot \y"']3(0,2*\y) \ifnum\y>2 \replace[use context,"\Z/\y"](3,2*\y-2)\fi}
+\foreach\y in {1,...,6} {\d["\cdot \y"']3(0,2*\y) \ifnum\y>2 \replaceclass["\Z/\y"](3,2*\y-2)\fi}
 
 %\node at (1.68,1.24){\cdot 1};
 \column6["\Z/2"]
 \d3(3,2)
 \d3(3,6)
 \d3(3,10)
-\replace["\Z/2"](3,6)
-\replace["\Z/3"](3,10)
+\replaceclass["\Z/2"](3,6)
+\replaceclass["\Z/3"](3,10)
 \column8["\Z/3"]
 \d5(3,4)
 \d5(3,10)
@@ -63,9 +64,9 @@
 \d3(9,2)
 \d3(9,6)
 \d3(9,10)
-\replace["\Z/5"](12,0)
-\replace["\Z/5"](12,4)
-\replace["\Z/5"](12,8)
+\replaceclass["\Z/5"](12,0)
+\replaceclass["\Z/5"](12,4)
+\replaceclass["\Z/5"](12,8)
 \d9(3,8)
 \column13["\Z/2"]
 \d3(10,2)
@@ -79,34 +80,34 @@
 \d3(12,6)
 \d3(12,8)
 \d3(12,10)
-\replace["\Z/5"](12,10)
-\replace["\Z/2"](15,0)
-\replace["\Z/2\oplus\Z/2"](15,4)
+\replaceclass["\Z/5"](12,10)
+\replaceclass["\Z/2"](15,0)
+\replaceclass["\Z/2\oplus\Z/2"](15,4)
 
 \d5(10,4)
 
-\place["\Z/3"](16,0)
-\place["\Z/3"](16,6)
+\class["\Z/3"](16,0)
+\class["\Z/3"](16,6)
 \d5(11,4)
 \d5(11,10)
 
-\place["\Z/2"](17,0)
-\place["\Z/2"](17,8)
+\class["\Z/2"](17,0)
+\class["\Z/2"](17,8)
 \d3(12,4)
 \d5(12,12)
 
-\place["\Z/2"](19,0)
+\class["\Z/2"](19,0)
 \d9(10,8)
 
-\place["\Z/5"](23,0)
+\class["\Z/5"](23,0)
 \d11(12,10)
 
-\replace["\Z/6"](16,0)
+\replaceclass["\Z/6"](16,0)
 \d13(3,12)
 
-%\replace["\Z/6"](21,0)
+%\replaceclass["\Z/6"](21,0)
 %\d13(8,12)
-\place["\Z/3"](24,0)
+\class["\Z/3"](24,0)
 \d13(11,12)
 \end{sseqdata}
 
