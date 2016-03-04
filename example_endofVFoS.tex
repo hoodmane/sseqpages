@@ -79,10 +79,11 @@
     \d4(\x,0)
 }
 
-%\foreach \x in {12,20,28}
-%    \foreach \y in {7,15}{
-%        \d5(\x,\y)
-%}
+\foreach \x in {12,20,28}
+    \foreach \y in {7,15}{
+        \d5(\x,\y)
+}
+
 
 
 \foreach \x in {10,18,26,34}{
@@ -116,48 +117,14 @@
 \classoptions[green](1,9,2)
 \doptions[red]7(10,1)
 \end{sseqdata}
-\printpage[name=mysseq, page=5]
-\newpage
-\printpage[name=mysseq, page=7]
-\newpage
-\begin{sseqpage}[name=mysseq,page=5,keep changes,classes={blue,fill}]
-\structline(13,9,-1)(13,10)
-%\class(13,9)
 
 
-\begin{scope}
-%\class(8,15) 
-\foreach \x in {12,20,28}
-    \foreach \y in {7,15}{
-        \d5(\x,\y)
-}
-\classoptions[green](11,7)
-\replaceclass[green](7,9,-1)
-\replaceclass[green](8,9,2)
-\classoptions[blue](8,9,-1)
-\end{scope}
-\end{sseqpage}
-\newpage
-
-\printpage[name=mysseq, page=7]
-\end{document}
+\printpage[name=mysseq, page=2]
 \newpage
 \printpage[name=mysseq, page=3]
 
 \newpage
 \printpage[name=mysseq, page=4]
-\newpage
-\begin{sseqpage}[name=mysseq,page=4]
-% \tracingall
-\class(13,9)
-\classoptions(11,0){red,fill=white}
-%\doptions4(19,0){dashed}
-%\doptions4(11,0){red}
-\classoptions(7,0){green,fill=white}
-\classoptions(3,3){green}
-\draw[red, dashed, ->, "\textup{this doesn't go here}" {sloped,below}] (7,0) to (3,3);
-\draw[blue,standard parse, "\textup{this doesn't either}" sloped] (7,0) to (1,6);
-\end{sseqpage}
 \newpage
 \printpage[name=mysseq, page=5]
 \newpage

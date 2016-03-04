@@ -5,14 +5,13 @@
 %% Axes options
 %
 % make \structlineoptions
-% Check for mistakes with \sseqset combined with the doubly applied styles to features drawn in sseqpage
 %
+% Check for mistakes with \sseqset combined with the doubly applied styles to features drawn in sseqpage (this glitch probably exists)
 %
 % add separate options to modify class labels and class text body
 % named standard offset patterns with options
 % User interface to change length of the axes and clipping at right and top of the picture (like y axis gap and x axis gap except mirrored)
 % User interface to control arrow head for edges that go off page (option to turn ellipses off)
-% Set default so that the dots are on struct lines, off for differentials? Or none?
 %
 % still need context environment? (probably don't)
 % add error checking for modified tikz code
@@ -70,7 +69,8 @@
 \def\sseq@getfirstchar#1#2\sseq@nil{#1} % used in parsecoords
 \def\sseq@uptocomma#1,#2\sseq@nil{#1}
 \def\sseq@fullcoord@to@partialcoord(#1,#2,#3){(#1,#2)}
-\def\sseq@fullcoord@to@partialcoordb(#1,#2,#3){{#1cm}{#2cm}}
+\def\sseq@fullcoord@to@partialcoordb(#1){\sseq@fullcoord@to@partialcoordb@#1,\@nil}
+\def\sseq@fullcoord@to@partialcoordb@#1,#2,#3\@nil{{#1cm}{#2cm}}
 \def\sseq@fullcoord@lastelt(#1,#2,#3){#3}
 
 
@@ -200,8 +200,7 @@
 %% Load/store
 \def\sseq@storelist{}
 \def\sseq@storelist@setdefaults{}
-\def\sseq@addtostorelist#1{\sseq@addtostorelistopt#1{}}
-\def\sseq@addtostorelistopt#1#2{%
+\def\sseq@addtostorelist#1#2{%
     \@xp\def\@xp\sseq@storelist\@xp{\sseq@storelist\\#1}%
     \@xp\def\@xp\sseq@storelist@setdefaults\@xp{\sseq@storelist@setdefaults\gdef#1{#2}}%
 }
@@ -388,7 +387,7 @@
     /utils/exec={% So it's called inside \pgfkeysalso{stuff}. Need to surround with /utils/exec={} to get out.
         \begingroup
         \sseq@temptoks{#1}
-        \sseq@temptoks@ii{#2}
+        \sseq@temptoks@ii{\pgfkeysalso{#2}}
         \pgfqkeys{/tikz/sseqpages/first pass/class/labels}{/utils/exec={\the\sseq@classstyle\the\sseq@classlabelstyle},#2}%
         \ifsseq@classlabel
             \sseq@x@addto@macro@noctx\sseq@classlabelnodes{%
@@ -417,7 +416,7 @@
         \else
             \gdef\sseq@classnodetext{#1}%
             \xdef\sseq@classnodetextoptions{
-                \def\@nx\pgfkeysdefaultpath{/tikz/sseqpages/second pass/class/node texts}
+                \def\@nx\pgfkeysdefaultpath{/tikz/sseqpages/second pass/class/node texts/}
                 \sseq@thelabelstyle\sseq@theclasslabelstyle\the\sseq@temptoks@ii
             }%
         \fi
@@ -541,6 +540,21 @@
     loop right/.code=\sseq@needstikztrue
 }
 
+\pgfqkeys{/tikz/sseqpages/first pass/struct line}{%
+    bend left/.code=\sseq@needstikztrue,
+    bend right/.code=\sseq@needstikztrue,
+    in/.code=\sseq@needstikztrue,
+    out/.code=\sseq@needstikztrue,
+    controls/.code=\sseq@needstikztrue,
+    in control/.code=\sseq@needstikztrue,
+    out control/.code=\sseq@needstikztrue,
+    loop/.code=\sseq@needstikztrue,
+    loop above/.code=\sseq@needstikztrue,
+    loop below/.code=\sseq@needstikztrue,
+    loop left/.code=\sseq@needstikztrue,
+    loop right/.code=\sseq@needstikztrue
+}
+
 
 %% Style options
 \gdef\sseq@stylelist{}
@@ -595,6 +609,8 @@
     degree/.code 2 args={\def\sseq@targetx##1{#1}\def\sseq@targety##1{#2}\let\d\sseq@d},
     x range/.code 2 args={\sseq@xrange{#1}{#2}},
     y range/.code 2 args={\sseq@yrange{#1}{#2}},
+    xrange/.code 2 args={\sseq@xrange{#1}{#2}},
+    yrange/.code 2 args={\sseq@yrange{#1}{#2}},
 % axes options:
     labels/.code={},
     x labels/.code={},
@@ -649,14 +665,14 @@
     class placement transform/.value required,
     keep changes/.is if=sseq@keepchanges
 }
-\sseq@addtostorelist\sseq@targetx\sseq@addtostorelist\sseq@targety
-\sseq@addtostorelistopt\sseq@xaxisgap{0.5cm}\sseq@addtostorelistopt\sseq@yaxisgap{0.5cm}
+\sseq@addtostorelist\sseq@targetx{}\sseq@addtostorelist\sseq@targety{}
+\sseq@addtostorelist\sseq@xaxisgap{0.5cm}\sseq@addtostorelist\sseq@yaxisgap{0.5cm}
 \sseq@addiftostorelist@truedefault{drawxaxis}\sseq@addiftostorelist@truedefault{drawyaxis}
 \sseq@addiftostorelist@truedefault{drawxaxislabels}\sseq@addiftostorelist@truedefault{drawyaxislabels}
 \sseq@addiftostorelist@truedefault{drawdifferentials}\sseq@addiftostorelist@truedefault{drawstructlines}
 \sseq@addiftostorelist@truedefault{rotatelabels}
-\sseq@addtostorelistopt\sseq@xlabelstep{1}\sseq@addtostorelistopt\sseq@ylabelstep{1}
-\sseq@addtostorelist\sseq@classplacementtransform
+\sseq@addtostorelist\sseq@xlabelstep{1}\sseq@addtostorelist\sseq@ylabelstep{1}
+\sseq@addtostorelist\sseq@classplacementtransform{}
 
 % Range commands
 \def\sseq@xrange#1#2{%
@@ -690,9 +706,9 @@
 
 % Global transformations
 \sseq@globaldetonetrue
-\sseq@addtostorelist\sseq@globaldetonetransform
-\sseq@addtostorelist\sseq@globalrotatetransform
-\sseq@addtostorelist\sseq@globalscaletransform
+\sseq@addtostorelist\sseq@globaldetonetransform{}
+\sseq@addtostorelist\sseq@globalrotatetransform{}
+\sseq@addtostorelist\sseq@globalscaletransform{}
 
 \def\sseq@globaldetoneoption#1#2{%
     \ifsseq@globaldetone
@@ -1088,13 +1104,22 @@
 
 %% Environment definitions
 
-\sseq@addtostorelist\sseq@savedbackgroundpaths
-\sseq@addtostorelist\sseq@savedforegroundpaths
-\@xp\sseq@addtostorelistopt\@xp\sseq@xmin\@xp{\sseq@infinity}
-\@xp\sseq@addtostorelistopt\@xp\sseq@ymin\@xp{\sseq@infinity}
-\@xp\sseq@addtostorelistopt\@xp\sseq@xmax\@xp{\@xp-\sseq@infinity}
-\@xp\sseq@addtostorelistopt\@xp\sseq@ymax\@xp{\@xp-\sseq@infinity}
-\sseq@addtostorelistopt\sseq@maxpage{0}
+\sseq@addtostorelist\sseq@savedbackgroundpaths{}
+\sseq@addtostorelist\sseq@savedforegroundpaths{}
+% These are set up so that if the user specifies no \xrange, the minimum position of any node can be calculated on the fly.
+\@xp\sseq@addtostorelist\@xp\sseq@xmin\@xp{\sseq@infinity}
+\@xp\sseq@addtostorelist\@xp\sseq@ymin\@xp{\sseq@infinity}
+\@xp\sseq@addtostorelist\@xp\sseq@xmax\@xp{\@xp-\sseq@infinity}
+\@xp\sseq@addtostorelist\@xp\sseq@ymax\@xp{\@xp-\sseq@infinity}
+% These are used to decide whether to add a certain node to savedpaths.
+% In general the check is whether xmin<=xcoord<=xmax, but since Latex has no <=, set xminmm=xmin-1, xmaxpp=xmax+1.
+% If the user doesn't specify a range, all nodes should be rendered
+% To ensure that xminmm<xccord<xminpp in that case, set the default to xminmm=-\infty, xmaxpp=+\infty.
+\@xp\sseq@addtostorelist\@xp\sseq@xminmm\@xp{\@xp-\sseq@infinity}
+\@xp\sseq@addtostorelist\@xp\sseq@yminmm\@xp{\@xp-\sseq@infinity}
+\@xp\sseq@addtostorelist\@xp\sseq@xmaxpp\@xp{\sseq@infinity}
+\@xp\sseq@addtostorelist\@xp\sseq@ymaxpp\@xp{\sseq@infinity}
+\sseq@addtostorelist\sseq@maxpage{0}
 
 \def\sseq@newmaxpage#1{%
     \ifnum#1>\sseq@maxpage\gdef\sseq@maxpage{#1}\fi
@@ -1109,23 +1134,12 @@
 %
     \let\sseq@xminmax\sseq@xminmax@active
     \let\sseq@yminmax\sseq@yminmax@active
-    % These are set up so that if the user specifies no \xrange, the minimum position of any node can be calculated on the fly.
-    \xdef\sseq@xmin{\sseq@infinity}%
-    \xdef\sseq@xmax{-\sseq@infinity}%
-    \xdef\sseq@ymin{\sseq@infinity}%
-    \xdef\sseq@ymax{-\sseq@infinity}%
-    %
-    % These are used to decide whether to add a certain node to savedpaths.
-    % In general the check is whether xmin<=xcoord<=xmax, but since Latex has no <=, set xminmm=xmin-1, xmaxpp=xmax+1.
-    % If the user doesn't specify a range, all nodes should be rendered
-    % To ensure that xminmm<xccord<xminpp in that case, set the default to xminmm=-\infty, xmaxpp=+\infty.
-    \xdef\sseq@xminmm{-\sseq@infinity}%
-    \xdef\sseq@xmaxpp{\sseq@infinity}%
-    \xdef\sseq@yminmm{-\sseq@infinity}%
-    \xdef\sseq@ymaxpp{\sseq@infinity}%
+%
+    \def\xmin{\sseq@xmin}\def\xmax{\sseq@xmax}
+    \def\ymin{\sseq@ymin}\def\ymax{\sseq@ymax}
     % copy commands into the user namespace.
     \sseq@copydatacommands{\class\replaceclass\d\structline\classoptions\doptions}%
-    \@ifundefined{sseq@targetx}{\let\d\sseq@d@error@nodegree}{}%
+    \ifx\sseq@targetx\pgfutil@empty \let\d\sseq@d@error@nodegree \fi%
 %
     \gdef\sseq@compilesseq{}%
     \gdef\sseq@restorestyles{}%
@@ -1159,7 +1173,7 @@
 }
 
 % Store the savedpaths and ranges
-\sseq@addtostorelist\sseq@restorestyles
+\sseq@addtostorelist\sseq@restorestyles{}
 \def\endsseqdata{%
     %\@xp\xdef\csname sseq@savednodes@\sseq@thename infty\endcsname{\csname sseq@savednodes@\sseq@thename infty\endcsname}%
     \edef\sseq@restorestyles{\sseq@stylelist}
@@ -1318,18 +1332,29 @@
     \let\sseq@thename\relax %
 }
 
-\def\sseq@xlabelgap{0.5cm}
-\def\sseq@ylabelgap{0.5cm}
-\def\sseq@xaxis@start@extend{0.4cm}
-\def\sseq@yaxis@start@extend{0.4cm}
-\def\sseq@xaxis@end@extend{0.5cm}
-\def\sseq@yaxis@end@extend{0.5cm}
-\def\sseq@xclip@axisgap{0.1cm}
-\def\sseq@yclip@axisgap{0.1cm}
-\def\sseq@xclip@extend{0.1cm}
-\def\sseq@yclip@extend{0.2cm}
+\sseq@addtostorelist\sseq@xlabelgap{0.5cm}
+\sseq@addtostorelist\sseq@ylabelgap{0.5cm}
+\sseq@addtostorelist\sseq@xaxis@start@extend{0.4cm}
+\sseq@addtostorelist\sseq@yaxis@start@extend{0.4cm}
+\sseq@addtostorelist\sseq@xaxis@end@extend{0.5cm}
+\sseq@addtostorelist\sseq@yaxis@end@extend{0.5cm}
+\sseq@addtostorelist\sseq@xclip@axisgap{0.1cm}
+\sseq@addtostorelist\sseq@yclip@axisgap{0.1cm}
+\sseq@addtostorelist\sseq@xclip@padding{0.1cm}
+\sseq@addtostorelist\sseq@yclip@padding{0.2cm}
 
-
+\pgfqkeys{/tikz/sseqpages/global}{% TODO: Are these names okay?
+    x label gap/.store in=\sseq@xlabelgap,
+    y label gap/.store in=\sseq@xlabelgap,
+    x axis start extend/.store in=\sseq@xaxis@start@extend,
+    y axis start extend/.store in=\sseq@yaxis@start@extend,
+    x axis end extend/.store in=\sseq@xaxis@end@extend,
+    y axis end extend/.store in=\sseq@yaxis@end@extend,
+    x clip axis padding/.store in=\sseq@xclip@axisgap,
+    y clip axis padding/.store in=\sseq@yclip@axisgap,
+    x clip padding/.store in=\sseq@xclip@padding,
+    y clip padding/.store in=\sseq@yclip@padding
+}
 
 \def\sseq@drawxaxis{%
     \bgroup
@@ -1428,8 +1453,8 @@
     \sseq@globaldetonetransform
     \def\xmin{\pgftransformxshift{-\sseq@yaxisgap}\pgftransformxshift{\sseq@xclip@axisgap}}
     \def\ymin{\pgftransformyshift{-\sseq@xaxisgap}\pgftransformyshift{\sseq@yclip@axisgap}}
-    \def\xmax{\pgftransformxshift{\sseq@xaxis@end@extend}\pgftransformxshift{\sseq@xclip@extend}}
-    \def\ymax{\pgftransformyshift{\sseq@yaxis@end@extend}\pgftransformyshift{\sseq@yclip@extend}}
+    \def\xmax{\pgftransformxshift{\sseq@xaxis@end@extend}\pgftransformxshift{\sseq@xclip@padding}}
+    \def\ymax{\pgftransformyshift{\sseq@yaxis@end@extend}\pgftransformyshift{\sseq@yclip@padding}}
     \bgroup
     \xmin\ymin\sseq@globalscaletransform
     \pgfpathmoveto{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}%
@@ -1478,7 +1503,7 @@
     \sseq@tempy=#2\relax
     \advance\sseq@tempy\sseq@y\relax
     \edef\partialcoord{\the\sseq@tempx,\the\sseq@tempy}%
-    \@xp\sseq@xminmax\@xp{\the\sseq@tempx}\@xp\sseq@yminmax\@xp{\the\sseq@tempy}%
+    \@xp\sseq@xminmax\@xp{\the\sseq@tempx}\@xp\sseq@yminmax\@xp{\the\sseq@tempy}% TODO: Don't expand range to accomodate nodes that are out of range in one direction
     \sseq@tempcount=\@ifundefined{sseq@coord\sseq@thename(\partialcoord)@numnodespp}{1}{\csname sseq@coord\sseq@thename(\partialcoord)@numnodespp\endcsname}%
     \edef\nodenum{\the\sseq@tempcount}%
     \ifsseq@hasname
@@ -1695,6 +1720,10 @@
 \def\sseq@classoptions{\@ifnextchar[{\sseq@classoptions@}{\sseq@error{There is no reason to use \string\sseq@classoptions without giving options}{}}}%]
 
 \def\sseq@classoptions@[#1](#2){%
+    \gdef\sseq@classnodetext{}
+    \gdef\sseq@classnodetextoptions{}
+    \gdef\sseq@classlabelnodes{}
+    \pgfqkeys{/tikz/sseqpages/first pass/class}{#1}%
     \sseq@parsecommas(#2)%
     \sseq@arg@checkpresent\replaceclass1%
     \sseq@arg@checkpresent\replaceclass2%
@@ -1702,6 +1731,7 @@
     \advance\sseq@tempx\sseq@arg1\relax
     \sseq@tempy=\sseq@y
     \advance\sseq@tempy\sseq@arg2\relax
+    \@ifundefined{sseq@coord\sseq@thename(\the\sseq@tempx,\the\sseq@tempy)@numnodes}{\sseq@error{No class in the specified position exists}{}}{}
     \sseq@whichclass\sseq@n{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}3}{replace class command '\sseq@thiscall'}
     \edef\coord{(\the\sseq@tempx,\the\sseq@tempy,\sseq@n)}%
     \sseq@ifdead\coord{%
@@ -1723,7 +1753,19 @@
             }{}%
         \fi
     \fi
-    \@xp\sseq@g@deforaddto@macro{sseq@classstyle\sseq@thename\coord}{\pgfkeysalso{#1}}%
+    \sseq@g@deforaddto@macro{sseq@classstyle\sseq@thename\coord}{\pgfkeysalso{#1}}%
+    \ifx\sseq@classnodetext\pgfutil@empty\else
+        \sseq@temptoks\@xp{\sseq@classnodetext}
+        \@xp\sseq@x@addto@macro\csname sseq@classstyle\sseq@thename\coord\endcsname{\@nx\sseq@g@addto@macro\@nx\sseq@classnodetext{\the\sseq@temptoks}}
+    \fi
+    \ifx\sseq@classnodetextoptions\pgfutil@empty\else
+        \sseq@temptoks\@xp{\sseq@classnodetextoptions}
+        \@xp\sseq@x@addto@macro\csname sseq@classstyle\sseq@thename\coord\endcsname{\@nx\sseq@g@addto@macro\@nx\sseq@classnodetextoptions{\the\sseq@temptoks}}
+    \fi
+    \ifx\sseq@classlabelnodes\pgfutil@empty\else
+        \sseq@temptoks\@xp{\sseq@classlabelnodes}
+        \@xp\sseq@x@addto@macro\csname sseq@classstyle\sseq@thename\coord\endcsname{\@nx\sseq@g@addto@macro\@nx\sseq@classlabelnodes{\the\sseq@temptoks}}
+    \fi
 }
 
 
@@ -1813,6 +1855,7 @@
     \setbox\pgfnodeparttextbox=\hbox{%
         \pgfscope%
         \tikzset{every text node part/.try}%
+        \sseq@classnodetextoptions
         %\@xp\tikzset\@xp{\sseq@classnodetextoptions}
         \ifx\tikz@textopacity\pgfutil@empty%
         \else%
@@ -2235,6 +2278,11 @@
     \fi
 }
 
+\sseq@addtostorelist\sseq@runoffarrow@start@differential@spec{}
+\sseq@addtostorelist\sseq@runoffarrow@end@differential@spec{}
+\sseq@addtostorelist\sseq@runoffarrow@start@structline@spec{...}
+\sseq@addtostorelist\sseq@runoffarrow@end@structline@spec{...}
+
 % #1 -- source (full)
 % #2 -- target (full)
 % #3 -- which type of edge (not used, TODO: remove?)
@@ -2245,14 +2293,14 @@
     \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid % Check if source is a named coordinate
         \def\tempa{\pgfpointanchor{sseq@{#1}}{center}}% if so, start by taking the center of that coordinate
     \else
-        \def\tempa{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#1)}% else, just take the coordinate in question
+        \edef\tempa{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#1)}% else, just take the coordinate in question
         \let\tempaf\tempa
     \fi
     \@xp\ifx\csname pgf@sh@pi@sseq@{#2}\endcsname\pgfpictureid % Check if the target is a named coordinate
         \def\tempb{\pgfpointanchor{sseq@{#2}}{center}}
         \def\tempbf{\pgfpointshapeborder{sseq@{#2}}{\tempa}}%also ta
     \else
-        \def\tempb{\pgfpoint\sseq@fullcoord@to@partialcoordb(#2)}%
+        \edef\tempb{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#2)}%
         \let\tempbf\tempb
     \fi
     \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid
@@ -2280,16 +2328,16 @@
     \or
         \sseq@ifinrange(#1){
             \def\tempbf{\pgfpointintersectionsolution{1}}
-            \def\temparrowendspec{\pgfsetarrowsend{...}}
+            \edef\temparrowendspec{\@nx\pgfsetarrowsend{\csname sseq@runoffarrow@end@#3@spec\endcsname}}
         }{
             \def\tempaf{\pgfpointintersectionsolution{1}}
-            \def\temparrowstartspec{\pgfsetarrowsstart{...}}
+            \edef\temparrowstartspec{\@nx\pgfsetarrowsstart{\csname sseq@runoffarrow@start@#3@spec\endcsname}}
         }
     \or
             \def\tempaf{\pgfpointintersectionsolution{1}}
             \def\tempbf{\pgfpointintersectionsolution{2}}
-            \def\temparrowstartspec{\pgfsetarrowsstart{...}}
-            \def\temparrowendspec{\pgfsetarrowsend{...}}
+            \edef\temparrowstartspec{\@nx\pgfsetarrowsstart{\csname sseq@runoffarrow@start@#3@spec\endcsname}}
+            \edef\temparrowendspec{\@nx\pgfsetarrowsend{\csname sseq@runoffarrow@end@#3@spec\endcsname}}
     \else
         \sseq@error{This shouldn't happen.}
     \fi
@@ -2299,8 +2347,8 @@
     \tempbf\pgf@xa=\pgf@x\pgf@ya=\pgf@y
     \tempaf\advance\pgf@xa-\pgf@x\advance\pgf@ya-\pgf@y
     \pgfmathveclen{\pgf@xa}{\pgf@ya}
-    \@xp\pgfmathint\@xp{\pgfmathresult}
-    \ifnum\pgfmathresult<17\relax
+    \@xp\pgfmathint\@xp{\pgfmathresult}%
+    \ifnum\pgfmathresult<10\relax%%17?
         \tikzset{every text node part/.append code={\pgfsetcolor{white}}}
         \ifx\temparrowstartspec\pgfutil@empty
         \else
@@ -2419,7 +2467,7 @@
             \begingroup
                 \ifsseq@needstikz\@nx\sseq@needstikztrue\fi
                 \@nx\sseq@drawedge \source\target%
-                    {struct line}{
+                    {structline}{
                         \sseq@thislabelstyle{\sseq@thelabelstyle\sseq@theedgelabelstyle\sseq@thestructlinelabelstyle}
                         \sseq@thepathstyle\sseq@theedgestyle\sseq@thestructlinestyle\@nx\ifsseq@thispage\sseq@thethispagestructlinestyle\@nx\fi
                         \the\sseq@scopeoptions
