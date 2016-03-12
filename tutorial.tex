@@ -22,7 +22,7 @@ The |sseqpages| package provides two environments -- the |sseqdata| environment,
 \begin{ex}
 Here is a very short example to illustrate the most basic usage:
 \begin{verbatim}
-\begin{sseqdata}[degree={#1}{-#1+1}]{example1}
+\begin{sseqdata}[name=example1,degree={#1}{-#1+1}]
 \class(0,0)
 \class(2,0)
 \class(0,1)
@@ -33,7 +33,7 @@ Here is a very short example to illustrate the most basic usage:
 \printpage[name=example1,page=3]
 \end{verbatim}
 
-\begin{sseqdata}[degree={#1}{-#1+1}]{example1}
+\begin{sseqdata}[name=example1,degree={#1}{-#1+1}]
 \class(0,0)
 \class(2,0)
 \class(0,1)
@@ -55,7 +55,7 @@ The option |degree={#1}{-#1+1}| specifies that the bidegree of the $E_r$ differe
 %\draw[->] (0,0)--(1,1);
 %\end{tikzpicture}
 
-\sseqset{degree={#1}{-#1+1},classes={inner sep=0.2ex},differentials={->}} % Make sure to keep this in the code for the next example
+\sseqset{degree={#1}{-#1+1},classes={inner sep=0.3ex},differentials={->}} % Make sure to keep this in the code for the next example
 \begin{ex}
 The appearance of example 1 was pretty rough. This example polishes it up a bit. The |sseqpages| package offers a number of "style" options that control the appearance of certain features of the spectral sequence. For instance, |classes| controls the appearance of every class and |differentials| controls the appearance of every differential. There are also options |permanent cycles| and |transient cycles|, that respectively affect the appearance of only classes that never support or are hit by a differential, or that are eventually hit by a differential.
 
@@ -64,11 +64,12 @@ Classes are internally drawn as Tikz nodes, so the options that you provide to |
 \begin{verbatim}
 \sseqset{degree={#1}{-#1+1},classes={inner sep=0.2ex},differentials=->}
 \begin{sseqdata}[
+    name=example2,
     classes={fill,circle},
     differentials=blue,
     permanent cycles={double distance=1,inner sep=0.2ex+0.35pt},
     transient cycles=red
-]{example2}
+]
 \node[background,font=\small] at (\xmin/2+\xmax/2,\ymax+1) {\textup{Page \sseqthepage{}}};
 \foreach \x in {0,2} \foreach \y in {0,1}{
     \class(\x,\y)
@@ -78,13 +79,13 @@ Classes are internally drawn as Tikz nodes, so the options that you provide to |
 \printpage[name=example2,page=2]
 \printpage[name=example2,page=3]
 \end{verbatim}
-
 \begin{sseqdata}[
+    name=example2,
     classes={fill,circle},
     differentials=blue,
-    permanent cycles={double distance=1,inner sep=0.2ex+0.35pt},
+    permanent cycles={double=white,draw,distance=1,inner sep=0.2ex+0.35pt},
     transient cycles=red
-]{example2}
+]
 \node[background,font=\small] at (\xmin/2+\xmax/2,\ymax+1) {\textup{Page \sseqthepage{}}};
 \foreach \x in {0,2} \foreach \y in {0,1}{
     \class(\x,\y)
@@ -111,8 +112,9 @@ Named cells and the |\replaceclass| command.
 \begin{verbatim}
 \sseqset{execute at begin node=$, execute at end node=$}
 \begin{sseqdata}[
-    classes={draw=none},
-]{example3}
+    name=example3,
+    classes={draw=none}
+]
 \foreach \x in {0,2} \foreach \y in {0,1}{
     \class["\mathbb{Z}"](\x,\y)
 }
@@ -124,8 +126,9 @@ Named cells and the |\replaceclass| command.
 \end{verbatim}
 
 \begin{sseqdata}[
+    name=example3,
     classes={draw=none}
-]{example3}
+]
 \foreach \x in {0,2} \foreach \y in {0,1}{
     \class["\mathbb{Z}"](\x,\y)
 }
@@ -146,7 +149,7 @@ Note also the use of the command |\replaceclass["\mathbb{Z}/2"](2,0)|. After a c
 Multiple nodes in the same location and the |\structline| command.
 
 \begin{verbatim}
-\begin{sseqdata}[classes={circle,fill},differentials=blue,yscale=0.7]{example4}
+\begin{sseqdata}[name=example4,classes={circle,fill},differentials=blue,yscale=0.7]
 \class(0,2)\class(0,2)
 \class(3,0)\class(3,0)
 \class(3,2)
@@ -169,7 +172,7 @@ Multiple nodes in the same location and the |\structline| command.
 \printpage[name=example4,page=4,class placement transform={rotate=40}]
 \end{verbatim}
 
-\begin{sseqdata}[classes={circle,fill},differentials=blue,yscale=0.7]{example4}
+\begin{sseqdata}[name=example4,classes={circle,fill},differentials=blue,yscale=0.7]
 \class(0,2)\class(0,2)
 \class[red](3,0)\class[green](3,0)\class[blue](3,0)
 \class(3,2)
@@ -204,82 +207,48 @@ Using negative values is particularly useful when drawing repeated structures. T
 
 \begin{minipage}{0.7\textwidth}
 \begin{verbatim}
-\def\tower#1{
-    \begin{scope}[#1]
+\sseqnewgroup\tower{
     \class(0,0)
     \class(0,2)
     \foreach \y in {1,...,5} {
         \class(0,\y)
         \structline(0,\y-1,-1)(0,\y,-1)
     }
-    \structline[yellow](0,1)(0,2,-2)
-    \structline(0,2,-2)(0,3)
-    \end{scope}
+    \structline[black](0,1,-1)(0,2,-2)
+    \structline(0,2,-2)(0,3,-1)
 }
 
-\begin{sseqdata}[classes={circle,fill}]{example5}
+\begin{sseqdata}[name=example5,classes={circle,fill}]
 \class(1,1)\class(1,2)
 \class(2,3)\class(2,3)\class(2,5)
-\tower{xshift=0,classes=blue}
-\tower{xshift=1,dashed,green}
-\tower{xshift=2,struct lines=red}
+\tower[classes=blue](0,0)
+\tower[dashed,orange](1,0)
+\tower[struct lines=red](2,0)
 \end{sseqdata}
 \printpage[name=example5,page=0]
 \end{verbatim}
 \end{minipage}
 \begin{minipage}{0.25\textwidth}
-\def\tower#1{
-    \begin{scope}[#1]
+\sseqnewgroup\tower{
     \class(0,0)
     \class(0,2)
     \foreach \y in {1,...,5} {
         \class(0,\y)
         \structline(0,\y-1,-1)(0,\y,-1)
     }
-    \structline[yellow](0,1)(0,2,-2)
-    \structline(0,2,-2)(0,3)
-    \end{scope}
+    \structline[black](0,1,-1)(0,2,-2)
+    \structline(0,2,-2)(0,3,-1)
 }
 
-\begin{sseqdata}[classes={circle,fill}]{example5}
+\begin{sseqdata}[name=example5,classes={circle,fill}]
 \class(1,1)\class(1,2)
 \class(2,3)\class(2,3)\class(2,5)
-\tower{xshift=0,classes=blue}
-\tower{xshift=1,dashed,green}
-\tower{xshift=2,struct lines=red}
+\tower[classes=blue](0,0)
+\tower[struct lines=dashed,orange](1,0)
+\tower[struct lines=red](2,0)
 \end{sseqdata}
 \printpage[name=example5,page=0]
 \end{minipage}
 \end{ex}
 \end{document}
 
-
-
-
-
-
-\begin{ex}
-Hello
-
-\begin{sseqdata}[
-    xscale=1.3,
-    y axis gap=1cm,
-    yscale=0.6,
-    y range={0}{6},
-    y label step=2,
-    classes={draw=none}
-]{example4}
-\foreach \x [count=\n from 0,use context] in {1,x,1/2x^2,1/6x^3,1/24x^4} {
-    \class["\mathbb{Z}\{\x\}"](0,2*\n)
-}
-
-\foreach \x [count=\n,use context] in {a,ax,1/2ax^2,1/6ax^3} {
-    \class["\mathbb{Z}\{\x\}"](3,2*\n-2)
-    \d["\cdot\n" above]3(0,2*\n)
-}
-\end{sseqdata}
-\printpage[name=example4,page=3]
-\end{ex}
-
-
-\end{document} 
