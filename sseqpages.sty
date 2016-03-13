@@ -1,16 +1,12 @@
 % TODO:
+%%%% manual
 %
-%% Make a list of things I need to cover in the manual
-%
-%% Axes options
-%% make context environment / command
-%% add error checking for modified tikz code
-%% error or warning if page but no name?
-%
-% named standard offset patterns with options
+% improve axes options? allow axis to be centered on coordinate or centered between coordinates
+% add error checking for modified tikz code
 % User interface to control arrow head for edges that go off page (option to turn ellipses off)
-%
-% check \structlineoptions
+% named standard offset patterns with options
+% scope local context command?
+% automated grids?
 
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{sseqpages}
@@ -113,6 +109,53 @@
 
 \newdimen\sseq@tempdimen
 \newdimen\sseq@tempdimen@ii
+
+%%% Commands to help the user define "groups" of commands to be reused
+\def\sseqnewgroup#1{\@ifnextchar[{\sseqnewgroup@#1}{\sseqnewgroup@#1[0]}}%]
+\long\def\sseqnewgroup@#1[#2]#3{\sseqnewcmd@@#1(\sseq@macrox,\sseq@macroy)[#2]{\begin{scope}[xshift=\sseq@macrox,yshift=\sseq@macroy,\options]#3\end{scope}}}
+\def\sseqnewcmd#1{\@ifnextchar({\sseqnewcmd@#1}{\sseqnewcmd@#1(\x,\y)}}%)
+\def\sseqnewcmd@#1(#2,#3){\@ifnextchar[{\sseqnewcmd@@#1(#2,#3)}{\sseqnewcmd@@#1(#2,#3)[0]}}%]
+\bgroup\lccode`\*=`\#\lowercase{\egroup
+    \long\def\sseqnewcmd@@#1(#2,#3)[#4]#5{%
+        \@ifundefined{\sseq@macroname #1}{}{%
+            \sseq@error{%
+                A command named \string#1\sseq@macroname\ already exists. You can only use \string\sseqnewgroup\sseq@macroname\
+                and \string\sseqnewgroup\sseq@macroname\ to define new commands.
+            }{}%
+        }%
+        \ifnum#4>6 \sseq@error{Commands defined using '\@nx\sseqnewcmd' can take at most six arguments}\fi
+        \edef\helpera{\@xp\@nx\csname \sseq@macroname#1@\endcsname}%
+        \edef\helperb{\@xp\@nx\csname \sseq@macroname#1@@\endcsname}%
+        \xdef#1{\@nx\@ifnextchar[{\@xp\@nx\helpera}{\@xp\@nx\helpera[]}}%
+        \@xp\xdef\helpera[##1](##2,##3){\@xp\@nx\helperb{##1}{##2}{##3}}%
+        \def\temp##1##2##3##4##5##6{#5}%
+        \sseq@temptoks\@xp{\temp\ppfour\ppfive\ppsix\ppseven\ppeight\ppnine}%
+        \bgroup
+            \aftergroup\@xp\aftergroup\edef\aftergroup\helperb\aftergroup##\aftergroup1\aftergroup##\aftergroup2\aftergroup##\aftergroup3%
+            \ifnum#4>0\relax
+                \sseq@tempcount=0\relax
+                \sseq@tempcountb=3\relax
+                \loop
+                    \advance\sseq@tempcount1\relax\advance\sseq@tempcountb1\relax
+                    \aftergroup####\@xp\aftergroup\the\sseq@tempcountb
+                \ifnum\sseq@tempcount<#4\repeat
+            \fi
+            \aftergroup{%
+                \aftergroup\the\aftergroup\sseq@temptoks
+            \aftergroup}%
+        \egroup
+        \@xp\patchcmd\helperb{\options}{*1}{}{}%
+        \@xp\sseq@patchrepeat\helperb{#2}{*2}%
+        \@xp\sseq@patchrepeat\helperb{#3}{*3}%
+        \@xp\sseq@patchrepeat\helperb{\ppfour}{*4}%
+        \@xp\sseq@patchrepeat\helperb{\ppfive}{*5}%
+        \@xp\sseq@patchrepeat\helperb{\ppsix}{*6}%
+        \@xp\sseq@patchrepeat\helperb{\ppseven}{*7}%
+        \@xp\sseq@patchrepeat\helperb{\ppeight}{*8}%
+        \@xp\sseq@patchrepeat\helperb{\ppnine}{*9}%
+    }
+}
+\def\sseq@patchrepeat#1#2#3{\patchcmd#1{#2}{#3}{\sseq@patchrepeat#1{#2}{#3}}{}}
 
 
 %% \sseq@--@--addto@macro and friends.
@@ -226,58 +269,11 @@
 \def\sseq@storecmds{\let\\\sseq@storelist@store\let\sseq@storelistif\sseq@storelistif@store\sseq@storelist}
 \def\sseq@getcmds{\let\\\sseq@storelist@get\let\sseq@storelistif\sseq@storelistif@get\sseq@storelist}
 
-%%% Commands to help the user define "groups" and such of commands to be reused
-\def\sseqnewgroup#1{\@ifnextchar[{\sseqnewgroup@#1}{\sseqnewgroup@#1[0]}}%]
-\long\def\sseqnewgroup@#1[#2]#3{\sseqnewcmd@@#1(\sseq@macrox,\sseq@macroy)[#2]{\begin{scope}[xshift=\sseq@macrox,yshift=\sseq@macroy,\options]#3\end{scope}}}
-\def\sseqnewcmd#1{\@ifnextchar({\sseqnewcmd@#1}{\sseqnewcmd@#1(\x,\y)}}%)
-\def\sseqnewcmd@#1(#2,#3){\@ifnextchar[{\sseqnewcmd@@#1(#2,#3)}{\sseqnewcmd@@#1(#2,#3)[0]}}%]
-\bgroup\lccode`\*=`\#\lowercase{\egroup
-    \long\def\sseqnewcmd@@#1(#2,#3)[#4]#5{%
-        \@ifundefined{\sseq@macroname #1}{}{%
-            \sseq@error{%
-                A command named \string#1\sseq@macroname\ already exists. You can only use \string\sseqnewgroup\sseq@macroname\
-                and \string\sseqnewgroup\sseq@macroname\ to define new commands.
-            }{}%
-        }%
-        \ifnum#4>6 \sseq@error{Commands defined using '\@nx\sseqnewcmd' can take at most six arguments}\fi
-        \edef\helpera{\@xp\@nx\csname \sseq@macroname#1@\endcsname}%
-        \edef\helperb{\@xp\@nx\csname \sseq@macroname#1@@\endcsname}%
-        \xdef#1{\@nx\@ifnextchar[{\@xp\@nx\helpera}{\@xp\@nx\helpera[]}}%
-        \@xp\xdef\helpera[##1](##2,##3){\@xp\@nx\helperb{##1}{##2}{##3}}%
-        \def\temp##1##2##3##4##5##6{#5}%
-        \sseq@temptoks\@xp{\temp\ppfour\ppfive\ppsix\ppseven\ppeight\ppnine}%
-        \bgroup
-            \aftergroup\@xp\aftergroup\edef\aftergroup\helperb\aftergroup##\aftergroup1\aftergroup##\aftergroup2\aftergroup##\aftergroup3%
-            \ifnum#4>0\relax
-                \sseq@tempcount=0\relax
-                \sseq@tempcountb=3\relax
-                \loop
-                    \advance\sseq@tempcount1\relax\advance\sseq@tempcountb1\relax
-                    \aftergroup####\@xp\aftergroup\the\sseq@tempcountb
-                \ifnum\sseq@tempcount<#4\repeat
-            \fi
-            \aftergroup{%
-                \aftergroup\the\aftergroup\sseq@temptoks
-            \aftergroup}%
-        \egroup
-        \@xp\patchcmd\helperb{\options}{*1}{}{}%
-        \@xp\sseq@patchrepeat\helperb{#2}{*2}%
-        \@xp\sseq@patchrepeat\helperb{#3}{*3}%
-        \@xp\sseq@patchrepeat\helperb{\ppfour}{*4}%
-        \@xp\sseq@patchrepeat\helperb{\ppfive}{*5}%
-        \@xp\sseq@patchrepeat\helperb{\ppsix}{*6}%
-        \@xp\sseq@patchrepeat\helperb{\ppseven}{*7}%
-        \@xp\sseq@patchrepeat\helperb{\ppeight}{*8}%
-        \@xp\sseq@patchrepeat\helperb{\ppnine}{*9}%
-    }
-}
-\def\sseq@patchrepeat#1#2#3{\patchcmd#1{#2}{#3}{\sseq@patchrepeat#1{#2}{#3}}{}}
-
+\def\sseq@addtocontext{\sseq@g@addto@macro\sseq@globalcontext}
+\sseq@addtostorelist\sseq@globalcontext{}
 
 
 %%% Set up keys
-
-% TODO: is this the right definition of \sseqset? Test it.
 \def\sseqset{\pgfqkeys{/tikz/sseqpages/global/default}}
 \def\sseqset@inprogress{\pgfqkeys{/tikz/sseqpages}}
 \def\sseq@set{\pgfqkeys{/tikz/sseqpages}}
@@ -624,7 +620,7 @@
 }
 \pgfqkeys{/tikz/sseqpages/global}{%
     name/.code={},
-    page/.code={\def\sseq@thepage{#1}\let\sseqthepage\sseq@thepage},
+    page/.code={\ifsseq@hasname\def\sseq@thepage{#1}\let\sseqthepage\sseq@thepage\else\sseq@error{You can't specify a page but no name}{}\fi},
     degree/.code 2 args={\def\sseq@targetx##1{#1}\def\sseq@targety##1{#2}\let\d\sseq@d},
     x range/.code 2 args={\sseq@xrange{#1}{#2}},
     y range/.code 2 args={\sseq@yrange{#1}{#2}},
@@ -639,6 +635,26 @@
     x axis gap/.value required,
     y axis gap/.code={\def\sseq@yaxisgap{#1}},
     y axis gap/.value required,
+    x axis style/.is choice,
+    y axis style/.is choice,
+    axes style/.is choice,
+    x axis style/border/.code={\sseq@drawxaxistrue\sseq@borderxaxistrue},
+    y axis style/border/.code={\sseq@drawyaxistrue\sseq@borderyaxistrue},
+    axes style/border/.code={\sseq@drawxaxistrue\sseq@drawyaxistrue\sseq@borderxaxistrue\sseq@borderyaxistrue},
+    x axis style/center/.code={
+        \sseq@drawxaxistrue\sseq@borderxaxisfalse
+        \ifx\sseq@xaxisgap\sseq@xaxisgap@default
+            \def\sseq@xaxisgap{0cm}
+        \fi
+    },
+    y axis style/center/.code={\sseq@drawyaxistrue\sseq@borderyaxisfalse\ifx\sseq@yaxisgap\sseq@yaxisgap@default\def\sseq@yaxisgap{0cm}\fi},
+    axes style/center/.code={\sseq@drawxaxistrue\sseq@drawyaxistrue\sseq@borderxaxisfalse\sseq@borderyaxisfalse},
+    x axis style/none/.code={\sseq@drawxaxisfalse},
+    y axis style/none/.code={\sseq@drawyaxisfalse},
+    axes style/none/.code={\sseq@drawxaxisfalse\sseq@drawyaxisfalse},
+    x axis origin/.store in=\sseq@xaxisorigin,
+    y axis origin/.store in=\sseq@yaxisorigin,
+    axes origin/.code={\pgfkeysalso{x axis origin={#1},y axis origin={#1}}},
     no x axis/.code={\sseq@drawxaxisfalse},
     no x axis/.value forbidden,
     draw x axis/.is if=sseq@drawxaxis,
@@ -690,10 +706,10 @@
     name/.code={\sseq@error{You cannot set a default name}{}},
     page/.code={\sseq@error{You cannot set a default page}{}},
     degree/.code 2 args={\def\sseq@targetx@default##1{#1}\def\sseq@targety@default##1{#2}\let\d\sseq@d},
-    x range/.code 2 args={\sseq@error{You cannot set a default range. TODO: Fix this}{}},
-    y range/.code 2 args={\sseq@error{You cannot set a default range. TODO: Fix this}{}},
-    xrange/.code 2 args={\sseq@error{You cannot set a default range. TODO: Fix this}{}},
-    yrange/.code 2 args={\sseq@error{You cannot set a default range. TODO: Fix this}{}},
+    x range/.code 2 args={\sseq@xrange@default{#1}{#2}},
+    y range/.code 2 args={\sseq@yrange@default{#1}{#2}},
+    xrange/.code 2 args={\sseq@xrange@default{#1}{#2}},
+    yrange/.code 2 args={\sseq@yrange@default{#1}{#2}},
 % axes options:
     labels/.code={},
     x labels/.code={},
@@ -704,6 +720,10 @@
     y axis gap/.code={\def\sseq@yaxisgap@default{#1}},
     x label step/.store in=\sseq@xlabelstep@default,
     y label step/.store in=\sseq@ylabelstep@default,
+    label step/.code={\def\sseq@xlabelstep@default{#1}\def\sseq@ylabelstep@default{#1}},
+    x axis origin/.store in=\sseq@xaxisorigin@default,
+    y axis origin/.store in=\sseq@yaxisorigin@default,
+    axes origin/.code={\pgfkeysalso{x axis origin={#1},y axis origin={#1}}},
     class placement transform/.code={%
         \bgroup
         \let\tikz@transform\pgfutil@empty
@@ -723,9 +743,12 @@
 \sseq@addtostorelist\sseq@xlabelstep{1}\sseq@addtostorelist\sseq@ylabelstep{1}
 \sseq@addtostorelist\sseq@classplacementtransform{}
 
+\sseq@addiftostorelist@truedefault{borderxaxis}\sseq@addiftostorelist@truedefault{borderyaxis}
+\sseq@addtostorelist\sseq@xaxisorigin{0}\sseq@addtostorelist\sseq@yaxisorigin{0}
+
 % Range commands
 \def\sseq@xrange#1#2{%
-    \global\let\sseq@xminmax\@gobble % Don't need to calculate range of nodes if user specifies it
+    \global\let\sseq@xminmax\@gobbletwo % Don't need to calculate range of nodes if user specifies it
     \gdef\sseq@xmin{#1}%
     \gdef\sseq@xmax{#2}%
     % Need to know decremented \xmin and incremented \xmax to decide which nodes to print
@@ -733,26 +756,126 @@
     \sseq@tempcount=#2 \advance\sseq@tempcount1\xdef\sseq@xmaxpp{\the\sseq@tempcount}%
 }
 \def\sseq@yrange#1#2{%
-    \global\let\sseq@yminmax\@gobble %
+    \global\let\sseq@yminmax\@gobbletwo %
     \gdef\sseq@ymin{#1}%
     \gdef\sseq@ymax{#2}%
     \sseq@tempcount=#1 \advance\sseq@tempcount-1\xdef\sseq@yminmm{\the\sseq@tempcount}%
     \sseq@tempcount=#2 \advance\sseq@tempcount1\xdef\sseq@ymaxpp{\the\sseq@tempcount}%
 }
 
+\def\sseq@xrange@default#1#2{%
+    \global\let\sseq@xminmax\@gobbletwo % Don't need to calculate range of nodes if user specifies it
+    \gdef\sseq@xmin@default{#1}%
+    \gdef\sseq@xmax@default{#2}%
+    % Need to know decremented \xmin and incremented \xmax to decide which nodes to print
+    \sseq@tempcount=#1 \advance\sseq@tempcount-1\xdef\sseq@xminmm@default{\the\sseq@tempcount}%
+    \sseq@tempcount=#2 \advance\sseq@tempcount1\xdef\sseq@xmaxpp@default{\the\sseq@tempcount}%
+}
+\def\sseq@yrange@default#1#2{%
+    \global\let\sseq@yminmax\@gobbletwo %
+    \gdef\sseq@ymin@default{#1}%
+    \gdef\sseq@ymax@default{#2}%
+    \sseq@tempcount=#1 \advance\sseq@tempcount-1\xdef\sseq@yminmm@default{\the\sseq@tempcount}%
+    \sseq@tempcount=#2 \advance\sseq@tempcount1\xdef\sseq@ymaxpp@default{\the\sseq@tempcount}%
+}
+
 % If #1 is less than \xmin or greater than \xmax, update \xmin or \xmax appropriately
 % Gets set to \@gobble if user specifies range
-\def\sseq@xminmax@active#1{%
-    \ifnum#1<\sseq@xmin\gdef\sseq@xmin{#1}\fi %
-    \ifnum#1>\sseq@xmax\gdef\sseq@xmax{#1}\fi %
+\def\sseq@xminmax@active#1#2{%
+    \ifnum#1<\sseq@xmin
+        \ifx\sseq@yminmax\@gobbletwo
+            \ifnum#2>\sseq@ymin
+                \ifnum#2<\sseq@ymax
+                    \xdef\sseq@xmin{#1}%
+                \fi
+            \fi
+        \else
+            \xdef\sseq@xmin{#1}%
+        \fi
+    \fi
+    \ifnum#1>\sseq@xmax
+        \ifx\sseq@yminmax\@gobbletwo
+            \ifnum#2>\sseq@ymin
+                \ifnum#2<\sseq@ymax
+                    \xdef\sseq@xmax{#1}%
+                \fi
+            \fi
+        \else
+            \xdef\sseq@xmax{#1}%
+        \fi
+    \fi
 }
 
-\def\sseq@yminmax@active#1{%
-    \ifnum#1<\sseq@ymin\gdef\sseq@ymin{#1}\fi %
-    \ifnum#1>\sseq@ymax\gdef\sseq@ymax{#1}\fi %
+\def\sseq@yminmax@active#1#2{%
+    \ifnum#2<\sseq@ymin
+        \ifx\sseq@xminmax\@gobbletwo
+            \ifnum#1>\sseq@xmin
+                \ifnum#1<\sseq@xmax
+                    \xdef\sseq@ymin{#2}%
+                \fi
+            \fi
+        \else
+            \xdef\sseq@ymin{#2}%
+        \fi
+    \fi
+    \ifnum#2>\sseq@ymax
+        \ifx\sseq@xminmax\@gobbletwo
+            \ifnum#1>\sseq@xmin
+                \ifnum#1<\sseq@xmax
+                    \xdef\sseq@ymax{#2}%
+                \fi
+            \fi
+        \else
+            \xdef\sseq@ymax{#2}%
+        \fi
+    \fi
 }
 
 
+\sseq@addtostorelist\sseq@xlabelgap{0.5cm}
+\sseq@addtostorelist\sseq@ylabelgap{0.5cm}
+\sseq@addtostorelist\sseq@xaxis@start@extend{0.9cm}
+\sseq@addtostorelist\sseq@yaxis@start@extend{0.9cm}
+\sseq@addtostorelist\sseq@xaxis@end@extend{0.5cm}
+\sseq@addtostorelist\sseq@yaxis@end@extend{0.5cm}
+\sseq@addtostorelist\sseq@xclip@axisgap{0.1cm}
+\sseq@addtostorelist\sseq@yclip@axisgap{0.1cm}
+\sseq@addtostorelist\sseq@clip@padding@right{0.1cm}
+\sseq@addtostorelist\sseq@clip@padding@top{0.1cm}
+\sseq@addtostorelist\sseq@clip@padding@left{0.4cm}
+\sseq@addtostorelist\sseq@clip@padding@bottom{0.4cm}
+
+\pgfqkeys{/tikz/sseqpages/global}{% TODO: Are these names okay?
+    x label gap/.store in=\sseq@xlabelgap,
+    y label gap/.store in=\sseq@ylabelgap,
+    label gap/.code={\def\sseq@xlabelgap{#1}\def\sseq@ylabelgap{#1}},
+    x axis extend start/.store in=\sseq@xaxis@start@extend,
+    y axis extend start/.store in=\sseq@yaxis@start@extend,
+    x axis extend end/.store in=\sseq@xaxis@end@extend,
+    y axis extend end/.store in=\sseq@yaxis@end@extend,
+    x clip axis padding/.store in=\sseq@xclip@axisgap,
+    y clip axis padding/.store in=\sseq@yclip@axisgap,
+    right clip padding/.store in=\sseq@clip@padding@right,
+    left clip padding/.store in=\sseq@clip@padding@left,
+    top clip padding/.store in=\sseq@clip@padding@top,
+    bottom clip padding/.store in=\sseq@clip@padding@bottom
+}
+
+\pgfqkeys{/tikz/sseqpages/global/default}{% TODO: Are these names okay?
+    x label gap/.store in=\sseq@xlabelgap@default,
+    y label gap/.store in=\sseq@xlabelgap@default,
+    label gap/.code={\def\sseq@xlabelgap@default{#1}\def\sseq@ylabelgap@default{#1}},
+    x axis extend start/.store in=\sseq@xaxis@start@extend@default,
+    y axis extend start/.store in=\sseq@yaxis@start@extend@default,
+    x axis extend end/.store in=\sseq@xaxis@end@extend@default,
+    y axis extend end/.store in=\sseq@yaxis@end@extend@default,
+    x clip axis padding/.store in=\sseq@xclip@axisgap@default,
+    y clip axis padding/.store in=\sseq@yclip@axisgap@default,
+    right clip padding/.store in=\sseq@clip@padding@right@default,
+    left clip padding/.store in=\sseq@clip@padding@left@default,
+    top clip padding/.store in=\sseq@clip@padding@top@default,
+    bottom clip padding/.store in=\sseq@clip@padding@bottom@default
+}
 % Global transformations
 \sseq@globaldetonetrue
 \sseq@addtostorelist\sseq@globaldetonetransform{}
@@ -1140,7 +1263,6 @@
     \fi
 }
 
-% TODO: deal with the style "every scope" (by emptying it defensively I think)
 \def\sseq@scope{\@ifnextchar[{\sseq@scope@}{\sseq@scope@[]}}
 \def\sseq@scope@[#1]{%
     \pgfqkeys{/tikz/sseqpages/first pass/scope}{#1}%
@@ -1178,42 +1300,50 @@
 
 \def\sseqdata@[#1]{%
 %
-    \def\sseqset{\pgfqkeys{/tikz/sseqpages/global}}
     \sseq@keepchangestrue
     \sseq@storelist@setdefaults
 %
-    \let\sseq@xminmax\sseq@xminmax@active
-    \let\sseq@yminmax\sseq@yminmax@active
+    \ifx\sseq@xmin@default\sseq@infinity
+        \let\sseq@xminmax\sseq@xminmax@active
+    \fi
+    \ifx\sseq@ymin@default\sseq@infinity
+        \let\sseq@yminmax\sseq@yminmax@active
+    \fi
 %
     \def\xmin{\sseq@xmin}\def\xmax{\sseq@xmax}
     \def\ymin{\sseq@ymin}\def\ymax{\sseq@ymax}
     % copy commands into the user namespace.
-    \sseq@copydatacommands{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions}%
+    \sseq@copydatacommands{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions\addtocontext}%
     \ifx\sseq@targetx\pgfutil@empty \let\d\sseq@d@error@nodegree \fi%
 %
     \gdef\sseq@compilesseq{}%
     \gdef\sseq@restorestyles{}%
 %
     \pgfqkeys{/tikz/sseqpages/global/name only}{#1}%
-    \@ifundefined{sseq@thename}{\sseq@error{Every 'sseqdata' environment must have a name. Specify one by saying 'name=yoursseqname'}{}}{}
+    \@ifundefined{sseq@thename}{\sseq@error{Every 'sseqdata' environment must have a name. Specify one by saying 'name=your sseq name'}{}}{}
+    \@ifundefined{sseq@name\sseq@thename @exists}{
+        \@xp\gdef\csname sseq@name\sseq@thename @exists\endcsname{}
+        \pgfqkeys{/tikz/sseqpages/global}{{\sseq@thename} options/.code={}}
+        \@xp\gdef\csname sseq@savednodes@\sseq@thename infty\endcsname{}%
+        \@xp\gdef\csname sseq@savedfeatures@\sseq@thename infty\endcsname{}%
+        % Page 0 is all pages
+        \@xp\gdef\csname sseq@saveddiffs@\sseq@thename0\endcsname{%
+            \sseq@tempcount=0\relax
+            \loop
+                \advance\sseq@tempcount1\relax
+                \csname sseq@saveddiffs@\sseq@thename\the\sseq@tempcount\endcsname %
+            \ifnum\sseq@tempcount<\sseq@maxpage\repeat
+        }%
+    }{%
+        \sseq@getcmds
+    }%
     % the default option handler for /tikz/sseqpages/global adds to \sseq@currentoptionpath options
     \let\sseq@currentoptionpath\sseq@thename
-    \pgfqkeys{/tikz/sseqpages/global}{{\sseq@thename} options/.code={},#1}%
+    \pgfqkeys{/tikz/sseqpages/global}{#1}%
     %To give these options global scope we say \global\let\sseq@<name of sseq>options\sseq@<name of sseq>options
     \edef\temp{\global\let\@xp\@nx\csname pgfk@/tikz/sseqpages/global/{\sseq@thename} options/.@cmd\endcsname\@xp\@nx\csname pgfk@/tikz/sseqpages/global/{\sseq@thename} options/.@cmd\endcsname}%
     \temp
     \let\sseqset\sseqset@inprogress % Not sure if this is right/necessary. Probably is though.
-%
-    \@xp\gdef\csname sseq@savednodes@\sseq@thename infty\endcsname{}%
-    \@xp\gdef\csname sseq@savedfeatures@\sseq@thename infty\endcsname{}%
-    % Page 0 is all pages
-    \@xp\gdef\csname sseq@saveddiffs@\sseq@thename0\endcsname{%
-        \sseq@tempcount=0\relax
-        \loop
-            \advance\sseq@tempcount1\relax
-            \csname sseq@saveddiffs@\sseq@thename\the\sseq@tempcount\endcsname %
-        \ifnum\sseq@tempcount<\sseq@maxpage\repeat
-    }%
 %
     \sseq@modtikzcommands@defer % Defer evaluation of tikz primitives
     \sseq@patchfor % patch \foreach to work with deferred macros
@@ -1236,20 +1366,12 @@
 \def\sseqpage{\@ifnextchar[{\sseqpage@}{\sseqpage@[]}} %}
 
 \def\sseqpage@[#1]{%
-    \def\sseqset{\pgfqkeys{/tikz/sseqpages/global}}%
+    \let\sseqset\sseqset@inprogress % Not sure if this is right/necessary. Probably is though.
     \let\sseq@xminmax\sseq@xminmax@active
     \let\sseq@yminmax\sseq@yminmax@active
-    % These are used to decide whether to add a certain node to savedpaths.
-    % In general the check is whether xmin<=xcoord<=xmax, but since Latex has no <=, set xminmm=xmin-1, xmaxpp=xmax+1.
-    % If the user doesn't specify a range, all nodes should be rendered
-    % To ensure that xminmm<xccord<xminpp in that case, set the default to xminmm=-\infty, xmaxpp=+\infty.
-    \xdef\sseq@xminmm{-\sseq@infinity}%
-    \xdef\sseq@xmaxpp{\sseq@infinity}%
-    \xdef\sseq@yminmm{-\sseq@infinity}%
-    \xdef\sseq@ymaxpp{\sseq@infinity}%
 %
     % Copy commands into user namespace
-    \sseq@copypagecommands{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions}%
+    \sseq@copypagecommands{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions\addtocontext}%
 %
     \gdef\sseq@compilesseq{}%
     \gdef\sseq@thispagenodes{}% For storing any nodes to be printed just on this page
@@ -1316,18 +1438,29 @@
     \let\sseq@shifttransform\sseq@checkshifttransform % Allow shifts as long as they are by integers and have no units.
 %
     \ifsseq@drawxaxis
+        \bgroup
+        \ifsseq@borderxaxis\else
+            \let\sseq@ymin\sseq@yaxisorigin % Warning: this is a stupid, lazy hack.
+        \fi
         \sseq@drawxaxis
         \ifsseq@drawxaxislabels
             \sseq@drawxlabels
         \fi
+        \egroup
     \fi
     \ifsseq@drawyaxis
+        \bgroup
+        \ifsseq@borderyaxis\else
+            \let\sseq@xmin\sseq@xaxisorigin % Warning: this is a stupid, lazy hack.
+        \fi
         \sseq@drawyaxis
         \ifsseq@drawyaxislabels
             \sseq@drawylabels
         \fi
+        \egroup
     \fi
 %
+    \sseq@globalcontext
     \begingroup % for \sseq@modtikzcommands@options
     \sseq@modtikzcommands@options
     \sseq@savedbackgroundpaths
@@ -1390,46 +1523,6 @@
     \let\sseq@thename\relax %
 }
 
-\sseq@addtostorelist\sseq@xlabelgap{0.5cm}
-\sseq@addtostorelist\sseq@ylabelgap{0.5cm}
-\sseq@addtostorelist\sseq@xaxis@start@extend{0.9cm}
-\sseq@addtostorelist\sseq@yaxis@start@extend{0.9cm}
-\sseq@addtostorelist\sseq@xaxis@end@extend{0.5cm}
-\sseq@addtostorelist\sseq@yaxis@end@extend{0.5cm}
-\sseq@addtostorelist\sseq@xclip@axisgap{0.1cm}
-\sseq@addtostorelist\sseq@yclip@axisgap{0.1cm}
-\sseq@addtostorelist\sseq@clip@padding@right{0.1cm}
-\sseq@addtostorelist\sseq@clip@padding@top{0.1cm}
-
-\pgfqkeys{/tikz/sseqpages/global}{% TODO: Are these names okay?
-    x label gap/.store in=\sseq@xlabelgap,
-    y label gap/.store in=\sseq@xlabelgap,
-    x axis extend start/.store in=\sseq@xaxis@start@extend,
-    y axis extend start/.store in=\sseq@yaxis@start@extend,
-    x axis extend end/.store in=\sseq@xaxis@end@extend,
-    y axis extend end/.store in=\sseq@yaxis@end@extend,
-    x clip axis padding/.store in=\sseq@xclip@axisgap,
-    y clip axis padding/.store in=\sseq@yclip@axisgap,
-    right clip padding/.store in=\sseq@clip@padding@right,
-    left clip padding/.store in=\sseq@clip@padding@left,
-    top clip padding/.store in=\sseq@clip@padding@top,
-    bottom clip padding/.store in=\sseq@clip@padding@bottom
-}
-
-\pgfqkeys{/tikz/sseqpages/global/default}{% TODO: Are these names okay?
-    x label gap/.store in=\sseq@xlabelgap@default,
-    y label gap/.store in=\sseq@xlabelgap@default,
-    x axis extend start/.store in=\sseq@xaxis@start@extend@default,
-    y axis extend start/.store in=\sseq@yaxis@start@extend@default,
-    x axis extend end/.store in=\sseq@xaxis@end@extend@default,
-    y axis extend end/.store in=\sseq@yaxis@end@extend@default,
-    x clip axis padding/.store in=\sseq@xclip@axisgap@default,
-    y clip axis padding/.store in=\sseq@yclip@axisgap@default,
-    right clip padding/.store in=\sseq@clip@padding@right@default,
-    left clip padding/.store in=\sseq@clip@padding@left@default,
-    top clip padding/.store in=\sseq@clip@padding@top@default,
-    bottom clip padding/.store in=\sseq@clip@padding@bottom@default
-}
 
 \def\sseq@drawxaxis{%
     \bgroup
@@ -1502,7 +1595,7 @@
     %\advance\sseq@tempx-1\relax
     \sseq@tempy=\sseq@ymax\relax
     \advance\sseq@tempy1\relax
-    \edef\sseq@temp{\the\sseq@tempy}%
+    \edef\sseq@tempmax{\the\sseq@tempy}%
     \sseq@tempy=\sseq@ymin\relax
     \loop
         %\node at (\sseq@x,\sseq@ymin-1) {\sseq@x};%
@@ -1516,7 +1609,7 @@
         \pgftext{$\the\sseq@tempy$}%
         \egroup
         \advance\sseq@tempy\sseq@ylabelstep\relax
-    \ifnum\sseq@tempy<\sseq@temp\repeat
+    \ifnum\sseq@tempy<\sseq@tempmax\repeat
 }
 
 
@@ -1526,8 +1619,16 @@
     \bgroup
     \pgftransformreset
     \sseq@globaldetonetransform
-    \def\xmin{\pgftransformxshift{-\sseq@yaxisgap}\pgftransformxshift{\sseq@xclip@axisgap}}
-    \def\ymin{\pgftransformyshift{-\sseq@xaxisgap}\pgftransformyshift{\sseq@yclip@axisgap}}
+    \ifsseq@borderyaxis
+        \def\xmin{\pgftransformxshift{-\sseq@yaxisgap}\pgftransformxshift{\sseq@xclip@axisgap}}
+    \else
+        \def\xmin{\pgftransformxshift{-\sseq@xaxis@start@extend}\pgftransformxshift{-\sseq@clip@padding@left}}
+    \fi
+    \ifsseq@borderxaxis
+        \def\ymin{\pgftransformyshift{-\sseq@xaxisgap}\pgftransformyshift{\sseq@yclip@axisgap}}
+    \else
+        \def\ymin{\pgftransformyshift{-\sseq@yaxis@start@extend}\pgftransformyshift{-\sseq@clip@padding@bottom}}
+    \fi
     \def\xmax{\pgftransformxshift{\sseq@xaxis@end@extend}\pgftransformxshift{\sseq@clip@padding@right}}
     \def\ymax{\pgftransformyshift{\sseq@yaxis@end@extend}\pgftransformyshift{\sseq@clip@padding@top}}
     \bgroup
@@ -1578,7 +1679,8 @@
     \sseq@tempy=#2\relax
     \advance\sseq@tempy\sseq@y\relax
     \edef\partialcoord{\the\sseq@tempx,\the\sseq@tempy}%
-    \@xp\sseq@xminmax\@xp{\the\sseq@tempx}\@xp\sseq@yminmax\@xp{\the\sseq@tempy}% TODO: Don't expand range to accomodate nodes that are out of range in one direction
+    \sseq@xminmax{\the\sseq@tempx}{\the\sseq@tempy}
+    \sseq@yminmax{\the\sseq@tempx}{\the\sseq@tempy}
     \sseq@tempcount=\@ifundefined{sseq@coord\sseq@thename(\partialcoord)@numnodespp}{1}{\csname sseq@coord\sseq@thename(\partialcoord)@numnodespp\endcsname}%
     \edef\nodenum{\the\sseq@tempcount}%
     \ifsseq@hasname
@@ -2016,7 +2118,7 @@
 }
 
 
-%% Offsets TODO: This section is pretty unfinished
+%% Offsets
 \def\sseq@setoffsets#1#2{%
     \sseq@setoffsets@{#1}{#2}
 }
@@ -2384,66 +2486,66 @@
         \def\tempaf{\pgfpointshapeborder{sseq@{#1}}{\tempb}}%
     \fi
 %
-    \def\pgfkeysdefaultpath{/tikz/sseqpages/second pass/#3/}
-    \pgfkeysalso{draw}
+    \def\pgfkeysdefaultpath{/tikz/sseqpages/second pass/#3/}%
+    \pgfkeysalso{draw}%
     #4%
     \tikz@options
     \tikz@mode
     \pgfpathmoveto{\tempaf}%
     \pgfpathlineto{\tempbf}%
     \pgfgetpath\thispath
-    \pgfusepath{discard}
-    \sseq@ifinrange(#1){\sseq@ifinrange(#2){\sseq@outofrangefalse}{\sseq@outofrangetrue}}{\sseq@outofrangetrue}
+    \pgfusepath{discard}%
+    \sseq@ifinrange(#1){\sseq@ifinrange(#2){\sseq@outofrangefalse}{\sseq@outofrangetrue}}{\sseq@outofrangetrue}%
     \ifsseq@outofrange
-        \pgfintersectionofpaths{\pgfsetpath\sseq@theclippath}{\pgfsetpath\thispath}
+        \pgfintersectionofpaths{\pgfsetpath\sseq@theclippath}{\pgfsetpath\thispath}%
     \else
-        \def\pgfintersectionsolutions{0}
+        \def\pgfintersectionsolutions{0}%
     \fi
-    \def\temparrowstartspec{}
-    \def\temparrowendspec{}
+    \def\temparrowstartspec{}%
+    \def\temparrowendspec{}%
     \ifcase\pgfintersectionsolutions\relax
     \or
-        \sseq@ifinrange(#1){
-            \def\tempbf{\pgfpointintersectionsolution{1}}
-            \edef\temparrowendspec{\@nx\pgfsetarrowsend{\csname sseq@runoffarrow@end@#3@spec\endcsname}}
-        }{
-            \def\tempaf{\pgfpointintersectionsolution{1}}
-            \edef\temparrowstartspec{\@nx\pgfsetarrowsstart{\csname sseq@runoffarrow@start@#3@spec\endcsname}}
-        }
+        \sseq@ifinrange(#1){%
+            \def\tempbf{\pgfpointintersectionsolution{1}}%
+            \edef\temparrowendspec{\@nx\pgfsetarrowsend{\csname sseq@runoffarrow@end@#3@spec\endcsname}}%
+        }{%
+            \def\tempaf{\pgfpointintersectionsolution{1}}%
+            \edef\temparrowstartspec{\@nx\pgfsetarrowsstart{\csname sseq@runoffarrow@start@#3@spec\endcsname}}%
+        }%
     \or
             \ifsseq@draworphanedges
-                \def\tempaf{\pgfpointintersectionsolution{1}}
-                \def\tempbf{\pgfpointintersectionsolution{2}}
-                \edef\temparrowstartspec{\@nx\pgfsetarrowsstart{\csname sseq@runoffarrow@start@#3@spec\endcsname}}
-                \edef\temparrowendspec{\@nx\pgfsetarrowsend{\csname sseq@runoffarrow@end@#3@spec\endcsname}}
+                \def\tempaf{\pgfpointintersectionsolution{1}}%
+                \def\tempbf{\pgfpointintersectionsolution{2}}%
+                \edef\temparrowstartspec{\@nx\pgfsetarrowsstart{\csname sseq@runoffarrow@start@#3@spec\endcsname}}%
+                \edef\temparrowendspec{\@nx\pgfsetarrowsend{\csname sseq@runoffarrow@end@#3@spec\endcsname}}%
             \else
                 \sseq@drawedgefalse % Don't draw "orphaned edges"
             \fi
     \else
-        \sseq@error{This shouldn't happen.}
+        \sseq@error{This shouldn't happen.}%
     \fi
     \ifsseq@drawedge
         \pgftransformreset
-        % TODO: Decide whether this code should be here
+        % TODO: Decide whether this code should be here or what related thing should happen
         % Don't draw dots on very short segments
         \tempbf\pgf@xa=\pgf@x\pgf@ya=\pgf@y
         \tempaf\advance\pgf@xa-\pgf@x\advance\pgf@ya-\pgf@y
-        \pgfmathveclen{\pgf@xa}{\pgf@ya}
+        \pgfmathveclen{\pgf@xa}{\pgf@ya}%
         \@xp\pgfmathint\@xp{\pgfmathresult}%
         \ifnum\pgfmathresult<10\relax%%17?
-            \tikzset{every text node part/.append code={\pgfsetcolor{white}}}
+            \tikzset{every text node part/.append code={\pgfsetcolor{white}}}%
             \ifx\temparrowstartspec\pgfutil@empty
             \else
-                \def\temparrowstartspec{\pgfsetarrowsstart{}}
+                \def\temparrowstartspec{\pgfsetarrowsstart{}}%
             \fi
             \ifx\temparrowendspec\pgfutil@empty
             \else
-                \def\temparrowendspec{\pgfsetarrowsend{}}
+                \def\temparrowendspec{\pgfsetarrowsend{}}%
             \fi
         \fi
         \ifsseq@needstikz
-            \pgfcoordinate{tempa}{\tempaf}
-            \pgfcoordinate{tempb}{\tempbf}
+            \pgfcoordinate{tempa}{\tempaf}%
+            \pgfcoordinate{tempb}{\tempbf}%
             \edef\temp{\@nx\draw[/tikz/sseqpages/second pass/differential,
                 /utils/exec={\@xp\@nx\temparrowstartspec\@xp\@nx\temparrowendspec}
             ] (tempa) to (tempb);}%
@@ -2451,8 +2553,8 @@
         \else
             \temparrowstartspec
             \temparrowendspec
-            \pgfpathmoveto{\tempaf}
-            \pgfpathlineto{\tempbf}
+            \pgfpathmoveto{\tempaf}%
+            \pgfpathlineto{\tempbf}%
             \edef\temp{\noexpand\pgfusepath{%
                 \iftikz@mode@fill fill,\fi%
                 \iftikz@mode@draw draw,\fi%

@@ -8,8 +8,10 @@
     name=KRAHSS,
     x range={-18}{17},
     y range={-10}{10},
-    no axes,
-    x label step=2,
+    axes style=center,
+    label step=4,
+    x label gap=0.2cm,
+    y label gap=0.4cm,
     classes={circle,inner sep=0.3ex,fill=black},
     differentials=->,
     execute at begin node=$,execute at end node=$,
@@ -17,12 +19,15 @@
     scale=0.5,
     right clip padding=0.1cm,
     top clip padding=0.1cm,
+    left clip padding=0.3cm,
+    bottom clip padding=0.3cm,
+    x axis gap=0.25cm,
+    y axis gap=0.25cm,
+    x axis extend start=0cm,
+    y axis extend start=0cm,
     x axis extend end=0.25cm,
-    y axis extend end=0.25cm,
-    draw orphan edges
+    y axis extend end=0.25cm
 ]
-\def\sseq@xclip@axisgap{0.17cm}
-\def\sseq@yclip@axisgap{0.17cm}
 
 \draw[background,xshift=-0.5cm,yshift=-0.5cm,step=1cm,gray,very thin] (\xmin+0.1,\ymin+0.1) grid (\xmax+0.7,\ymax+0.7);
 \pgfmathparse{\xmax+2}
