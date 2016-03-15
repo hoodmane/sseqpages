@@ -1,0 +1,27 @@
+\documentclass{ltxdoc}
+\usepackage[a4paper,left=2.25cm,right=2.25cm,top=2.5cm,bottom=2.5cm,nohead]{geometry}
+\usepackage{sseqpages}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage[documentation]{tcolorbox}
+
+\newcommand\Tikz{Ti\textit kZ}
+\parskip=10pt
+\parindent=0pt
+\MakeShortVerb{\|}
+\makeatletter
+\def\sectionstring{\textbackslash\@xp\@gobble\string}
+\makeatother
+
+\begin{document}
+\section{Introduction}
+
+\section{The sseqdata Environment}
+
+
+\section{\sectionstring\printpage\ and the sseqpage environment}
+
+\begin{docCommand}{mycommand}{\marg{arg1}\marg{arg2}}
+This is how you use my command.
+\end{docCommand}
+\end{document} 
