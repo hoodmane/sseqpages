@@ -1,0 +1,73 @@
+\documentclass{article}
+\usepackage[landscape,margin=2cm]{geometry}
+\usepackage{sseqpages}
+\begin{document}
+\tikzset{
+    Z2class/.style={circle,inner sep=0.3ex,fill=black},
+    Zclass/.style={fill=none,draw,inner sep=0.6ex},
+    2Zclass/.style={fill=none,rectangle,draw,inner sep=0.6ex,outer sep=0.5ex}
+}
+\begin{sseqdata}[
+    name=KRHFPSS,
+    x range={-12}{14},
+    y range={0}{10},
+    y axis style=center,
+    y axis gap=0.425cm,
+    label step=4,
+    classes=Z2class,
+    differentials=->,
+    degree={-1}{#1-1},
+    scale=0.85,
+    right clip padding=0.1cm,
+    top clip padding=0.05cm,
+    x axis extend start=0cm,
+    x axis extend end=0.33cm,
+    %y axis extend start=0.4cm,
+    y axis extend end=0.3cm,
+]
+
+\draw[background,xshift=-0.5cm,yshift=-0.51cm,step=1cm,gray,very thin] (\xmin+0.01,\ymin+0.01) grid (\xmax+0.9,\ymax+0.9);
+
+\pgfmathsetmacro\xitstart{int(\xmin/8)*8-16}
+\pgfmathsetmacro\xitgap{\xitstart+4}
+\pgfmathsetmacro\xitend{\xmax+2}
+\pgfmathsetmacro\xmaxpp{\xmax+2}
+
+\foreach \x in {\xitstart,\xitgap,...,\xitend} {
+    \class[Zclass](\x,0)
+    \foreach \z in {0,...,\xmaxpp} {
+        \class(\x+\z+1,\z+1)
+        \structline(\x+\z,\z)(\x+\z+1,\z+1)
+    }
+}
+
+\pgfmathsetmacro\xitstart{\xitgap}
+\pgfmathsetmacro\xitgap{\xitstart+8}
+
+\foreach \x in {\xitstart,\xitgap,...,\xitend} {
+    \foreach\z in {0,...,\xmax}{
+        \d4(\x+\z,\z)
+    }
+    \replaceclass[2Zclass](\x,0)
+}
+\end{sseqdata}
+\printpage[name=KRHFPSS,page=0]
+\newpage
+\printpage[name=KRHFPSS,page=5]
+
+\newpage
+\begin{sseqpage}[name=KRHFPSS,page=0,keep changes]
+\pgfmathsetmacro\antidiag{min(-\xmin,\ymax+0.8)}
+\addtocontext\antidiag
+\clip[background,xshift=0.28cm,yshift=-0.4cm](-\antidiag,\antidiag)--(-1,1)--(-0.4,0)--(\xmax+2,0)--(\xmax+2,\antidiag)--cycle;
+\foreach \z in {2,6}{
+    \doptions[draw=none]4(-\z-1,\z-1)
+    \structlineoptions[draw=none](-\z-1,\z-1)(-\z,\z)
+    \structlineoptions[draw=none](-\z-3,\z+1)(-\z-2,\z+2)
+    \replaceclass(-\z-2,\z+2)
+}
+\structlineoptions[draw=none](-3,1)(-2,2)
+\end{sseqpage}
+\newpage
+\printpage[name=KRHFPSS,page=5]
+\end{document} 
