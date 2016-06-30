@@ -7,7 +7,12 @@
 %%
 
 % TODO:
-%%%% manual
+% manual
+%
+% Add option "update existing" or something and make an error message if \sseqdata is given with the same name but no "update" option or vice versa.
+% Error if "keep changes" is passed, but no name
+%% Fix bug with \sseqset used inside sseqpage environment
+%% figure out if we can delete first pass/differential/ and /first pass/structline. what's going on with handle quote/.code=\sseq@needstikztrue?
 %
 % improve axes options? allow axis to be centered on coordinate or centered between coordinates
 % add error checking / improve robustness of modified tikz code
@@ -47,7 +52,7 @@
         \PackageWarning{sseqpages}{I'm not sure that the sseqpages package will work with Tikz versions earlier than 3.0.1a.}
      \else
         \PackageError{sseqpages}{I'm not sure that the sseqpages package will work with Tikz versions earlier than 3.0.1a. Please say
-        '\string\usepackage[version warn]{sseqpages}' to suppress this error message, then let me (hood@mit.edu) know whether sseqpages works with your version of Tikz. Or just update}{}
+        '\string\usepackage[version warn]{sseqpages}' to suppress this error message, then let me (hood@mit.edu) know whether sseqpages works with your version of Tikz. Or just update Tikz}{}
      \fi
 
 }
@@ -662,6 +667,7 @@
     /tikz/sseqpages/second pass/differential/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
     /tikz/sseqpages/second pass/structline/.is family,
     /tikz/sseqpages/second pass/structline/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
+    /tikz/sseqpages/edge anchors/.unknown/.code={},
     /tikz/sseqpages/second pass/tikz primitives/.is family,
     /tikz/sseqpages/second pass/tikz primitives/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
     % One off directories
@@ -672,51 +678,55 @@
 \pgfqkeys{/tikz/sseqpages/first pass/class}{shape/.code={\edef\tikz@shape{\pgfkeyscurrentname}}} % shape=whatever shape passing
 
 
+%% label directions
+\def\sseq@labeldirectionlist{\\{above}\\{below}\\{left}\\{right}\\{above left}\\{above right}\\{below left}\\{below right}}
+\def\sseq@setlabeldirectionkeys#1{
+    \@ifnextchar[{\sseq@setlabeldirectionkeys@{#1}}{\sseq@setlabeldirectionkeys@{#1}[/.code]}
+}
+
+\def\sseq@setlabeldirectionkeys@#1[#2]#3{
+    \def\sseq@temp##1{#3}
+    \sseq@temptoks@ii{}
+    \def\\##1{
+        \sseq@temptoks\@xp{\sseq@temp{##1}}
+        \edef\temp{\sseq@temptoks@ii{\the\sseq@temptoks@ii##1#2={\the\sseq@temptoks},}}
+        \temp
+    }
+    \sseq@labeldirectionlist
+    \edef\temp{\@nx\pgfqkeys{#1}{\the\sseq@temptoks@ii}}
+    \temp
+}
+
+\sseq@setlabeldirectionkeys{/tikz/sseqpages/first pass/class/labels}{\sseq@classlabeltrue}
 \pgfqkeys{/tikz/sseqpages/first pass/class/labels}{% maybe implement multipart node labels this way? No way!
     node/.code={\sseq@classlabelfalse},
     inside/.code={\sseq@classlabelfalse},
-    above/.code={\sseq@classlabeltrue},
-    below/.code={\sseq@classlabeltrue},
-    left/.code={\sseq@classlabeltrue},
-    right/.code={\sseq@classlabeltrue},
-    above left/.code={\sseq@classlabeltrue},
-    above right/.code={\sseq@classlabeltrue},
-    below left/.code={\sseq@classlabeltrue},
-    below right/.code={\sseq@classlabeltrue}
 }
+
+\sseq@setlabeldirectionkeys{/tikz/sseqpages/second pass/class/labels}{\sseq@class@positionlabel{#1}{##1}}
+\sseq@setlabeldirectionkeys{/tikz/sseqpages/second pass/class/labels}[/.default]{1ex}
 
 \pgfqkeys{/tikz/sseqpages/second pass/class/labels}{
     node/.code={},
-    inside/.code={},
-    above/.code=      {\sseq@class@positionlabel{above}{#1}},
-    above/.default={1ex},
-    below/.code=      {\sseq@class@positionlabel{below}{#1}},
-    below/.default={1ex},
-    left/.code=       {\sseq@class@positionlabel{left}{#1}},
-    left/.default={1ex},
-    right/.code=      {\sseq@class@positionlabel{right}{#1}},
-    right/.default={1ex},
-    above left/.code= {\sseq@class@positionlabel{above left}{#1}},
-    above left/.default={1ex},
-    above right/.code={\sseq@class@positionlabel{above right}{#1}},
-    above right/.default={1ex},
-    below left/.code= {\sseq@class@positionlabel{below left}{#1}},
-    below left/.default={1ex},
-    below right/.code={\sseq@class@positionlabel{below right}{#1}}
-    below right/.default={1ex}
+    inside/.code={}
 }
 
+\sseq@setlabeldirectionkeys{/tikz/sseqpages/global}[ label distance/.code]{\pgfkeysalso{#1 label distance @ internal={##1}}}
+\sseq@setlabeldirectionkeys{/tikz/sseqpages}[ label distance/.code]{\sseq@error@optionglobalonly{#1 label distance}}
+\sseq@setlabeldirectionkeys{/tikz/sseqpages}[ label distance @ internal/.code]{\pgfqkeys{/tikz/sseqpages/second pass/class/labels}{#1/.default={##1}}}
+
+\pgfqkeys{/tikz/sseqpages/global}{
+    label distance/.code={\pgfkeysalso{label distance @ internal={#1}}},
+}
+\pgfqkeys{/tikz/sseqpages}{
+    label distance @ internal/.code={\sseq@setlabeldirectionkeys{/tikz/sseqpages/second pass/class/labels}[/.default]{#1}},
+    label distance/.code={\sseq@error@optionglobalonly{label distance}}
+}
+
+\sseq@setlabeldirectionkeys{/tikz/sseqpages/second pass/class/node texts}{}
 \pgfqkeys{/tikz/sseqpages/second pass/class/node texts}{
     node/.code={},
-    inside/.code={},
-    above/.code=      {},
-    below/.code=      {},
-    left/.code=       {},
-    right/.code=      {},
-    above left/.code= {},
-    above right/.code={},
-    below left/.code= {},
-    below right/.code={}
+    inside/.code={}
 }
 
 
@@ -730,16 +740,16 @@
         \sseq@temptoks{#1}
         \sseq@temptoks@ii{\pgfkeysalso{#2}}
         \def\pgfkeysdefaultpath{/tikz/sseqpages/first pass/class/labels/}
-        \the\sseq@classstyle\the\sseq@labelstyle\the\sseq@classlabelpositionstyle
+        \the\sseq@labelstyle\the\sseq@classlabelstyle
         \pgfkeysalso{#2}
         \ifsseq@classlabel
-            \the\sseq@classlabelstyle
+            \the\sseq@outerclasslabelstyle
             \sseq@x@addto@macro@noctx\sseq@classlabelnodes{%
                 \@nx\ifsseq@needstikz
                     node[
                         /tikz/sseqpages/second pass/class/labels,
                         /utils/exec={
-                            \sseq@thelabelstyle\sseq@theclasslabelpositionstyle\sseq@theclasslabelstyle\the\sseq@temptoks@ii
+                            \sseq@thelabelstyle\sseq@theclasslabelstyle\sseq@theouterclasslabelstyle\the\sseq@temptoks@ii
                             \@nx\iftikz@fullytransformed\@nx\else
                                 \@nx\tikz@fullytransformedtrue\@nx\tikz@addtransform{\@nx\pgftransformresetnontranslations\@nx\sseq@globalrotatetransform}
                             \@nx\fi
@@ -749,7 +759,7 @@
                     \@nx\node[
                         /tikz/sseqpages/second pass/class/labels,
                         /utils/exec={
-                            \sseq@thelabelstyle\sseq@theclasslabelpositionstyle\sseq@theclasslabelstyle\the\sseq@temptoks@ii
+                            \sseq@thelabelstyle\sseq@theclasslabelstyle\sseq@theouterclasslabelstyle\the\sseq@temptoks@ii
                             \@nx\iftikz@fullytransformed\@nx\else
                                 \@nx\tikz@fullytransformedtrue\@nx\tikz@addtransform{\@nx\pgftransformresetnontranslations\@nx\sseq@globalrotatetransform}
                             \@nx\fi
@@ -758,12 +768,12 @@
                 \@nx\fi
             }%
         \else
-            \the\sseq@classtextstyle
+            \the\sseq@innerclasslabelstyle
             \pgfkeysalso{#2}
             \gdef\sseq@classnodetext{#1}%
             \xdef\sseq@classnodetextoptions{
                 \def\@nx\pgfkeysdefaultpath{/tikz/sseqpages/second pass/class/node texts/}
-                \sseq@thelabelstyle\sseq@theclasstextstyle\the\sseq@temptoks@ii
+                \sseq@thelabelstyle\sseq@theinnerclasslabelstyle\the\sseq@temptoks@ii
             }%
         \fi
         \endgroup
@@ -832,7 +842,7 @@
     background/.code={\sseq@errortikzprimsonly{background}}
 }
 
-\pgfqkeys{/tikz/sseqpages/first pass/differentials}{%
+\pgfqkeys{/tikz/sseqpages/first pass/differential}{%
     standard parse/.code={\sseq@errortikzprimsonly{standard parse}},
     background/.code={\sseq@errortikzprimsonly{background}}
 }
@@ -847,17 +857,6 @@
 % Rather than using the faster direct \pgf primitives (largely copied from tikz to maximize compatibility)
 % Drawing with tikz is slower, but I don't want to reimplement these features
 
-\pgfqkeys{/tikz/sseqpages/first pass}{%
-    needs tikz/.code=\sseq@needstikztrue,
-    shade/.code=\sseq@needstikztrue,
-    blend mode/.code=\sseq@needstikztrue,
-    pattern/.code=\sseq@needstikztrue,
-    path picture/.code=\sseq@needstikztrue,
-    path fading/.code=\sseq@needstikztrue,
-    decorate/.code=\sseq@needstikztrue,
-    pin/.code=\sseq@needstikztrue,
-    label/.code=\sseq@needstikztrue
-}
 
 % multipart shapes and alignment to be done with tikz
 \pgfqkeys{/tikz/sseqpages/first pass/class}{%
@@ -869,38 +868,32 @@
     name/.code={\sseq@error{You can't use the 'name' option with the '\@nx\class' command. You should use 'alias' instead}{}}
 }
 
-
-% Force differential to be drawn with tikz if it is bent
-\pgfqkeys{/tikz/sseqpages/first pass/differential}{%
-    bend left/.code=\sseq@needstikztrue,
-    bend right/.code=\sseq@needstikztrue,
-    in/.code=\sseq@needstikztrue,
-    out/.code=\sseq@needstikztrue,
-    controls/.code=\sseq@needstikztrue,
-    in control/.code=\sseq@needstikztrue,
-    out control/.code=\sseq@needstikztrue,
-    loop/.code=\sseq@needstikztrue,
-    loop above/.code=\sseq@needstikztrue,
-    loop below/.code=\sseq@needstikztrue,
-    loop left/.code=\sseq@needstikztrue,
-    loop right/.code=\sseq@needstikztrue
+\def\sseq@needstikzandpass#1#2{\sseq@needstikzandpass@{#1}#2,\@nil}
+\def\sseq@needstikzandpass@#1#2,{%
+    \pgfqkeys{#1}{#2/.code={\sseq@needstikztrue\pgfqkeys{/tikz}{#2}}}%
+    \@ifnextchar\@nil{\@gobble}{\sseq@needstikzandpass@}%
 }
 
-\pgfqkeys{/tikz/sseqpages/first pass/structline}{%
-    bend left/.code=\sseq@needstikztrue,
-    bend right/.code=\sseq@needstikztrue,
-    in/.code=\sseq@needstikztrue,
-    out/.code=\sseq@needstikztrue,
-    controls/.code=\sseq@needstikztrue,
-    in control/.code=\sseq@needstikztrue,
-    out control/.code=\sseq@needstikztrue,
-    loop/.code=\sseq@needstikztrue,
-    loop above/.code=\sseq@needstikztrue,
-    loop below/.code=\sseq@needstikztrue,
-    loop left/.code=\sseq@needstikztrue,
-    loop right/.code=\sseq@needstikztrue
+\pgfqkeys{/tikz/sseqpages}{needs tikz/.code=\sseq@needstikztrue}
+\sseq@needstikzandpass{/tikz/sseqpages}{%
+    shade, blend mode, pattern, path picture, path fading, decorate, pin, label
 }
 
+\sseq@needstikzandpass{/tikz/sseqpages/second pass/differential}{
+    bend left, bend right, in, out, controls, in control, out control,
+    loop, loop above, loop below, loop left, loop right % maybe delete the loops and replace them with errors? It's pretty pointless to use these.
+}
+
+\sseq@needstikzandpass{/tikz/sseqpages/second pass/structline}{
+    bend left, bend right, in, out, controls, in control, out control,
+    loop, loop above, loop below, loop left, loop right % maybe delete the loops and replace them with errors? It's pretty pointless to use these.
+}
+
+\pgfqkeys{/tikz/sseqpages}{source anchor/.code={},target anchor/.code={}}
+\pgfqkeys{/tikz/sseqpages/edge anchors}{
+    source anchor/.store in=\sseq@edgesourceanchor,
+    target anchor/.store in=\sseq@edgetargetanchor
+}
 
 %% Style options
 \def\sseq@stylelist{}
@@ -934,7 +927,7 @@
     sseq, path, node,
     class, permanent cycle, transient cycle, this page cycle,
     edge, differential, struct line, this page struct line,
-    label, class label, class text, class label position, edge label, differential label, struct line label,
+    label, class label, inner class label, outer class label, edge label, differential label, struct line label,
 }
 
 \sseq@set@newstyle{classes/.style={classs={#1}}}% "class" has a nonstandard plural
@@ -1579,6 +1572,7 @@
     \gdef\sseq@pagecleanup{}% For undoing local option settings
     \gdef\sseq@savedforegroundpaths{}%
     \def\sseq@thepage{0}%
+    \sseq@clearstyles % Keep \sseqset changes from "double dipping" TODO: fix the glitch.
     \pgfqkeys{/tikz/sseqpages/global/name only}{#1}%
     \ifsseq@hasname
         \sseq@getcmds
@@ -1620,7 +1614,6 @@
     \let\sseq@transform\sseq@okaytransform % Allow all coordinate transforms in global options
     \let\sseq@shifttransform\sseq@okaytransform
     %
-    \sseq@clearstyles % Keep \sseqset changes from "double dipping" (the logic behind this is a little weird though...)
     \edef\temp{\@nx\begin{tikzpicture}[/tikz/sseqpages,/utils/exec={\the\sseq@sseqstyle},/tikz/sseqpages/global/{default} options,\ifsseq@hasname/tikz/sseqpages/global/{\sseq@thename} options\fi,/tikz/sseqpages/global/{this page} options]}%
     \temp
     \sseq@globaldetonetransform
@@ -2400,10 +2393,8 @@
 }
 
 \def\sseq@d@@#1#2#3{%
-    \def\sseq@thiscall{\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3)}%
-    \ifsseq@keepchanges\sseq@newmaxpage{#2}\fi
-    \pgfqkeys{/tikz/sseqpages/first pass/differential}{#1}%
     \sseq@dsetupsourceandtarget{#2}{#3}
+    \def\sseq@thiscall{\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(#3)}%
 %
 %   Errors:
     \sseq@ifundefcoord\source{%
@@ -2478,6 +2469,10 @@
             \csname sseq@coord\sseq@thename(\targetcoord)@numnodes\endcsname\sseq@macroname\ nodes at (\targetcoord) should be the target%
         }{}}{}%
     \fi
+%
+%
+    \ifsseq@keepchanges\sseq@newmaxpage{#2}\fi
+    \pgfqkeys{/tikz/sseqpages/first pass/differential}{#1}%
 %
     \sseq@temptoks{\pgfkeysalso{#1}}% local options
 %
@@ -2654,22 +2649,43 @@
 % #3 -- which type of edge (either "structline" or "differential")
 % #4 -- options
 \def\sseq@drawedge(#1)(#2)#3#4{%
-    % First calculate actual start and end of the edge
     \begingroup\pgfscope
+
+    \let\sseq@edgesourceanchor\pgfutil@empty
+    \let\sseq@edgetargetanchor\pgfutil@empty
+    \def\pgfkeysdefaultpath{/tikz/sseqpages/edge anchors/}
+    #4
+
+    % First calculate actual start and end of the edge
+    \let\tempaf\pgfutil@empty
     \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid % Check if source is a named coordinate
-        \def\tempa{\pgfpointanchor{sseq@{#1}}{center}}% if so, start by taking the center of that coordinate
+        \ifx\sseq@edgesourceanchor\pgfutil@empty % Check that the source doesn't have a specified anchor
+            \def\tempa{\pgfpointanchor{sseq@{#1}}{center}}% if so, start by taking the center of that coordinate
+        \else
+            \edef\tempa{\@nx\pgfpointanchor{sseq@{#1}}{\sseq@edgesourceanchor}} % If it has an anchor, use that
+            \let\tempaf\tempa
+        \fi
     \else
-        \edef\tempa{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#1)}% else, just take the coordinate in question
+        \ifx\sseq@edgesourceanchor\pgfutil@empty\else % if the source isn't a named coordinate, we shouldn't have a source anchor
+            \sseq@error{You specified a source anchor to the #3 between (#1) and (#2), but the source (#1) is not a node}
+        \fi
+        \edef\tempa{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#1)}% if the source isn't a named coordinate just take the coordinate in question
         \let\tempaf\tempa
     \fi
     \@xp\ifx\csname pgf@sh@pi@sseq@{#2}\endcsname\pgfpictureid % Check if the target is a named coordinate
-        \def\tempb{\pgfpointanchor{sseq@{#2}}{center}}
-        \def\tempbf{\pgfpointshapeborder{sseq@{#2}}{\tempa}}%also ta
+        \ifx\sseq@edgetargetanchor\pgfutil@empty % check that the target doesn't have a specified anchor
+            \def\tempb{\pgfpointshapeborder{sseq@{#2}}{\tempa}}% if so, our end point is the point on the boundary of node b that is in the direction of our initial start coordinate
+        \else
+            \edef\tempb{\@nx\pgfpointanchor{sseq@{#2}}{\sseq@edgetargetanchor}}% If it has a specified anchor, use that
+        \fi
     \else
-        \edef\tempb{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#2)}%
-        \let\tempbf\tempb
+        \ifx\sseq@edgetargetanchor\pgfutil@empty\else
+            \sseq@error{You specified a target anchor to the #3 between (#1) and (#2), but the target (#2) is not a node}
+        \fi
+        \edef\tempb{\@nx\pgfpoint\sseq@fullcoord@to@partialcoordb(#2)}% if the targt is not a node, just use the coordinate
     \fi
-    \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid
+    \let\tempbf\tempb
+    \ifx\tempaf\pgfutil@empty
         \def\tempaf{\pgfpointshapeborder{sseq@{#1}}{\tempb}}%
     \fi
 %
@@ -2849,7 +2865,7 @@
             \endgroup
         }
     }%
-    \temp
+   \temp
 }
 
 \def\sseq@anchorsplit#1{\sseq@anchorsplit@#1.\sseq@nil}
