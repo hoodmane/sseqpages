@@ -1,4 +1,3 @@
-
 \begin{sseqdata}[
     execute at begin node=$,execute at end node=$,
     degree={-1}{#1},
@@ -6,7 +5,7 @@
     differentials={-{>[width=4]}, target anchor=-35},
     class labels=left,
     label distance={0.2em},
-    above left label distance={0.3em},
+    above left label distance={0em},
     y range={0}{10},
     x range={0}{17},
     xscale=1.25,
@@ -50,12 +49,16 @@
 \class(7,3) \structline(7,3)(7,2)
 \class(7,4) \structline(7,4)(7,3)
 
-\etaclass(8,2)
-\class["c_0" above left](8,3)
 
-\etaclass["\nu^3" {above left=0em}](9,3)
-\etaclass(9,4)
+\etaclass(8,2)
+\etaclass["\nu^3"](9,3)
 \class["P h_1"](9,5)
+
+\sseqset{above left label distance=0.3em}
+
+\class["c_0" above left](8,3)
+\etaclass(9,4)
+
 
 \etaclass(10,6)
 \etaclass(11,7)
@@ -102,6 +105,5 @@
 % off the page differentials
 \d2(18,4,-1)
 \d2(18,5)
-
 \end{sseqdata}
 \printpage[name=ass,page=0] 

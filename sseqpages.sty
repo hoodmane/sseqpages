@@ -289,7 +289,7 @@
 %%%% Tikz modifications
 
 %%% Context -- make sure \foreach doesn't break when used with sseqpages commands that defer evaluation
-% TODO: robustify by copying pgffor wholesale.
+% TODO: robustify by copying pgffor wholesale?
 \newcount\sseq@contextcount
 \def\sseq@addtolocalcontext#1{%
     \global\advance\sseq@contextcount1\relax%
@@ -667,7 +667,6 @@
     /tikz/sseqpages/second pass/differential/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
     /tikz/sseqpages/second pass/structline/.is family,
     /tikz/sseqpages/second pass/structline/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
-    /tikz/sseqpages/edge anchors/.unknown/.code={},
     /tikz/sseqpages/second pass/tikz primitives/.is family,
     /tikz/sseqpages/second pass/tikz primitives/.unknown/.code={\sseq@passoptionto{/tikz/sseqpages/second pass}},
     % One off directories
@@ -682,6 +681,21 @@
 \def\sseq@labeldirectionlist{\\{above}\\{below}\\{left}\\{right}\\{above left}\\{above right}\\{below left}\\{below right}}
 \def\sseq@setlabeldirectionkeys#1{
     \@ifnextchar[{\sseq@setlabeldirectionkeys@{#1}}{\sseq@setlabeldirectionkeys@{#1}[/.code]}
+}
+
+\def\\#1{\@xp\sseq@addtostorelist\csname sseq@default@#1@distance\endcsname{1ex}}
+\sseq@labeldirectionlist
+\def\sseq@defaultlabeldistance#1{\csname sseq@default@#1@distance\endcsname}
+\def\sseq@setdefaultlabeldistance#1#2{\@xp\sseq@g@addto@macro@noctx\csname sseq@savednodes@\sseq@thename infty\endcsname{\@xp\def\csname sseq@default@#1@distance\endcsname{#2}}}
+\def\sseq@setdefaultlabeldistances#1{\def\\##1{\sseq@setdefaultlabeldistance{##1}{#1}}\sseq@labeldirectionlist}
+\def\sseq@savedefaultlabeldistances{
+    \def\\##1{
+        \edef\temp{
+            \sseq@temptoks@iii{\the\sseq@temptoks@iii\@nx\sseq@setdefaultlabeldistance{##1}{\sseq@defaultlabeldistance{##1}}}
+        }
+        \temp
+    }
+    \sseq@labeldirectionlist
 }
 
 \def\sseq@setlabeldirectionkeys@#1[#2]#3{
@@ -704,23 +718,23 @@
 }
 
 \sseq@setlabeldirectionkeys{/tikz/sseqpages/second pass/class/labels}{\sseq@class@positionlabel{#1}{##1}}
-\sseq@setlabeldirectionkeys{/tikz/sseqpages/second pass/class/labels}[/.default]{1ex}
+\sseq@setlabeldirectionkeys{/tikz/sseqpages/second pass/class/labels}[/.default]{\sseq@defaultlabeldistance{#1}}
+
 
 \pgfqkeys{/tikz/sseqpages/second pass/class/labels}{
     node/.code={},
     inside/.code={}
 }
 
-\sseq@setlabeldirectionkeys{/tikz/sseqpages/global}[ label distance/.code]{\pgfkeysalso{#1 label distance @ internal={##1}}}
-\sseq@setlabeldirectionkeys{/tikz/sseqpages}[ label distance/.code]{\sseq@error@optionglobalonly{#1 label distance}}
-\sseq@setlabeldirectionkeys{/tikz/sseqpages}[ label distance @ internal/.code]{\pgfqkeys{/tikz/sseqpages/second pass/class/labels}{#1/.default={##1}}}
+\sseq@setlabeldirectionkeys{/tikz/sseqpages/global}[ label distance/.code]{\sseq@setdefaultlabeldistance{#1}{##1}}
+\sseq@setlabeldirectionkeys{/tikz/sseqpages}[ label distance/.code]{\sseq@setdefaultlabeldistance{#1}{##1}}
+%\sseq@setlabeldirectionkeys{/tikz/sseqpages}[ label distance/.code]{\sseq@error@optionglobalonly{#1 label distance}}
 
 \pgfqkeys{/tikz/sseqpages/global}{
-    label distance/.code={\pgfkeysalso{label distance @ internal={#1}}},
+    label distance/.code={\sseq@setdefaultlabeldistances{#1}}
 }
 \pgfqkeys{/tikz/sseqpages}{
-    label distance @ internal/.code={\sseq@setlabeldirectionkeys{/tikz/sseqpages/second pass/class/labels}[/.default]{#1}},
-    label distance/.code={\sseq@error@optionglobalonly{label distance}}
+    label distance/.code={\sseq@setdefaultlabeldistances{#1}}
 }
 
 \sseq@setlabeldirectionkeys{/tikz/sseqpages/second pass/class/node texts}{}
@@ -889,8 +903,11 @@
     loop, loop above, loop below, loop left, loop right % maybe delete the loops and replace them with errors? It's pretty pointless to use these.
 }
 
-\pgfqkeys{/tikz/sseqpages}{source anchor/.code={},target anchor/.code={}}
-\pgfqkeys{/tikz/sseqpages/edge anchors}{
+\pgfqkeys{/tikz/sseqpages/second pass/struct line}{
+    source anchor/.store in=\sseq@edgesourceanchor,
+    target anchor/.store in=\sseq@edgetargetanchor
+}
+\pgfqkeys{/tikz/sseqpages/second pass/differential}{
     source anchor/.store in=\sseq@edgesourceanchor,
     target anchor/.store in=\sseq@edgetargetanchor
 }
@@ -1868,16 +1885,16 @@
 % TODO: Maybe add error checking for whether x,y are integers? any other error checking?
 % Needs \coord to contain... \coord
 \def\sseq@class@setupdrawnode#1#2{
-        \begingroup
-        \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
-        \@nx\sseq@class@drawnode#1{%
-            \sseq@thepathstyle\sseq@thenodestyle\sseq@theclassstyle
-            #2
-            \the\sseq@scopeoptions
-            \the\sseq@temptoks@ii
-            \@xp\@nx\csname sseq@classstyle\sseq@thename\coord\endcsname
-        }%
-        \endgroup
+    \begingroup
+    \ifsseq@needstikz \@nx\sseq@needstikztrue\fi
+    \@nx\sseq@class@drawnode#1{%
+        \sseq@thepathstyle\sseq@thenodestyle\sseq@theclassstyle
+        #2
+        \the\sseq@scopeoptions
+        \the\sseq@temptoks@ii
+        \@xp\@nx\csname sseq@classstyle\sseq@thename\coord\endcsname
+    }%
+    \endgroup
 }
 
 \def\sseq@class{\@ifnextchar[{\sseq@class@}{\sseq@class@[]}}%}
@@ -2639,8 +2656,8 @@
     \fi
 }
 
-\sseq@addtostorelist\sseq@runoffarrow@start@differential@spec{}
-\sseq@addtostorelist\sseq@runoffarrow@end@differential@spec{}
+\sseq@addtostorelist\sseq@runoffarrow@start@differential@spec{...}
+\sseq@addtostorelist\sseq@runoffarrow@end@differential@spec{...}
 \sseq@addtostorelist\sseq@runoffarrow@start@structline@spec{...}
 \sseq@addtostorelist\sseq@runoffarrow@end@structline@spec{...}
 
@@ -2650,11 +2667,11 @@
 % #4 -- options
 \def\sseq@drawedge(#1)(#2)#3#4{%
     \begingroup\pgfscope
-
     \let\sseq@edgesourceanchor\pgfutil@empty
     \let\sseq@edgetargetanchor\pgfutil@empty
-    \def\pgfkeysdefaultpath{/tikz/sseqpages/edge anchors/}
-    #4
+    \def\pgfkeysdefaultpath{/tikz/sseqpages/second pass/#3/}%
+    \pgfkeysalso{draw}%
+    #4%
 
     % First calculate actual start and end of the edge
     \let\tempaf\pgfutil@empty
@@ -2689,9 +2706,7 @@
         \def\tempaf{\pgfpointshapeborder{sseq@{#1}}{\tempb}}%
     \fi
 %
-    \def\pgfkeysdefaultpath{/tikz/sseqpages/second pass/#3/}%
-    \pgfkeysalso{draw}%
-    #4%
+
     \tikz@options
     \tikz@mode
     \pgfpathmoveto{\tempaf}%
