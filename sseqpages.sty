@@ -143,7 +143,7 @@
         \def\temp##1##2##3##4##5##6{#5}%
         \sseq@temptoks\@xp{\temp\ppfour\ppfive\ppsix\ppseven\ppeight\ppnine}%
         \bgroup
-            \aftergroup\@xp\aftergroup\edef\aftergroup\helperb\aftergroup##\aftergroup1\aftergroup##\aftergroup2\aftergroup##\aftergroup3%
+            \aftergroup\@xp\aftergroup\xdef\aftergroup\helperb\aftergroup##\aftergroup1\aftergroup##\aftergroup2\aftergroup##\aftergroup3%
             \ifnum#4>0\relax
                 \sseq@tempcount=0\relax
                 \sseq@tempcountb=3\relax
