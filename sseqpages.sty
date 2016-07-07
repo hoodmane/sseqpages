@@ -165,6 +165,7 @@
         \@xp\sseq@patchrepeat\helperb{\ppseven}{*7}%
         \@xp\sseq@patchrepeat\helperb{\ppeight}{*8}%
         \@xp\sseq@patchrepeat\helperb{\ppnine}{*9}%
+        \edef\temp{\global\let\@xp\@nx\helperb\@xp\@nx\helperb}\temp
     }
 }
 \def\sseq@patchrepeat#1#2#3{\patchcmd#1{#2}{#3}{\sseq@patchrepeat#1{#2}{#3}}{}}
