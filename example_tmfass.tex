@@ -1,7 +1,8 @@
 \documentclass{article}
 \usepackage[landscape,margin=0cm,top=2cm]{geometry}
 \usepackage{sseqpages}
-% Last time test: 4.9 sec
+% Old time test: 4.9 sec
+% More recent: 5.2 sec
 \begin{document}
 \begin{sseqdata}[
     x range={0}{50},
@@ -95,7 +96,7 @@
     \d2(7,0)
 }
 
-\sseqnewgroup\towergroupb{ %80 + 25 + 15 = 120
+\sseqnewgroup\towergroupb{%80 + 25 + 15 = 120
     \towergroupa(0,0)
     \tower(8,-2)
     \class(10,-1)
@@ -127,23 +128,6 @@
     \d2(10,0,-1,-1)
 }
 
-
-%\tower
-%\begin{scope}[yshift=3]
-%\structline(0,1,2)(0,0)
-%\class(0,1)
-%\class(0,1)
-%\class(0,0)
-%\end{scope}
-%\class(1,0)
-%\d3(1,0)
-
-%\begin{scope}[xshift=0,yshift=1]
-%\structline(0,0)(1,1)
-%\end{scope}
-
-\makeatletter
-
 \towergroup(0,0) % 36
 
 \towergroupa(8,4) % 80
@@ -156,7 +140,7 @@
 
 \d3(17,4)
 \d3(18,5)
-%\d3(24,6)
+\d3(24,6)
 \d3(25,8,,-1)
 \d3(26,9)
 
@@ -166,8 +150,9 @@
 \d4(31,8)
 
 
-%\d2(25,13,,1)
-%\d2(25,13,,2)
+\d2(25,13,,1)
+\d2(25,13,,2)
+
 \end{sseqdata}
 \begin{sseqpage}[name=tmfass,page=2]
 %\doptions[green]2(25,13)
