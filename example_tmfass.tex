@@ -3,6 +3,7 @@
 \usepackage{sseqpages}
 % Old time test: 4.9 sec
 % More recent: 5.2 sec
+\usepackage{adjustbox}
 \begin{document}
 \begin{sseqdata}[
     x range={0}{50},
@@ -13,9 +14,11 @@
     permanent cycles=circle,
     differentials={->,blue},
     struct lines=red,
-    yscale=0.8, xscale=0.5,
+    yscale=0.6, xscale=0.5,
+    x axis extend end=0.2cm,
     name=tmfass
 ]
+\draw[background,step=1cm,gray,very thin] (\xmin-1,\ymin-0.8) grid (\xmax+0.4,\ymax+0.5);
 
 \sseqnewgroup\tower{% 25
     \class(0,0)
@@ -89,19 +92,30 @@
     \structline(10,0,-1)(13,1,-1)
     \structline(12,0,-1)(13,1,-1)
 %
-    \d2(4,-1)
-    \d2(4,0)
-    \d2(4,1)
-    \d2(7,-1)
-    \d2(7,0)
+    \d2(4,-1,-1,-1)
+    \d2(4,0,-1,-1)
+    \d2(4,1,-1,-1)
+    \d2(7,-1,-1,-1)
+    \d2(7,0,-1,-1)
+    \d2(10,0,-1,-1)
 }
 
 \sseqnewgroup\towergroupb{%80 + 25 + 15 = 120
     \towergroupa(0,0)
     \tower(8,-2)
     \class(10,-1)
+    \class(11,-1)
+    \class(10,-2)
+    \class(9,-3)
+    \class(11,-2)
+    \structline(8,-2)(11,-1)
+    \structline(11,-1)(10,-2)
+    \structline(10,-2)(9,-3)
+    \structline(11,-2)(11,-1)
+    
     \class(13,-1)
     \class(13,0)
+    \class(14,-2)
     \class(15,0)
     \class(16,-1)\class(16,-1)
     \class(16,0)
@@ -109,6 +123,7 @@
     \class(17,0)
     \class(18,0)
     \class(18,1)
+    \class(19,-1)
     \structline(10,-1,-1)(10,0,-1)
     \structline(13,0,-1)(13,1,-1)
     \structline(13,-1,-1)(13,0,-1)
@@ -125,7 +140,11 @@
     \structline(16,-1,-1)(17,0,-1)
     \structline(17,0,-1)(18,1,-1)
     \structline(18,1,-1)(18,0,-1)
-    \d2(10,0,-1,-1)
+    \d2(10,-1,-1,-1)
+    \d2(13,-1,-1,-1)
+    \d2(13,0,-1,-1)
+    \d3(14,-2,-1,-1)
+    \d2(19,-1,-1,-1)
 }
 
 \towergroup(0,0) % 36
@@ -137,7 +156,6 @@
 }
 
 \d2(18,4)
-
 \d3(17,4)
 \d3(18,5)
 \d3(24,6)
@@ -149,16 +167,55 @@
 %\d3(30,6)
 \d4(31,8)
 
+\foreach \n in {1,2,3,5,6,7}{
+    \class(35+2*\n,7+\n)
+}
 
-\d2(25,13,,1)
-\d2(25,13,,2)
+\d4(37,8)
+\d4(45,12)
+\class(36,9)
+\d2(36,9)
+
+\foreach \n in {0,...,5}{
+    \class(40+2*\n,8+\n)
+}
+\d3(42,9)
+\d4(44,10)
+\d3(50,13)
+
+\class(45,9)
+\class(47,10)
+\class(49,11)
+\d4(49,11,,1)
+\d4(49,11,,2)
+\towergroup(48,8)
+\d2(48,8)
+\d4(48,9)
+\class(50,10)
+\d4(50,10,1)
+\d4(50,10,2)
+\class(51,12)
+\d4(51,12)
+
+
+
 
 \end{sseqdata}
-\begin{sseqpage}[name=tmfass,page=2]
-%\doptions[green]2(25,13)
-\end{sseqpage}
-\newpage
+\printpage[name=tmfass,page=0]
+
+\printpage[name=tmfass,page=2]
+
 \printpage[name=tmfass,page=3]
-\newpage
+
 \printpage[name=tmfass,page=4]
+
+\begin{sseqpage}[name=tmfass,page=5]
+\draw(6,2)--(9,4);
+\draw(21,5)--(22,8);
+\draw[bend left=20] (25,5) to (28,8);
+\draw (27,6) -- (28,8);
+\draw(32,7,1)--(33,9);
+\draw[bend right=10](32,7,2) to (35,10);
+\draw(34,8) -- (35,10);
+\end{sseqpage}
 \end{document}

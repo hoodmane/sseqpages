@@ -3,33 +3,31 @@
 \usepackage{sseqpages}
 \usepackage{amssymb}
 \def\Z{\mathbb{Z}}
-\newbox\myboxa
-\newbox\myboxb
 \begin{document}
 \sseqset{
-    /tikz/sseqpages/first pass/class/0/.style={"$0$"},
-    /tikz/sseqpages/0/.style={draw=none},
-    degree={-#1}{#1-1},
+    0/.sseq style={"$0$",draw=none},
+    homological Serre grading,
     classes={draw=none,inner sep=0.2em},
     label gap=0.7em
 }
 \begin{sseqdata}[
     name=hatcherex1,
     permanent cycles={draw,minimum width={width("$Z_2$")+0.85em}},
-    yscale=0.6
+    yscale=0.6,
+    axes gap=1.2em,
+    axes clip padding=0em,
 ]
 \begin{scope}[background,opacity=0.1]
 \foreach \n in {1,3,...,9}{
     \fill(-1.1,\n-0.5)--(-1.1,\n+0.5)--(0,\n+0.5)--(\n+0.5,0)--(\n+0.5,-1.6)--(\n-0.5,-1.6)--(\n-0.5,0)--(0,\n-0.5)--cycle;
 }
 \end{scope}
-
 \class["$\Z$"](0,0)
 \foreach\x in {1,3,...,9}{
     \class["$\Z_2$"](\x,0)
 }
 \foreach \x in {2,4,...,8}{
-    \class[0](\x,0)
+    \class["$0$",draw=none](\x,0)
 }
 \foreach\y in {1,3,...,9}{
     \pgfmathparse{9-\y}
@@ -109,4 +107,4 @@
 \end{sseqdata}
 \printpage[name=hatcherex2,page=0]
 
-\end{document}
+\end{document} 

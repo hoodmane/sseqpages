@@ -1,0 +1,316 @@
+\documentclass{ltxdoc}
+\usepackage[a4paper,left=2.25cm,right=2.25cm,top=2.5cm,bottom=2.5cm,nohead]{geometry}
+\usepackage{sseqpages}
+\usetikzlibrary{shapes.geometric}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage[documentation]{tcolorbox}
+\usepackage{hyperref}
+\hypersetup{%
+        colorlinks=true,
+        linkcolor=blue,
+        filecolor=blue,
+        urlcolor=blue,
+        citecolor=blue,
+        pdfborder=0 0 0,
+}
+%\usepackage{makeidx}
+%\makeindex
+
+\makeatletter          % !!!!
+\input{pgfmanual.code} % This must be exectuted when catcode of @ is letter
+\makeatother           % !!!!
+
+\usepackage{calc} %
+\include{pgfmanual-en-macros} % This must be executed when catcode of @ is other
+
+\makeatletter
+
+\parskip=10pt
+\parindent=0pt
+\MakeShortVerb{\|}
+
+\def\sectionstring{\textbackslash\@xp\@gobble\string}
+
+%\renewenvironment{key}[1]{
+%  \begin{pgfmanualentry}
+%    \extractkeyequal#1\@nil
+%    \item
+%    \pgfmanualbody
+%}
+%{
+%  \end{pgfmanualentry}
+%}
+
+% Prevent \decompose from throwing an error when the key doesn't start with /.
+% I could replace this with something simpler -- the only important thing \decompose does is make a link
+\let\olddecompose\decompose
+\def\decompose{\olddecompose/}
+
+%\patchcmd\pgfmanualpdfref{#2}{#2} % If I want it to behave differently for things that aren't links
+\patchcmd\pgfmanualpdfref{\expandafter\pgfmanualpdfref@\expandafter{\pgfmanualpdflabel@@}{#2}} % Fix it so that being a link doesn't change the color
+    {\colorlet{temp}{.}\expandafter\pgfmanualpdfref@\expandafter{\pgfmanualpdflabel@@}{\textcolor{temp}{#2}}}{}{}%
+
+
+\makeatother
+
+\pgfkeys{
+	/codeexample/prettyprint/cs arguments/hello/.initial=1,
+	/codeexample/prettyprint/cs/hello/.code={\textcolor{green}{#1}},
+	%/codeexample/prettyprint/cs arguments/class/.initial=0,
+	%/codeexample/prettyprint/cs/class/.code={\textcolor{green}{#1}},
+	%/codeexample/prettyprint/cs/.code={\pgfmanualpdfref{#1}{\textcolor{blue}{#1}}},
+%	/codeexample/prettyprint/cs with args/.code 2 args={\pgfmanualpdfref{#1}{\textcolor{blue}{#1}}\{\pgfmanualprettyprintcode{#2}\pgfmanualclosebrace},
+    %/codeexample/prettyprint/colored
+}
+
+\begin{document}
+\section{Introduction}
+The |sseqpages| package consists of two main environments -- the |sseqdata| environment, which specifies the data for a named spectral sequence diagram, and the |sseqpage| environment, which prints a single page of a spectral sequence diagram. The command \cmd\printpage{} is also available as a synonym for a sseqpage enivornment with an empty body.
+
+Here is a basic example:
+\begin{codeexample}[]
+\begin{sseqdata}[name=ex1,cohomological Serre grading]
+\class(0,0)
+\class(0,2)
+\class(3,0)
+\class(3,2)
+\d3(0,2)
+\end{sseqdata}
+\printpage[name=ex1,page=3]\hskip1cm
+\printpage[name=ex1,page=4]
+\end{codeexample}
+|\begin{sseqdata}[name=ex1,degree={#1}{1-#1}]| starts the declaration of the data of a spectral sequence named |ex1| whose page $r$ differentials go $r$ to the right and down $r-1$ (this is cohomological Serre grading). Then we specify four classes and one page 3 differential, and we ask |sseqpages| to print the third and fourth pages of the spectral sequence. Note that on the fourth page, the source and target of the differential have disappeared.
+
+
+\section{The main commands}
+\begin{command}{\class\oarg{options}\meta{coordinate}}
+This places a class at \meta{coordinate}=(\meta{xcoord},\meta{ycoord}) where \meta{xcoord} and \meta{ycoord} are integers. If multiple classes occur at the same position, |sseqpages| will automatically arrange them in a pre-specified pattern:
+\begin{codeexample}[]
+\begin{sseqpage}[no axes,ymirror]
+\class(0,0)
+\class(1,0)\class(1,0)
+\class(0,1)\class(0,1)\class(0,1)
+\class(1,1)\class(1,1)\class(1,1)\class(1,1)
+\class(0,2)\class(0,2)\class(0,2)\class(0,2)\class(0,2)
+\class(1,2)\class(1,2)\class(1,2)\class(1,2)\class(1,2)\class(1,2)
+\end{sseqpage}
+\end{codeexample}
+
+The effect of the |\class| command is to print a \tikzname\ node. Any option that would work for a \tikzname\ |\node| command will also work in the same way for the |\class|, |\replaceclass|, and |\classoptions| commands. For instance:
+\begin{itemize}
+\item The name of a \tikzname\ node shape. The standard \tikzname\ shapes are |circle| and |rectangle|, but there are many more \tikzname\ shapes in the shapes library, which you can load using the command |\usetikzlibrary{shapes}|
+\begin{codeexample}[]
+\begin{sseqpage}[no axes,classes={inner sep=0.4em},
+                 class placement transform={scale=2}]
+\class(0,0)
+\class[rectangle](1,0)
+\class[diamond](0,1)
+\class[semicircle](1,1)
+\class[regular polygon, regular polygon sides=5](2,2)
+\class[regular polygon, regular polygon sides=6](2,2)
+\class[regular polygon, regular polygon sides=7](2,2)
+\class[regular polygon, regular polygon sides=8](2,2)
+\end{sseqpage}
+\end{codeexample}
+
+\item A label |"|\meta{text}|"|\opt{\meta{options}}. This uses the \tikzname\ quotes syntax, but the behavior specific to |sseqpages|. By default, the \meta{text} is placed in the position |inside| the node -- in effect, the \meta{text} becomes the label text of the node (so saying |\class["label text"](0,0)| causes a similar effect to saying |\node at (0,0) {label text};|). There are other position options such as |left|, |above left|, etc which cause the label text to be placed in a separate node positioned appropriately. In this case, any option that you may pass to a \tikzname\ node will also work, including general coordinate transformations. If the placement is ``inside'', then the only relevant \opt{\meta{options}} are those that alter the appearance of text, such as opacity and color.
+\begin{codeexample}[]
+\begin{sseqpage}[no axes,classes={minimum width=width("a")+0.5em}]
+\class["a"](0,0)
+\class["a",red](1,0)
+\class["a" black,red](2,0)
+\class["b" above](0,1)
+\class["b" {above right,transform shape,rotate=-45}](1,1)
+\class["a" {above right={1em}}](2,1)
+\end{sseqpage}
+\end{codeexample}
+
+\item Options controlling the size of a node. This is typically useful to make the size of nodes consistent independent of the size of their label text.  For instance:
+\begin{codeexample}[]
+\begin{sseqdata}[no axes,name=minimum width example]
+\class["ab"](0,0)
+\class["a"](0,1)
+\class(0,2)
+\end{sseqdata}
+\printpage[name=minimum width example]
+\printpage[name=minimum width example,
+           change classes={blue,minimum width=width("ab")+0.5em}]
+\end{codeexample}
+\end{itemize}
+\end{command}
+
+\begin{command}{\d\oarg{options}\meta{page}\meta{coordinate}}
+This creates a differential starting at \meta{coordinate} of length determined by the specified page. In order to use the |\d| command, you must specify the |degree| of the differentials as an option to the |sseqdata| or |sseqpage| environment.
+\begin{codeexample}[]
+\begin{sseqdata}[name=,degree={}{}]
+
+\end{sseqdata}
+\end{codeexample}
+ This command will give an error unless
+
+
+\end{command}
+
+\begin{command}{\structline\oarg{options}\meta{source coordinate}\meta{target coordinate}}
+
+\end{command}
+
+\section{The sseqdata Environment}
+The |sseqdata| environment is
+
+
+\section{\sectionstring\printpage\ and the sseqpage environment}
+
+
+
+
+
+\section{Global options}
+\begin{key}{name=\meta{sseq name}}
+
+\end{key}
+
+\begin{key}{page=\meta{page number} (initially 0)}
+
+\end{key}
+
+\begin{keylist}{degree=\marg{x degree}\marg{y degree},cohomological Serre grading, homological Serre grading, Adams grading}
+Specifies the degree of differentials. The \meta{x degree} and \meta{y degree} should both be mathematical expressions in one variable |#1| that evaluate to integers on any input. They specify the x and y displacement of a page |#1| differential. In practice, they will usually be linear expressions with |#1| coefficient $1$, $-1$, or $0$. For instance: 
+\begin{codeexample}[]
+\begin{sseqpage}[cohomological Serre grading]% equivalent to degree={#1}{1-#1}
+\class(0,1)
+\class(2,0)
+\d2(0,1)
+\end{sseqpage}
+\end{codeexample}
+\begin{codeexample}[]
+\begin{sseqpage}[homological Serre grading]% equivalent to degree={-#1}{#1-1}
+\class(0,1)
+\class(2,0)
+\d2(2,0)
+\end{sseqpage}
+\end{codeexample}
+\begin{codeexample}[]
+\begin{sseqpage}[Adams grading]% equivalent to degree={-1}{#1-1}
+\class(0,2)
+\class(1,0)
+\d2(1,0)
+\end{sseqpage}
+\end{codeexample}
+
+You can also specify the default degree of future spectral sequences by saying |\sseqset{degree=|\marg{x degree}\marg{y degree}|}| or |\sseqset{Adams grading}| outside of the |sseqdata| and |sseqpages| environments.
+\end{keylist}
+
+\begin{key}{keep changes}
+
+\end{key}
+
+\begin{keylist}{x range={\meta{x min}}{\meta{x max}},y range={\meta{y min}}{\meta{y max}}}
+These options force the x and y range to be a specific interval. By default, if no range is specified then the 
+\end{keylist}
+
+
+\begin{key}{class placement transform=}
+
+\end{key}
+
+\begin{keylist}{no differentials,draw differentials}
+
+\end{keylist}
+
+\begin{keylist}{no structlines,draw structlines}
+
+\end{keylist}
+
+\begin{keylist}{no orphan edges,draw orphan edges}
+
+\end{keylist}
+
+\subsection{Global Coordinate Transformations}
+Of the normal \tikzname\ coordinate transformations, only the following are allowed to be applied to a sseq diagram:
+\begin{keylist}{xscale=\meta{factor}, yscale=\meta{factor}, xmirror, ymirror}
+
+\end{keylist}
+
+\begin{key}{rotate=\meta{angle}}
+
+\end{key}
+
+\subsection{Layout}
+\begin{key}{custom clip=}
+
+\end{key}
+
+\begin{key}{clip=\meta{boolean} (default true)(initially true)}
+
+\end{key}
+
+\begin{keylist}{x axis gap=\meta{dimension} (initially 0.5cm),y axis gap=\meta{dimension} (initially 0.5cm), axes gap=\meta{dimension} (initially 0.5cm)}
+
+\end{keylist}
+
+
+\begin{keylist}{x label gap=\meta{dimension} (initially 0.5cm),y label gap=\meta{dimension} (initially 0.5cm)}
+
+\end{keylist}
+
+\begin{keylist}{x axis start extend=\meta{dimension} (initially 0.5cm), y axis start extend=\meta{dimension} (initially 0.5cm),
+                x axis end extend=\meta{dimension} (initially 0.9cm), y axis end extend=\meta{dimension} (initially 0.9cm)}
+
+\end{keylist}
+
+\begin{keylist}{x clip axis padding=\meta{dimension} (initially 0.1cm), y clip axis padding=\meta{dimension} (initially 0.1cm)}
+
+\end{keylist}
+
+\begin{keylist}{right clip padding=\meta{dimension} (initially 0.1cm), left clip padding=\meta{dimension} (initially 0.4cm),
+                top clip padding=\meta{dimension} (initially 0.1cm), bottom clip padding=\meta{dimension} (initially 0.4cm)}
+
+\end{keylist}
+
+
+\subsection{Axes Style}
+
+\begin{keylist}{x axis style=a (initially border), y axis style=a (initially border),axes style= (initially border)}
+
+\end{keylist}
+
+\begin{keylist}{x axis origin= (initially 0), y axis origin= (initially 0)}
+
+\end{keylist}
+
+\begin{keylist}{no x axis, no y axis, no axes, draw x axis, draw y axis, draw axes}
+
+\end{keylist}
+
+\begin{keylist}{no x axis labels, no y axis labels, no axes labels, draw x axis labels, draw y axis labels, draw axes labels}
+
+\end{keylist}
+
+\begin{keylist}{x label step= (initially 1),y label step= (initially 1),label step= (initially 1)}
+
+\end{keylist}
+
+\begin{key}{rotate labels=\meta{boolean} (default true)(initially false)}
+
+\end{key}
+
+
+\newpage
+A \tikzname\ color:
+\begin{codeexample}[]
+\begin{sseqpage}[classes={fill,inner sep=0.4em}]
+\class[red](0,0)
+\class[blue](1,0)
+\class[green](2,0)
+\class[cyan](0,1)
+\class[magenta](1,1)
+\class[yellow](2,1)
+\class[blue!50!red](0,2)
+\class[green!30!yellow](1,2)
+\class[blue!50!black](2,2)
+\end{sseqpage}
+\end{codeexample}
+\end{document}
+\item The shift commands |xshift=|\meta{unitless integer} and |yshift=|\meta{unitless integer}. 

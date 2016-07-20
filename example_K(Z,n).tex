@@ -6,7 +6,7 @@
 % Last time test: 1.1 sec
 \begin{document}
 \def\column#1[#2]{\foreach \y in {0,...,6} {\class[#2](#1,2*\y)}}
-\sseqset{labels={auto}, classes={draw=none}}
+\sseqset{classes={draw=none}}%,labels={auto}}
 \begin{sseqdata}[
     name={K(Z,3)},
     x range={0}{12},
@@ -22,7 +22,7 @@
 ]
 
 \begin{scope}[background]
-\node at (\xmax/2,11) {\textup{Serre SS Page \sseqthepage{}}};
+\node at (\xmax/2,11) {\textup{Serre SS Page \page{}}};
 \node at (\xmax/2,-2) {H^*(K(\Z,3))};
 \node[shift only,rotate=90] at (-1.25,\ymax/2) {H^*(K(\Z,2))};
 \end{scope}
