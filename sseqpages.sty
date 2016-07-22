@@ -103,6 +103,7 @@
 
 %% Declarations
 \newif\ifsseq@hasname
+\newif\ifsseq@updateexisting
 \newif\ifsseq@ispageenv
 \newif\ifsseq@keepchanges
 \newif\ifsseq@globaldetone
@@ -160,7 +161,7 @@
 %%% Commands to help the user define "groups" of commands to be reused
 \def\sseqnewgroup#1{%
     \bgroup
-    \catcode`\^^M=9%
+    %\catcode`\^^M=9%
     \@ifnextchar[{\sseqnewgroup@#1}{\sseqnewgroup@#1[0]}%]
 }
 \long\def\sseqnewgroup@#1[#2]#3{
@@ -184,18 +185,18 @@
 \def\sseqnewcmd#1{\@ifnextchar({\sseqnewcmd@#1}{\sseqnewcmd@#1(\x,\y)}}%)
 \def\sseqnewcmd@#1(#2,#3){
     \bgroup
-    \catcode`\^^M=9%
+    %\catcode`\^^M=9%
     \@ifnextchar[{\sseqnewcmd@@#1(#2,#3)}{\sseqnewcmd@@#1(#2,#3)[0]}
 }%]
 \bgroup\lccode`\*=`\#\lccode`A=`A\lccode`Y=`Y\lowercase{\egroup
     \long\def\sseqnewcmd@@#1(#2,#3)[#4]#5{%
         \egroup
-        \@ifundefined{\sseq@macroname #1}{}{%
-            \sseq@error{%
-                A command named \string#1\sseq@macroname\ already exists. You can only use \string\sseqnewgroup\sseq@macroname\ and
-                \string\sseqnewgroup\sseq@macroname\ to define new commands%
-            }{}%
-        }%
+       % \@ifundefined{\sseq@macroname #1}{}{%
+       %     \sseq@error{%
+       %         A command named \string#1\sseq@macroname\ already exists. You can only use \string\sseqnewgroup\sseq@macroname\ and
+       %         \string\sseqnewgroup\sseq@macroname\ to define new commands%
+       %     }{}%
+       % }%
         \ifnum#4>6 \sseq@error{Commands defined using '\@nx\sseqnewcmd' can take at most six arguments}\fi
         \edef\helpera{\@xp\@nx\csname \sseq@macroname#1@\endcsname}%
         \edef\helperb{\@xp\@nx\csname \sseq@macroname#1@@\endcsname}%
@@ -217,6 +218,9 @@
                 \aftergroup\the\aftergroup\sseq@temptoks
             \aftergroup}%
         \egroup
+%
+        \bgroup
+        \def\etb@ifscanable##1{\@firstoftwo}% This hack might cause me grief later, but it prevents whitespace woes
         \@xp\patchcmd\helperb{\options}{*1}{}{
             \sseq@error{There's some problem with the spaces you used in \@nx\sseqnewcmd\sseq@macroname\ or in \@nx\sseq@newgroup. TODO: make this error more helpful}{}
         }%
@@ -229,10 +233,10 @@
         \@xp\sseq@patchrepeat\helperb{\ppeight}{*8}%
         \@xp\sseq@patchrepeat\helperb{\ppnine}{*9}%
         \sseq@eval{\global\let\@xp\@nx\helperb\@xp\@nx\helperb}
+        \egroup
     }
 }
 \def\sseq@patchrepeat#1#2#3{\patchcmd#1{#2}{#3}{\sseq@patchrepeat#1{#2}{#3}}{}}
-
 
 %%% Load/store
 % These are attributes that come with a given spectral sequence (by name)
@@ -770,7 +774,7 @@
 \def\sseqset{\pgfqkeys{/tikz/sseqpages/global/default}}
 \def\sseqset@inprogress{\pgfqkeys{/tikz/sseqpages}}
 \def\sseq@set{\pgfqkeys{/tikz/sseqpages}}
-\def\sseq@passoptionto#1{\sseq@temptoks\@xp{\pgfkeyscurrentvalue}\edef\sseq@temp{\@nx\pgfqkeys{#1}{\pgfkeyscurrentname={\the\sseq@temptoks}}}\sseq@temp}
+\def\sseq@passoptionto#1{\sseq@temptoks\@xp{\pgfkeyscurrentvalue}\sseq@eval{\@nx\pgfqkeys{#1}{\pgfkeyscurrentname={\the\sseq@temptoks}}}}
 
 \pgfkeys{%
     /tikz/sseqpages/.is family,
@@ -1035,8 +1039,8 @@
 
 \def\sseq@needstikzandpass#1#2{\sseq@needstikzandpass@{#1}#2,\@nil}
 \def\sseq@needstikzandpass@#1#2,{%
-    \pgfqkeys{#1}{#2/.code={\sseq@needstikztrue\pgfqkeys{/tikz}{#2}}}%
-    \@ifnextchar\@nil{\@gobble}{\sseq@needstikzandpass@}%
+    \pgfqkeys{#1}{#2/.code={\sseq@needstikztrue\pgfqkeys{/tikz}{#2=##1}}}%
+    \@ifnextchar\@nil{\@gobble}{\sseq@needstikzandpass@{#1}}%
 }
 
 \pgfqkeys{/tikz/sseqpages}{needs tikz/.code=\sseq@needstikztrue}
@@ -1045,7 +1049,9 @@
 }
 
 \sseq@needstikzandpass{/tikz/sseqpages/second pass/differential}{
-    bend left, bend right, in, out, controls, in control, out control,
+    bend left, bend right, in, out, relative, looseness, in looseness, out looseness,
+    min distance, max distance, out min distance, out max distance, in min distance, in max distance, distance,
+    controls, in control, out control,
     loop, loop above, loop below, loop left, loop right % maybe delete the loops and replace them with errors? It's pretty pointless to use these.
 }
 
@@ -1054,7 +1060,7 @@
     loop, loop above, loop below, loop left, loop right % maybe delete the loops and replace them with errors? It's pretty pointless to use these.
 }
 
-\pgfqkeys{/tikz/sseqpages/second pass/struct line}{
+\pgfqkeys{/tikz/sseqpages/second pass/structline}{
     source anchor/.store in=\sseq@edgesourceanchor,
     target anchor/.store in=\sseq@edgetargetanchor
 }
@@ -1148,7 +1154,7 @@
         \sseq@keys@lastpart{\pgfkeyscurrentpath}
         \edef\sseq@temp@ii{\pgfkeyscurrentpath}
         \pgfkeys{
-            \sseq@temp@ii/.is if=#1,
+            \sseq@temp@ii/.is if=sseq@#1,
             /tikz/sseqpages/global/default/\sseq@temp/.code={\@xp\edef\csname sseq@#1@default\endcsname{\global\@xp\@nx\csname sseq@#1##1\endcsname}}
         }
     },
@@ -1274,7 +1280,9 @@
 %% Global options
 \pgfqkeys{/tikz/sseqpages/global/name only}{
     name/.code={\def\sseq@thename{#1}\let\sseqthename\sseq@thename\sseq@hasnametrue},
-    name/.value required
+    name/.value required,
+    keep changes/.is if=sseq@keepchanges,
+    update existing/.code={\ifsseq@ispageenv\sseq@error{Option 'update existing' is only for the sseqdata environment}\fi\sseq@updateexistingtrue}
 }
 
 \sseq@globalkeys{%
@@ -1282,7 +1290,11 @@
     page/.code={\ifsseq@hasname\def\sseq@thepage{#1}\let\page\sseq@thepage\else\sseq@error{You can't specify a page but no name}{}\fi},
     degree/.code 2 args={\def\sseq@targetx##1{#1}\def\sseq@targety##1{#2}\let\d\sseq@d},
     degree/.sseq default code 2 args={\def\sseq@targetx@default##1{#1}\def\sseq@targety@default##1{#2}\let\d\sseq@d},
-    keep changes/.is if=sseq@keepchanges,
+    update existing/.code={},
+    keep changes/.code={%
+        \ifsseq@hasname\else\sseq@error{Option 'keep changes' is only for named spectral sequences}\fi
+        \ifsseq@ispageenv\else\sseq@error{Option 'keep changes' is only for the sseqpage environment}\fi
+    },
     custom clip/.sseq store in=\sseq@customclip{},
     clip/.sseq is if=clip,
     draw differentials/.sseq is if=drawdifferentials,
@@ -1303,8 +1315,6 @@
     class placement transform/.sseq default copy,
     class placement transform/.value required
 }
-
-%
 
 \sseq@addtostorelist\sseq@targetx{}\sseq@addtostorelist\sseq@targety{}
 \sseq@addtostorelist\sseq@xlabelstep{1}\sseq@addtostorelist\sseq@ylabelstep{1}
@@ -1612,9 +1622,10 @@
 }
 
 \pgfqkeys{/tikz/sseqpages}{
+    /tikz/sseqpages/background color/.initial=white,
     description/.code={
         \pgfkeysalso{/tikz/anchor=center}
-        \def\sseq@edgeoptionhook{\pgfkeysalso{/tikz/fill=white}}
+        \def\sseq@edgeoptionhook{\pgfkeysalso{/tikz/fill=\pgfkeysvalueof{/tikz/sseqpages/background color}}}
     }
 }
 
@@ -1876,7 +1887,12 @@
         \pgfqkeys{/tikz/sseqpages/global}{{\sseq@thename} options/.code={}}%
         \sseq@savedpaths@initialize
     }{%
-        \sseq@getcmds
+        \ifsseq@updateexisting
+            \sseq@getcmds
+        \else
+            \sseq@error{A spectral sequence with the name \sseq@name\space already exists.
+                If you want to add to an already existing spectral sequence, please pass the option 'update existing'}
+        \fi
     }%
     \sseq@setsavedpaths{standard}
 %
@@ -2383,12 +2399,14 @@
             \sseq@temptoks\@xpthree{\sseq@obj{#1.nodetext}}
             \sseq@temptoks@ii\@xpthree{\sseq@obj{#1.options}}%
             \sseq@eval{\sseq@temptoks@ii{
+                \sseq@thepathstyle
+                \sseq@theclassstyle
                 \ifnum\sseq@obj{#1.page}=\sseq@infinity\relax
-                    \the\sseq@permanentcyclestyle
+                    \sseq@thepermanentcyclestyle
                 \else
-                    \the\sseq@thetransientcyclestyle
+                    \sseq@thetransientcyclestyle
                     \ifsseq@thispage
-                        \the\sseq@thispagecyclestyle
+                        \sseq@thethispagecyclestyle
                     \fi
                 \fi
                 \the\sseq@temptoks@ii
@@ -2418,13 +2436,14 @@
             \let\tikz@options\pgfutil@empty
             \let\tikz@alias=\pgfutil@empty
             \def\pgfkeysdefaultpath{/tikz/sseqpages/second pass/class/}% Not sure why this shouldn't be in /second pass/class (but putting it there breaks things).s
+            \sseq@thepathstyle
             \sseq@theclassstyle
             \ifnum\sseq@obj{#1.page}=\sseq@infinity\relax
-                \the\sseq@permanentcyclestyle
+                \sseq@thepermanentcyclestyle
             \else
-                \the\sseq@transientcyclestyle
+                \sseq@thetransientcyclestyle
                 \ifsseq@thispage
-                    \the\sseq@thispagecyclestyle
+                    \sseq@thethispagecyclestyle
                 \fi
             \fi
             \sseq@obj{#1.options}%
@@ -2622,7 +2641,7 @@
     \sseq@ifundefcoord\source{%
         \sseq@error{%
             Source \sourcename\sseq@macroname\ of differential '\sseq@thiscall' can't support
-            a differential because a class in that position never existed%
+            a differential because a class in that position never existed% TODO: make separate out of bounds index error message
         }{}%
     }{}%
     \sseq@ifundefcoord\target{%
@@ -2867,7 +2886,7 @@
     \the\sseq@pathstyle\the\sseq@edgestyle\@xp\the\csname sseq@#3style\endcsname
     \the\sseq@scopeoptions
     #4%
-
+    \sseq@eval{\@nx\pgftransformshift{\@nx\pgfpoint{-\the\sseq@x cm}{-\the\sseq@y cm}}}
     % First calculate actual start and end of the edge
     \let\tempaf\pgfutil@empty
     \@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid % Check if source is a named coordinate
@@ -2966,7 +2985,8 @@
         \ifsseq@needstikz
             \sseq@eval{\@nx\draw[/tikz/sseqpages/second pass/differential,
                 /utils/exec={\@xp\@nx\temparrowstartspec\@xp\@nx\temparrowendspec}
-            ] (tempa) to (tempb);}%
+            ]  (\@xp\ifx\csname pgf@sh@pi@sseq@{#1}\endcsname\pgfpictureid sseq@\fi{#1}\ifx\sseq@edgesourceanchor\pgfutil@empty\else.\sseq@edgesourceanchor\fi)
+            to (\@xp\ifx\csname pgf@sh@pi@sseq@{#2}\endcsname\pgfpictureid sseq@\fi{#2}\ifx\sseq@edgetargetanchor\pgfutil@empty\else.\sseq@edgetargetanchor\fi);}%
         \else
             \temparrowstartspec
             \temparrowendspec
@@ -2989,40 +3009,40 @@
     \sseq@temptoks@ii{(#2)(#3)}
     \sseq@esetthiscall{\string\structline\ifx\sseq@temp\pgfutil@emptytoks\else[\the\sseq@temptoks]\fi\the\sseq@temptoks@ii}
     \sseq@for@checkoptions{#1}
-    \sseq@eval{\@nx\sseq@structline@@\sseq@anchorsplit{#2}\sseq@anchorsplit{#3}}
-    {#1}%
+    \sseq@eval{\@nx\sseq@structline@@{#2}{#3}}{#1}%
 }
-\def\sseq@structline@@#1#2#3#4#5{%
+\def\sseq@structline@@#1#2#3{%
     \def\sseq@thiscmdname{structure line }% To pass error information to \sseq@whichclass%
     \sseq@parsecoords\source{#1}%
-    \sseq@parsecoords\target{#3}%
+    \sseq@parsecoords\target{#2}%
     \sseq@eval{%
         \@nx\sseq@structline@@@
             \@xp\sseq@iffullcoord\@xp(\source)%
                 {\@xp\sseq@fullcoord@to@partialcoord\@xp(\source){\@xp\sseq@fullcoord@lastelt\@xp(\source)}}%
                 {(\source){}}
-            {#2}%
             \@xp\sseq@iffullcoord\@xp(\target)%
                 {\@xp\sseq@fullcoord@to@partialcoord\@xp(\target){\@xp\sseq@fullcoord@lastelt\@xp(\target)}}%
                 {(\target){}}
-            {#4}%
-    }{#5}%
+    }{#3}%
     \endgroup
 }
 
-\def\sseq@structline@@@(#1,#2)#3#4(#5,#6)#7#8#9{%
-    \pgfqkeys{/tikz/sseqpages/first pass/structline}{#9}%
+\def\sseq@structline@@@(#1,#2)#3(#4,#5)#6#7{
+    \sseq@structline@@@@{#1}{#2}#3{#4}{#5}{#6}{#7}
+}
+\def\sseq@structline@@@@#1#2#3#4#5#6#7{%
+    \pgfqkeys{/tikz/sseqpages/first pass/structline}{#7}%
     \sseq@tempx=\sseq@x\relax\advance\sseq@tempx#1\relax
     \sseq@tempy=\sseq@y\relax\advance\sseq@tempy#2\relax
-    \sseq@tempxb=\sseq@x\advance\sseq@tempxb#5\relax
-    \sseq@tempyb=\sseq@y\advance\sseq@tempyb#6\relax
+    \sseq@tempxb=\sseq@x\advance\sseq@tempxb#4\relax
+    \sseq@tempyb=\sseq@y\advance\sseq@tempyb#5\relax
     \sseq@whichclass\sseq@na{\the\sseq@tempx}{\the\sseq@tempy}{#3}{source of structure line '\sseq@thiscall'}%
-    \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}{target of structure line '\sseq@thiscall'}%
+    \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#6}{target of structure line '\sseq@thiscall'}%
     \edef\source{(\the\sseq@tempx,\the\sseq@tempy,\sseq@na)}
     \edef\target{(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb)}
     \sseq@restorestyles
     \sseq@eval{\@nx\sseq@obj@newstructline{\source}{\target}}
-    \sseq@temptoks{\pgfkeysalso{#9}}
+    \sseq@temptoks{\pgfkeysalso{#7}}
     \sseq@obj@xdef{structline.\source\target.options}{\ifsseq@needstikz\@nx\sseq@needstikztrue\else\@nx\sseq@needstikzfalse\fi\the\sseq@temptoks}
 }
 
@@ -3059,10 +3079,6 @@
 \def\sseq@structline@draw#1{
     \sseq@eval{\@nx\sseq@drawedge\sseq@obj{#1.source}\sseq@obj{#1.target}{structline}{\@nx\sseq@obj{#1.options}}}
 }
-
-\def\sseq@anchorsplit#1{\sseq@anchorsplit@#1.\sseq@nil}
-\def\sseq@anchorsplit@#1.#2{\ifx#2\sseq@nil {#1}{}\else {#1}\@xp\sseq@anchorsplit@@\@xp#2\fi}
-\def\sseq@anchorsplit@@#1.\sseq@nil{{.#1}}
 
 \def\sseq@structlineoptions[#1](#2)(#3){
     \begingroup
