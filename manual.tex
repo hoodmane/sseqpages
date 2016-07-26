@@ -266,20 +266,20 @@ A label |"|\meta{text}|"|\opt{\ttfamily '}\opt{\meta{options}}. By default, such
 
 The special option ``description,'' stolen from |tikzcd|, places the label on top of the edge. In order to make this option work correctly, if the background color is not the default white, you must inform sseqpages about this using the key |background color=|\meta{color}. In this case, the background color is called \textit{graphicbackground}.
 \begin{codeexample}[]
-\begin{sseqpage}[background color=graphicbackground, no axes]
+\begin{sseqpage}[no axes]%background color=graphicbackground,
 \foreach\x in {0,1,2} \foreach\y in {0,1}{
     \class(\x,\y)
 }
 \structline["a" red](0,0)(0,1)
 \structline["a'"'blue,"b"{yshift=1em}](1,0)(1,1)
-\structline["c" description](2,0)(2,1)
+\structline["c"](2,0)(2,1)%description
 \end{sseqpage}
 \end{codeexample}
 \end{manualentry}
 
 \begin{manualentry}{Colors and dash patterns:}
 \begin{codeexample}[]
-\begin{sseqpage}[background color=graphicbackground, no axes]
+\begin{sseqpage}[no axes]
 \foreach\x in {0,1,2} \foreach\y in {0,1}{
     \class(\x,\y)
 }
@@ -294,7 +294,7 @@ The special option ``description,'' stolen from |tikzcd|, places the label on to
 %TODO: appearance here is a little inconsistent. Something to do with the stars.
 \begin{keylist}{bend left=\meta{angle}, bend right=\meta{angle}, *in=\meta{anchor}, *out=\meta{anchor}}
 \begin{codeexample}[]
-\begin{sseqpage}[background color=graphicbackground, no axes]
+\begin{sseqpage}[no axes]
 \foreach\x in {0,1,2} \foreach\y in {0,1}{
     \class(\x,\y)
 }
@@ -307,7 +307,7 @@ The special option ``description,'' stolen from |tikzcd|, places the label on to
 
 \begin{keylist}{source anchor=\meta{anchor}, target anchor=\meta{anchor}}
 \begin{codeexample}[]
-\begin{sseqpage}[background color=graphicbackground, no axes]
+\begin{sseqpage}[no axes]
 \foreach\x in {0,1} \foreach\y in {0,1}{
     \class(\x,\y)
 }
@@ -422,7 +422,7 @@ The option |no struct lines| suppresses all of the differentials on the current 
 \begin{keylist}{no orphan edges,draw orphan edges=\meta{boolean} (default true)(initially true)}
 An edge is an ``orphan'' if both its source and target lie off the page. By default these are drawn, but with the option |no orphan edges| they are not. If the option |no orphan edges| has been set, |draw orphan edges| undoes it.
 \begin{codeexample}[]
-\begin{sseqdata}[name=orphan edges example,cohomological Serre grading, 
+\begin{sseqdata}[name=orphan edges example,cohomological Serre grading,
                 x range={0}{3}, y range={0}{3}]
 \class(1,4)\class(4,2)
 \d3(1,4)
@@ -465,7 +465,7 @@ The |sseqpages| package has a large number of ``styles'' which control the appea
 
 In cases where the same drawing feature is affected by multiple of these styles, the more specific style takes precedence.
 
-Throughout, ``class'' and ``cycle'' are synonyms. 
+Throughout, ``class'' and ``cycle'' are synonyms.
 \begin{keylist}{sseqs=\marg{keys}, sseq style=\marg{keys}}
 This passes global options to all future spectral sequences in the current scope. It is only useful to use this command with |\sseqset|. This is only really important for \tikzname\ options, because for most options from |sseqpages| you can set a default directly by saying |\sseqset{|key=\marg{value}|}|.
 \begin{codeexample}[]
@@ -543,11 +543,11 @@ These options change the appearance of all cycles which support or are hit by a 
 This style applies to both differentials and structure lines. The |differentials| and |struct lines| keys both take precedence over |edges|.
 \end{keylist}
 
-\begin{keylist}{differentials=\marg{keys}, differential style=\marg{keys}} 
+\begin{keylist}{differentials=\marg{keys}, differential style=\marg{keys}}
 
 \end{keylist}
 
-\begin{keylist}{struct lines=\marg{keys}, struct line style=\marg{keys}} 
+\begin{keylist}{struct lines=\marg{keys}, struct line style=\marg{keys}}
 
 \end{keylist}
 

@@ -3,6 +3,7 @@
 \usepackage{sseqpages}
 \usepackage{amssymb}
 \def\Z{\mathbb{Z}}
+\makeatletter
 \begin{document}
 \sseqset{
     0/.sseq style={"$0$",draw=none},
@@ -22,12 +23,13 @@
     \fill(-1.1,\n-0.5)--(-1.1,\n+0.5)--(0,\n+0.5)--(\n+0.5,0)--(\n+0.5,-1.6)--(\n-0.5,-1.6)--(\n-0.5,0)--(0,\n-0.5)--cycle;
 }
 \end{scope}
+
 \class["$\Z$"](0,0)
 \foreach\x in {1,3,...,9}{
     \class["$\Z_2$"](\x,0)
 }
 \foreach \x in {2,4,...,8}{
-    \class["$0$",draw=none](\x,0)
+    \class[0](\x,0)
 }
 \foreach\y in {1,3,...,9}{
     \pgfmathparse{9-\y}
@@ -106,5 +108,4 @@
 
 \end{sseqdata}
 \printpage[name=hatcherex2,page=0]
-
-\end{document} 
+\end{document}
