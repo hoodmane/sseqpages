@@ -14,7 +14,7 @@
         citecolor=blue,
         pdfborder=0 0 0,
 }
-%\usepackage{makeidx}
+%]\usepackage{makeidx}
 %\makeindex
 
 \makeatletter          % !!!!
@@ -53,12 +53,43 @@
 \apptocmd\extractkey@{\egroup}{}{\error}
 \def\extractkey{\bgroup\@ifnextchar*{\def\decompose####1\nil{}\@xp\extractkey@\@gobble}{\extractkey@}}
 
+\def\pgfmanual@pretty@quote{"}
+\let\pgfmanual@pretty@pgfkeys@loop@\pgfmanual@pretty@pgfkeys@loop
+\def\pgfmanual@pretty@pgfkeys@loop#1{%
+	\def\pgfmanual@loc@TMPa{#1}%
+    \def\pgfmanual@pretty@pgfkeys@loop@NEXT{\pgfmanual@pretty@pgfkeys@loop@{#1}}%
+    \ifx\pgfmanual@loc@TMPa\pgfmanual@pretty@quote%
+        \let\pgfmanual@pretty@pgfkeys@loop@NEXT\pgfmanual@pretty@collectquote
+    \fi
+    \pgfmanual@pretty@pgfkeys@loop@NEXT
+}
+\def\pgfmanual@pretty@collectquote{%
+    \let\pgfmanualprettyprinterhandlecollectedargs=\pgfmanual@pretty@collectargs@finish@collectquote
+    \pgfmanualprettyprintercollectupto"
+    	{\pgfmanual@pretty@collectquote@b}%
+}
+\def\pgfmanual@pretty@collectquote@b{%
+    \let\pgfmanualprettyprinterhandlecollectedargs=\pgfmanual@pretty@collectargs@finish@collectquote@b
+    \expandafter\pgfmanualprettyprintercollectupto,
+    	{\afterpgfmanual@pretty@collectquote}%
+}
+\def\afterpgfmanual@pretty@collectquote{\pgfmanual@pretty@pgfkeys@loop}
+\def\pgfmanual@pretty@collectargs@finish@collectquote#1{\opt{\pgfmanualpdfref{""quotes}{"#1"}}}
+\def\pgfmanual@pretty@collectargs@finish@collectquote@b#1{%
+    \pgfkeys{/codeexample/prettyprint/key name/.code={\textcolor{keycolor}{##1}}}%
+    \pgfmanual@pretty@pgfkeys@loop#1\pgfmanual@EOI
+    \ifpgfmanualprettyprinterfoundterminator,\fi
+}
 
 \pgfkeys{
-	/codeexample/prettyprint/cs arguments/hello/.initial=1,
-	/codeexample/prettyprint/cs/hello/.code={\textcolor{green}{#1}},
-	%/codeexample/prettyprint/cs arguments/class/.initial=0,
-	%/codeexample/prettyprint/cs/class/.code={\textcolor{green}{#1}},
+	/codeexample/prettyprint/cs arguments/meta/.initial=1, % Make \meta work correctly in codeexample
+	/codeexample/prettyprint/cs/meta/.code={\textcolor{black}{\meta{\@gobble#1}}}, 
+	/codeexample/prettyprint/cs arguments/opt/.initial=1,
+	/codeexample/prettyprint/cs/opt/.code={\opt{\@gobble#1}}, 
+    /codeexample/prettyprint/cs arguments/oarg/.initial=1, 
+	/codeexample/prettyprint/cs/oarg/.code={\oarg{\@gobble#1}},
+    /codeexample/prettyprint/cs arguments/cscolor/.initial=1,
+	/codeexample/prettyprint/cs/cscolor/.code={\textcolor{cscolor}{\@gobble#1}},
 	%/codeexample/prettyprint/cs/.code={\pgfmanualpdfref{#1}{\textcolor{blue}{#1}}},
 %	/codeexample/prettyprint/cs with args/.code 2 args={\pgfmanualpdfref{#1}{\textcolor{blue}{#1}}\{\pgfmanualprettyprintcode{#2}\pgfmanualclosebrace},
     %/codeexample/prettyprint/colored
@@ -67,6 +98,7 @@
 %\patchcmd\endofcodeexample{\ifcode@execute}{\ifcode@execute\sseqset{background color=graphicbackground}}{}{\error}
 %\makeatother
 \begin{document}
+\tableofcontents
 \section{Introduction}
 The |sseqpages| package consists of two main environments -- the |sseqdata| environment, which specifies the data for a named spectral sequence diagram, and the |sseqpage| environment, which prints a single page of a spectral sequence diagram. The command \cmd\printpage{} is also available as a synonym for a sseqpage enivornment with an empty body.
 
@@ -88,7 +120,7 @@ Here is a basic example:
 \section{The main commands}
 \begin{command}{\class\oarg{options}\meta{coordinate}}
 This places a class at \meta{coordinate}=(\meta{xcoord},\meta{ycoord}) where \meta{xcoord} and \meta{ycoord} are integers. If multiple classes occur at the same position, |sseqpages| will automatically arrange them in a pre-specified pattern:
-\begin{codeexample}[]
+\begin{codeexample}[code only]
 \begin{sseqpage}[no axes,ymirror]
 \class(0,0)
 \class(1,0)\class(1,0)
@@ -98,8 +130,31 @@ This places a class at \meta{coordinate}=(\meta{xcoord},\meta{ycoord}) where \me
 \class(1,2)\class(1,2)\class(1,2)\class(1,2)\class(1,2)\class(1,2)
 \end{sseqpage}
 \end{codeexample}
+The effect of the |\class| command is to print a \tikzname\ node on a range of pages. Any option that would work for a \tikzname\ |\node| command will also work in the same way for the |\class|, |\replaceclass|, and |\classoptions| commands.
 
-The effect of the |\class| command is to print a \tikzname\ node. Any option that would work for a \tikzname\ |\node| command will also work in the same way for the |\class|, |\replaceclass|, and |\classoptions| commands. For instance:
+If a class is the source or the target of a differential on a certain page, then the page of the class is set to that page, and the class is only rendered on pages up to that number:
+\begin{codeexample}[]
+\begin{sseqdata}[name=class example,Adams grading]
+\class(1,0)
+\class(0,2)
+\class(0,3)
+\d2(1,0)
+\end{sseqdata}
+\printpage[name=class example,page=2]
+\printpage[name=class example,page=3]
+\end{codeexample}
+\end{command}
+
+\begin{command}{\replaceclass\oarg{options}\meta{coordinate}}
+
+\end{command}
+
+\begin{command}{\classoptions[\meta{options}]\meta{coordinate}}
+
+\end{command}
+
+
+For instance:
 \begin{manualentry}{A \tikzname\ shape}
 If you give the name of a \tikzname\ shape, the class node will be of that shape. The standard \tikzname\ shapes are |circle| and |rectangle|, but there are many more \tikzname\ shapes in the shapes library, which you can load using the command |\usetikzlibrary{shapes}|
 \begin{codeexample}[]
@@ -133,7 +188,7 @@ If you give the name of a \tikzname\ shape, the class node will be of that shape
 \end{codeexample}
 \end{manualentry}
 
-\begin{manualentry}{|"|\meta{text}|"|\opt{\meta{options}}}
+\begin{manualentry}{\pgfmanualpdflabel{""quotes}{}|"|\meta{text}|"|\opt{\meta{options}}}
  A label. This uses the \tikzname\ quotes syntax, but the behavior specific to |sseqpages|. By default, the \meta{text} is placed in the position |inside| the node -- in effect, the \meta{text} becomes the label text of the node (so saying |\class["label text"](0,0)| causes a similar effect to saying |\node at (0,0) {label text};|). There are other position options such as |left|, |above left|, etc which cause the label text to be placed in a separate node positioned appropriately. If the placement is above, left, etc, then any option that you may pass to a \tikzname\ node will also work for the label, including general coordinate transformations. If the placement is ``inside'', then the only relevant \opt{\meta{options}} are those that alter the appearance of text, such as opacity and color.
 \begin{codeexample}[]
 \begin{sseqpage}[no axes,classes={minimum width=width("a")+0.5em}]
@@ -141,7 +196,7 @@ If you give the name of a \tikzname\ shape, the class node will be of that shape
 \class["a",red](1,0)
 \class["a" black,red](2,0)
 \class["b" above](0,1)
-\class["b" {above right,transform shape,rotate=-45}](1,1)
+\class["b" {below right,yshift=0.1cm}](1,1)
 \class["a" {above right={1em}}](2,1)
 \end{sseqpage}
 \end{codeexample}
@@ -160,8 +215,7 @@ These options control the size of a node. This is typically useful to make the s
            change classes={blue,minimum width=width("ab")+0.5em}]
 \end{codeexample}
 \end{keylist}
-For more information, see the pgf manual.
-\end{command}
+
 
 \begin{command}{\d\oarg{options}\meta{page}\meta{source coordinate}}
 This creates a differential starting at \meta{source coordinate} of length determined by the specified page. In order to use the |\d| command, you must first specify the |degree| of the differentials as an option to the |sseqdata| or |sseqpage| environment. The degree indicates how far to the right and how far up a page $r$ differential will go as a function of $r$. If there is a page $r$ differential, on page $r+1$, the source, target, and any |\structline|s connected to the source and target of the differential disappear.
@@ -209,6 +263,9 @@ Negative indices will count from the most recent class in the coordinate (so |-1
 \d[red]2(1,0,-1,-2)
 \end{sseqpage}
 \end{codeexample}
+\end{command}
+
+\begin{command}{\doptions[\meta{options}]\meta{page}\meta{source coordinate}}
 
 \end{command}
 
@@ -243,6 +300,11 @@ If the source or target of a structure line is hit by a differential, then on su
 \end{codeexample}
 \end{command}
 
+\begin{command}{\structlineoptions[\meta{options}]\meta{source coordinate}\meta{target coordinate}}
+
+\end{command}
+
+\subsection{Options}
 \begin{keylist}{xshift=\meta{integer},yshift=\meta{integer}}
 Shifts by integer values are the only local coordinate changes that are allowed to be applied to |\class|, |\d|, and |\structline|. These shift commands help with reusing code. For instance:
 \begin{codeexample}[width=6cm]
@@ -259,20 +321,20 @@ Shifts by integer values are the only local coordinate changes that are allowed 
 A word of warning: the behavior of |xshift| in |sseqpages| is incompatible with the normal behavior of xshift in \tikzname. For some reason, saying |xshift=1| in \tikzname\ does not shift the coordinate |(0,0)| to the coordinate |(1,0)| -- instead it shifts a tiny fraction of the distance.
 \end{keylist}
 
-\subsection{Options for \sectionstring\d\ and \sectionstring\structline}
+\subsubsection{for \sectionstring\d\ and \sectionstring\structline}
 In general, any option that you could apply to a \tikzname\ ``to'' command can be applied to both |\d| and |\structline|. Some such options are as follows:
 \begin{manualentry}{|"|\meta{text}|"|\opt{\ttfamily '}\opt{\meta{options}}}
 A label |"|\meta{text}|"|\opt{\ttfamily '}\opt{\meta{options}}. By default, such a label is placed to the right of the edge. The optional prime places it to the left of the edge instead. The options include anything you might pass as an option to a \tikzname\ node, including arbitrary coordinate transforms, colors, opacity options, shapes, fill, draw, etc.
 
 The special option ``description,'' stolen from |tikzcd|, places the label on top of the edge. In order to make this option work correctly, if the background color is not the default white, you must inform sseqpages about this using the key |background color=|\meta{color}. In this case, the background color is called \textit{graphicbackground}.
 \begin{codeexample}[]
-\begin{sseqpage}[no axes]%background color=graphicbackground,
+\begin{sseqpage}[no axes,background color=graphicbackground]
 \foreach\x in {0,1,2} \foreach\y in {0,1}{
     \class(\x,\y)
 }
 \structline["a" red](0,0)(0,1)
 \structline["a'"'blue,"b"{yshift=1em}](1,0)(1,1)
-\structline["c"](2,0)(2,1)%description
+\structline["c" description](2,0)(2,1)
 \end{sseqpage}
 \end{codeexample}
 \end{manualentry}
@@ -330,7 +392,87 @@ This environment is used for printing a page of an existing spectral sequence wi
 This command prints a single page of an existing spectral sequence as-is. This is equivalent to a |sseqpage| environment with an empty body.
 \end{command}
 
-\subsection{Global options}
+\section{Commands}
+\begin{command}{\sseqset\marg{keys}}
+|\sseqset| is for adjusting the global options for all spectral sequences in the current scope. For instance, if most of the spectral sequences in the current document are going to be Adams graded, you can say |\sseqset{Adams grading}| and all future spectal sequences in the current scope will have Adams grading (unless you specify a different grading explicitly). As another example, |\sseqset{no axes}| will suppress axes from spectral sequences in the current scope.
+
+For options that only apply to pages, such as |keep changes|, you should say instead |\sseqset{pages={keep changes}}|.
+\end{command}
+
+\begin{command}{\sseqnewcmd\opt{*}\meta{macro}\opt{(\meta{x variable macro},\meta{y variable macro})}\oarg{num args}\marg{body}}
+This command makes a new command with syntax similar to |\class|. By default it takes three arguments: |\mycommand|\oarg{options}|(|\meta{x}|,|\meta{y}|)|. To access the \meta{options} argument in the body of the command, use the macro |\options|. Likewise to access \meta{x}, use |\x|, and to access \meta{y} use |\y|:
+\begin{codeexample}[]
+\sseqnewcmd\featuregroup{
+    \class[\options](\x,\y)
+    \class[\options](\x,\y+1)
+    \structline(\x,\y)(\x,\y+1)
+}
+\begin{sseqpage}
+\featuregroup[orange](0,0)
+\featuregroup[red](1,0)
+\end{sseqpage}
+\end{codeexample}
+The unstarred version will throw an error if the command to be defined already exists. The starred variant will quietly overwrite the existing command. Note that the command is always defined globally.
+
+Sometimes it's inconvenient to use |\x| and |\y| as arguments, for instance if you want to use code that already uses them as iterators. In this case,
+you can specify other macros to use for the arguments:
+\begin{codeexample}[width=6cm]
+\sseqnewcmd\test(\a,\b){
+    \foreach \x in {0,...,2} \foreach \y in {0,...,1}{
+        \class[\options](\a+\x,\b+\y)
+    }
+}
+\begin{sseqpage}
+\test(0,0)
+\test[red,fill](1,1)
+\end{sseqpage}
+\end{codeexample}
+
+The command you create with |\sseqnewcmd| can take up to six arguments in addition to |\options|, |\x|, and |\y|. These extra arguments are mandatory and are delimited by braces.
+\begin{codeexample}[]
+\sseqnewcmd*\tower[1]{
+    \begin{scope}[\options]
+    \class(\x,\y)
+    \foreach \n in {1,...,#1}{
+        \class(\x,\y+\n)
+        \structline(\x,\y+\n-1)(\x,\y+\n)
+    }
+    \end{scope}
+}
+\begin{sseqpage}
+\tower[orange](0,0){4}
+\tower[red](1,1){2}
+\end{sseqpage}
+\end{codeexample}
+\end{command}
+
+\begin{command}{\sseqnewgroup\opt{*}\oarg{num args}\marg{body}}
+This is more or less a shorthand for
+\begin{codeexample}[code only, code=white]
+\sseqnewcmd\opt{*}\cscolor{(\obscurexname,\obscureyname)}\oarg{num args}{
+    \begin{scope}[xshift=\obscurexname,yshift=\obscureyname,\options]
+    \meta{body}
+    \end{scope}
+}
+\end{codeexample}
+For instance:
+\begin{codeexample}[]
+\sseqnewgroup*\tower[1]{
+    \class(0,0)
+    \foreach \n in {1,...,#1}{
+        \class(0,\n)
+        \structline(0,\n-1)(0,\n)
+    }
+    \end{scope}
+}
+\begin{sseqpage}
+\tower[orange](0,0){4}
+\tower[red](1,1){2}
+\end{sseqpage}
+\end{codeexample}
+\end{command}
+
+\section{Global options}
 \begin{key}{name=\meta{sseq name}}
 \end{key}
 
@@ -652,17 +794,4 @@ It probably won't look great if you pick an angle that isn't a multiple of 90 de
 \begin{key}{rotate labels=\meta{boolean} (default true)(initially false)}
 
 \end{key}
-
-\section{Commands}
-\begin{command}{\sseqset\marg{keys}}
-
-\end{command}
-
-\begin{command}{\sseqnewcmd}
-
-\end{command}
-
-\begin{command}{\sseqnewgroup}
-
-\end{command}
 \end{document}

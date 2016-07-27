@@ -1,6 +1,7 @@
 \documentclass{article}
 %\usepackage[landscape,margin=1cm,top=2cm]{geometry}
 \usepackage{fullpage}
+
 \usepackage{sseqpages}
 \usepackage{pdflscape}
 \usepackage{mathpazo} % math & rm
@@ -8,10 +9,11 @@
 \usepackage[scaled]{helvet} % ss
 \usepackage{courier} % tt
 \normalfont
+\input{ass.tex}
 \begin{document}
 \begin{landscape}
 \begin{figure}[b]
-\input{ass.tex}
+\printpage[name=ass,page=0]
 \end{figure}
 \end{landscape}
 \end{document} 
