@@ -49,9 +49,6 @@
 
 \sseqnewgroup\towergroupa{%25*2+9+21 = 80
     \towergroup(0,0)
-    \class(0,-1)
-    \class(1,0)
-    \structline(0,-1,-1)(1,0,-1)
     \tower(4,-1)
 %
     \class(6,0)
@@ -148,57 +145,73 @@
 
 \towergroup(0,0) % 36
 
+\class(8,3)\class(9,4)
+\structline(8,3)(9,4)
 \towergroupa(8,4) % 80
 
 \foreach \n in {2,3,4}{
     \towergroupb(8*\n,4*\n) % 120
 }
 
-\d2(18,4)
-\d3(17,4)
-\d3(18,5)
-\d3(24,6)
-\d3(25,8,,-1)
-\d3(26,9)
-
-%\d3(33,12)
-\d3(34,13)
-%\d3(30,6)
-\d4(31,8)
+\foreach \n in {2,3,4}{
+    \begin{scope}[xshift=8*\n,yshift=4*\n]
+    \class(8,3)
+    \class(9,4)
+    \structline(8,3,-1)(9,4,-1)
+    \d3(9,0,-1,-1)
+    \d3(10,1,-1,-1)
+    \end{scope}
+}
 
 \foreach \n in {1,2,3,5,6,7}{
     \class(35+2*\n,7+\n)
 }
 
-\d4(37,8)
-\d4(45,12)
+\d2(18,4)
+\d3(24,6)
+
 \class(36,9)
 \d2(36,9)
+\d4(37,8)
+\d4(45,12)
 
-\foreach \n in {0,...,5}{
-    \class(40+2*\n,8+\n)
-}
-\d3(42,9)
-\d4(44,10)
-\d3(50,13)
 
+\class(44,13)
+\d2(44,13)
 \class(45,9)
 \class(47,10)
 \class(49,11)
 \d4(49,11,,1)
 \d4(49,11,,2)
+\replaceclass(48,15,1)
+\towergroupb(40,20)
 \towergroup(48,8)
+\foreach \n in {0,...,5}{
+    \class(40+2*\n,8+\n)
+}
+
+\d3(42,9)
+\d4(44,10)
+\d4(47,16)
 \d2(48,8)
 \d4(48,9)
+\d3(49,9,,2)
+\d3(50,13)
+\class[opacity=0](50,10)
 \class(50,10)
 \d4(50,10,1)
-\d4(50,10,2)
+\d[opacity=0]4(50,10,2)
+\d4(50,10,3)
+\replaceclass(50,10,2)
 \class(51,12)
 \d4(51,12)
+\class(52,17)
+\d2(52,17)
 
-
-
-
+\foreach \n in {0,4,8}{
+    \d3(32+2*\n,10+\n,1)
+    \d4(31+2*\n,8+\n)
+}
 \end{sseqdata}
 \printpage[name=tmfass,page=0]
 
@@ -208,7 +221,22 @@
 
 \printpage[name=tmfass,page=4]
 
-\begin{sseqpage}[name=tmfass,page=5]
+\begin{sseqpage}[name=tmfass,page=5,class labels={below=0.2em}]
+\classoptions["\eta" {right=0.1em}](1,1)
+\classoptions["\nu" below right](3,1)
+\classoptions["\epsilon"](8,3)
+\classoptions["c_4+\epsilon" left](8,4)
+\classoptions["2c_6"](12,6)
+\classoptions["\kappa"](14,4)
+\classoptions["c_4^2"](16,8)
+\classoptions["\overline\kappa"](20,4)
+\classoptions["8\Delta"](24,7)
+\classoptions["\eta\Delta"](25,5)
+\classoptions["2\nu\Delta"](27,6)
+\classoptions["c_4\Delta+q" left](32,7,1)
+\classoptions["q"](32,7,2)
+\classoptions["\overline\kappa^2"](40,8)
+\classoptions["4\Delta^2"](48,10)
 \draw(6,2)--(9,4);
 \draw(21,5)--(22,8);
 \draw[bend left=20] (25,5) to (28,8);
@@ -216,6 +244,14 @@
 \draw(32,7,1)--(33,9);
 \draw[bend right=10](32,7,2) to (35,10);
 \draw(34,8) -- (35,10);
+\draw(39,9)--(40,11,2);
+\draw(39,9)--(42,12);
+\draw(40,8)--(40,11,2);
+\draw(40,11,1)--(41,13);
+\draw(40,8)--(41,10) -- (42,12);
+\draw(45,9)--(46,11);
+\draw(48,15,1)--(48,16,1);
+\draw[bend right=20] (48,15,1) to (49,17);
+\structline[black](50,10,2)(51,11)
 \end{sseqpage}
 \end{document}
-
