@@ -84,10 +84,10 @@
 
 \pgfkeys{
 	/codeexample/prettyprint/cs arguments/meta/.initial=1, % Make \meta work correctly in codeexample
-	/codeexample/prettyprint/cs/meta/.code={\textcolor{black}{\meta{\@gobble#1}}}, 
+	/codeexample/prettyprint/cs/meta/.code={\textcolor{black}{\meta{\@gobble#1}}},
 	/codeexample/prettyprint/cs arguments/opt/.initial=1,
-	/codeexample/prettyprint/cs/opt/.code={\opt{\@gobble#1}}, 
-    /codeexample/prettyprint/cs arguments/oarg/.initial=1, 
+	/codeexample/prettyprint/cs/opt/.code={\opt{\@gobble#1}},
+    /codeexample/prettyprint/cs arguments/oarg/.initial=1,
 	/codeexample/prettyprint/cs/oarg/.code={\oarg{\@gobble#1}},
     /codeexample/prettyprint/cs arguments/cscolor/.initial=1,
 	/codeexample/prettyprint/cs/cscolor/.code={\textcolor{cscolor}{\@gobble#1}},
@@ -158,13 +158,13 @@ If a class is the source or the target of a differential on a certain page, then
 \printpage[name=class example,page=3]
 \end{codeexample}
 
-See the \pgfmanualpdfref{class options}{class options} section for a list of the sort of options available for classes. 
+See the \pgfmanualpdfref{class options}{class options} section for a list of the sort of options available for classes.
 \end{command}
 
 \begin{command}{\replaceclass\oarg{options}\meta{coordinate}}
 After a class is the source or target of a differential, it disappears on the next page. However, some differentials are not injective or not surjective. Using the command |\replaceclass| causes a new symbol to appear on the page after a class supported or accepted a differential (or both).
 \begin{codeexample}[]
-\begin{sseqdata}[name=replace class example,Adams grading,classes={draw=none}]
+\begin{sseqdata}[name=replace class example,Adams grading,classes={draw=none},math nodes]
 \class["\mathbb{Z}"](0,3)
 \class["\mathbb{Z}"](1,1)
 \class["\mathbb{Z}"](1,0)
@@ -191,7 +191,7 @@ This adds options to a class that already exists. This can be used in a |sseqpag
 \end{sseqdata}
 \begin{sseqpage}[name=class options example]
 \classoptions[red](2,1) % Will only show up as red on this page!
-\node[background,text width=10em] at (0.7,-2.2) 
+\node[background,text width=10em] at (0.7,-2.2)
     {\textup{The red class is the source of our troubles}};
 \end{sseqpage}
 \end{codeexample}
@@ -208,14 +208,14 @@ Another reason to use this is to give a label to one instance of a class that sh
     \structline(0,0)(1,1)
     \structline(1,1)(2,2)
 }
-\begin{sseqpage}[classes=fill,class labels={left=0.3em}]
+\begin{sseqpage}[classes=fill,class labels={left=0.3em},math nodes]
 \mygroup(0,0)
 \mygroup(1,2)
 \classoptions["2"](0,1)
 \classoptions["\eta"](1,1)
 \end{sseqpage}
 \end{codeexample}
-See the \pgfmanualpdfref{class options}{class options} section for a list of the sort of options available for classes. 
+See the \pgfmanualpdfref{class options}{class options} section for a list of the sort of options available for classes.
 \end{command}
 
 \begin{command}{\d\oarg{options}\meta{page}\meta{source coordinate}}
@@ -317,7 +317,7 @@ Any code that would work in a |tikzpicture| environment will also work unchanged
 %
 \begin{sseqpage}[name=tikz example]
 \begin{scope}[blue,font=\tiny]
-\node[name path=myellipse, draw, ellipse, inner sep=4pt, scale=0.7, rotate fit=26.5, 
+\node[name path=myellipse, draw, ellipse, inner sep=4pt, scale=0.7, rotate fit=26.5,
       fit=(sseq{1,0,1}) (sseq{0,2,1})] {}; % Internally, the classes are named (sseq{x,y,n})
 \path[name path=myline](1.2,1.2)--(0.6,1);
 \draw[->,name intersections={of=myellipse and myline}] (1.2,1.2)--(intersection-1);
@@ -365,12 +365,12 @@ In particular, this means that foreground \tikzname\space paths can be clipped b
 \end{codeexample}
 Here is an example where \tikzname\ labels with the |background| key are used to add labels and a grid:
 \begin{codeexample}[]
-\begin{sseqdata}[name=tikz background example, cohomological Serre grading,
+\begin{sseqdata}[name=tikz background example, cohomological Serre grading, math nodes,
                  classes=fill]
 \begin{scope}[background]
 \node at (\xmax/2,\ymax+0.8) {\textup{Page \page{}}};
-\node at (\xmax/2,-1.7) {$H^*(B)$};
-\node[rotate=90] at (-1.5,\ymax/2) {$H^*(F)$};
+\node at (\xmax/2,-1.7) {H^*(B)};
+\node[rotate=90] at (-1.5,\ymax/2) {H^*(F)};
 \draw[step=1cm,gray,very thin] (\xmin-0.5,\ymin-0.5) grid (\xmax+0.4,\ymax+0.5);
 \end{scope}
 \class(0,0)
@@ -384,31 +384,10 @@ Here is an example where \tikzname\ labels with the |background| key are used to
 \end{codeexample}
 \end{key}
 
-\begin{keylist}{page constraint=\meta{predicate},page constraint and=\meta{predicate}, page constraint or=\meta{predicate}}
-
+\begin{keylist}{page constraint=\meta{predicate}, page constraint or=\meta{predicate}}
+This places a constraint on the pages in which the \tikzname\space primitive is printed. This predicate should look something like |(\page<=4)&&(\page>=3)|. The predicate is anded together with any previous predicates, so that you can use this as an option for a |scope| and again for the individual \tikzname\ primitive.
 \end{keylist}
 
-There are a few subtleties you should keep in mind when using these \tikzname\space primitives in your spectral sequence. Perhaps the most important thing to remember is that |sseqpages| uses a two pass algorithm: on the first pass, it just stores data, and on the second pass it prints things. This can lead to unexpected results. For instance the following is an error:
-\begin{codeexample}[code only]
-\begin{sseqdata}[name=error example]
-\class(0,0)
-\def\x{1}\def\y{2}
-\class(\x,\y) % This line is actually okay
-\draw (0,0)--(\x,\y); % this line causes the problem
-\end{sseqdata}
-\printpage[name=error example] % Gives error: "Undefined control sequence \x"
-\end{codeexample}
-
-The fix for this is the |\addtocontext| command:
-\begin{codeexample}[]
-\begin{sseqdata}[name=error example]
-\class(0,0)
-\addtocontext{\def\x{1}\def\y{2}} % Tell sseqpages about the definitions
-\class(\x,\y)
-\draw (0,0)--(\x,\y);
-\end{sseqdata}
-\printpage[name=error example]
-\end{codeexample}
 
 \section{Options for the main commands}
 \subsection{Universal options}
@@ -488,7 +467,7 @@ Note that it is also possible to give a label to a |\node| this way, although th
 
 For either a |\structline| or a |\class| the label normally goes on the right side of the edge. The special |'| option makes it go in the opposite position from the default. I copied the code to handle this from the |tikzcd| package, so if you use |tikzcd|, this should be familiar.
 \begin{codeexample}[]
-\begin{sseqpage}[Adams grading]
+\begin{sseqpage}[Adams grading, math nodes]
 \class(0,0)
 \class(0,1)
 \class(0,2)
@@ -610,6 +589,11 @@ Because you can't use the normal \tikzname\ mechanism for specifying the source 
 For options that only apply to pages, such as |keep changes|, you should say instead |\sseqset{pages={keep changes}}|.
 \end{command}
 
+\begin{command}{\foreach}
+This command is from \tikzname\space and works in pretty much the same way in |sseqpages|. The |\foreach| command is very flexible and has a lot of variants. See the \tikzname\space manual for more details.
+%TODO fill me in
+\end{command}
+
 \begin{command}{\sseqnewcmd\opt{*}\meta{macro}\opt{(\meta{x variable macro},\meta{y variable macro})}\oarg{num args}\marg{body}}
 This command makes a new command with syntax similar to |\class|. By default it takes three arguments: |\mycommand|\oarg{options}|(|\meta{x}|,|\meta{y}|)|. To access the \meta{options} argument in the body of the command, use the macro |\options|. Likewise to access \meta{x}, use |\x|, and to access \meta{y} use |\y|:
 \begin{codeexample}[]
@@ -666,7 +650,7 @@ This is more or less a shorthand for
     \end{scope}
 }
 \end{codeexample}
-For instance:
+So that calling |\mygroup(x,y)| prints the whole group shifted to start at |(x,y)| instead of |(0,0)|. For instance:
 \begin{codeexample}[]
 \sseqnewgroup*\tower[1]{
     \class(0,0)
@@ -792,7 +776,7 @@ An edge is an ``orphan'' if both its source and target lie off the page. By defa
 \begin{key}{class placement transform=\marg{transform keys}}
 The |sseqpages| option |class placement transform| allows the user to specify a Tikz coordinate transform to adjust the relative position of multiple nodes in the same (x,y) position. This coordinate transform can only involve rotation and scaling, no translation. Specifying a scaling factor helps if the nodes are too large and overlap. In some cases a rotation makes it easier to see which class is the target of a differential.
 \begin{codeexample}[width=5cm]
-\begin{sseqpage}[classes={draw=none},class placement transform={xscale=3},
+\begin{sseqpage}[classes={draw=none},class placement transform={xscale=3}, math nodes,
                  xscale=2, x axis extend end=0.7cm]
 \class["\mathbb{Z}"](0,0)
 \class["\mathbb{Z}/2"](1,1)
@@ -853,7 +837,7 @@ The keys |classes| and |cycles| are synonyms as are |class style| and |cycle sty
 \begin{keylist}{permanent classes=\marg{keys}, permanent cycles=\marg{keys}, permanent class style=\marg{keys}, permanent cycle style=\marg{keys}}
 These options change the appearance of all permanent cycles (e.g., those classes which never support or are hit by a differential). For instance, we can circle the permanent cycles automatically. Note that because |permanent cycles| is more specific than |classes|, the |permanent cycles={draw}| command wins out over the |class={draw=none}| command to insure that the permanent cycle nodes are drawn.
 \begin{codeexample}[]
-\begin{sseqpage}[cohomological Serre grading,
+\begin{sseqpage}[cohomological Serre grading, math nodes,
                  classes={draw=none},permanent cycles={draw}]
 \foreach \x in {0,2} \foreach \y in {0,1}{
     \class["\mathbb{Z}"](\x,\y)
@@ -866,7 +850,7 @@ These options change the appearance of all permanent cycles (e.g., those classes
 \begin{keylist}{transient classes=\marg{keys}, transient cycles=\marg{keys}, transient class style=\marg{keys}, transient cycle style=\marg{keys}}
 These options change the appearance of all transient cycles (e.g., those classes which eventually support or are hit by a differential). Again, this takes precedence over the |classes| option.
 \begin{codeexample}[]
-\begin{sseqpage}[cohomological Serre grading,
+\begin{sseqpage}[cohomological Serre grading, math nodes,
                  classes={draw=none}, transient cycles=red]
 \foreach \x in {0,2} \foreach \y in {0,1}{
     \class["\mathbb{Z}"](\x,\y)
@@ -1006,3 +990,69 @@ It probably won't look great if you pick an angle that isn't a multiple of 90 de
 
 \end{key}
 \end{document}
+
+
+
+\begin{command}{\addtocontext\marg{code}}
+This command evaluates \meta{code} now, but also stores it and evaluates it at the same point when drawing the spectral sequence.
+This is sometimes necessary because |sseqpages| uses a two-pass algorithm -- inside the |sseqdata| and |sseqpage| environments, |sseqpages| is only storing the input. The actual drawing all happens at |\end{sseqpage}|. This creates some counterintuitive behavior.
+
+For instance, the following is an error:
+\begin{codeexample}[code only]
+\begin{sseqdata}[name=addtocontext example,class labels=left]
+\def\x{1}\def\y{2}
+\class(\x,\y) % This line is actually okay
+\class["\y"](0,0) % this line causes an error
+\draw (0,0)--(\x,\y); % this line also causes an error
+\end{sseqdata}
+\printpage[name=addtocontext example] % Gives error: "Undefined control sequence \x"
+\end{codeexample}
+The problem is that the definitions of |\x| and |\y| go out of scope when the |sseqdata| environment ends, but the |\x| in the |\class| label and |\draw| command coordinate have been stored to be evaluated later. When they actually are evaluated, |\x| has become undefined again and throws an error.
+The fix for this is the |\addtocontext| command:
+\begin{codeexample}[]
+\begin{sseqdata}[name=addtocontext example 1, class labels=left]
+\def\x{1}\def\y{2} % Tell sseqpages about the definitions
+\class(\x,\y) % so \x and \y have the proper value now
+\class["\y"](0,0) % and when these commands are printed.
+\draw (0,0)--(\x,\y);
+\end{sseqdata}
+\printpage[name=addtocontext example 1]
+\end{codeexample}
+Setting the value of |\x| and |\y| outside the environment would work, but this is a bad idea if they might change:
+\begin{codeexample}[]
+\def\x{1}\def\y{2}
+\begin{sseqdata}[name=addtocontext example 2,class labels=left]
+\class(\x,\y) % \x -> {1}, \y -> {2}
+\class["\y"](0,0) % surprise! \y -> 3
+\draw (0,0)--(\x,\y); % surprise! \y -> 3
+\end{sseqdata}
+\def\y{3} % because it changed here
+\printpage[name=addtocontext example 2]
+\end{codeexample}
+So when in doubt you should protect yourself with the |\addtocontext| command.
+
+If you used a variable in the options to |\class|, don't use |\classoptions| on the same class when the same variable has a different value -- it will cause unexpected behavior. This caveat also applies to variables that are used for the |\foreach| command.
+\begin{codeexample}[]
+% Left diagram
+\def\y{3}
+\begin{sseqpage}[name=addtocontext example 1,class labels=right]
+% We used \addtocontext{\def\x{1}\def\y{2}} in the sseqdata environment,
+% so the original \y's are all correct
+\node at (1,0) {\sectionstring\y=\y};
+% Uh-oh, using \classoptions on classes that were defined with different values of \y.
+\classoptions["\y"](0,0) % This \y is a 2 because it was a 2 when \class(0,0) was used =(
+\classoptions["\y"](1,2) % and so is this one.
+\end{sseqpage}
+\end{codeexample}
+Using |\addtocontext| doesn't work either:
+\begin{codeexample}[]
+\begin{sseqpage}[name=addtocontext example 1,class labels=right]
+\addtocontext{\def\y{3}}
+\node at (1,0) {\sectionstring\y=\y}; % All of these \y's are 3.
+% Uh-oh, using \classoptions on classes that were defined with different values of \y.
+\classoptions["\y"](0,0) % This call turns the old label into a 3!! =(
+\classoptions["\y"](1,2)
+\end{sseqpage}
+\end{codeexample}
+Note that the position of the |\class| is decided immediately, so there are no such problems with using the same variable in the position. But make sure that if a variable is used in the options twice that it has the same value both times.
+\end{command}

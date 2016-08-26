@@ -16,8 +16,8 @@
     labels=below,
     xscale=1.8,
     y axis gap=0.7cm,
+    math nodes,
     x axis extend end=0.8cm,
-    %execute at begin node=$,execute at end node=$,
     this page cycles=red
 ]
 
@@ -26,8 +26,7 @@
 \node at (\xmax/2,-2) {H^*(K(\Z,3))};
 \node[shift only,rotate=90] at (-1.25,\ymax/2) {H^*(K(\Z,2))};
 \end{scope}
-
-\column0["\Z\{\ifnum\y>0x\ifnum\y>1 ^{\y}\fi\else1\fi\}"]
+\column0["\Z\{\ifnum\y>0\relax x\ifnum\y>1\relax  ^{\y}\fi\else1\fi\}"]
 \column3["\Z\{a\ifnum\y>0x\ifnum\y>1 ^{\y}\fi\fi\}"]
 
 \foreach\y in {1,...,6} {\d["\cdot \y"']3(0,2*\y)}
@@ -55,27 +54,28 @@
 \d3(8,4)
 \d3(8,8)
 \d3(8,10)
-
 \column12["\Z/2\oplus\Z/5"]
+\column13["\Z/2"]
+\column15["\Z/2\oplus\Z/2\oplus\Z/5"]
 \d3(9,2)
 \d3(9,6)
 \d3(9,10)
-\replaceclass["\Z/5"](12,0)
-\replaceclass["\Z/5"](12,4)
-\replaceclass["\Z/5"](12,8)
-\d9(3,8)
-\column13["\Z/2"]
 \d3(10,2)
 \d3(10,6)
 \d3(10,10)
 \d3(10,12)
-
-\column15["\Z/2\oplus\Z/2\oplus\Z/5"]
 \d3(12,2)
 \d3(12,4)
 \d3(12,6)
 \d3(12,8)
 \d3(12,10)
+\d3(12,4)
+\replaceclass["\Z/5"](12,0)
+\replaceclass["\Z/5"](12,4)
+\replaceclass["\Z/5"](12,8)
+\d9(3,8)
+
+
 \replaceclass["\Z/5"](12,10)
 \replaceclass["\Z/2"](15,0)
 \replaceclass["\Z/2\oplus\Z/2"](15,4)
@@ -87,9 +87,9 @@
 \d5(11,4)
 \d5(11,10)
 
-\class["\Z/2"](17,0)
+\class["\Z/2"] (17,0)
 \class["\Z/2"](17,8)
-\d3(12,4)
+
 \d5(12,12)
 
 \class["\Z/2"](19,0)
