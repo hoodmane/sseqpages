@@ -198,6 +198,7 @@
 \def\parameteritem{\pgfutil@ifnextchar[\parameteritem@{}}%}
 \def\parameteritem@[#1]{\advance\parametercount by1\relax\hskip0.15em plus 1em\emph{\the\parametercount.}\kern1ex\def\test{#1}\ifx\test\pgfutil@empty\else#1\kern.5em\fi}
 
+\makeatother
 \newenvironment{commandlist}[1]{%
   \begin{pgfmanualentry}
   \foreach \xx in {#1} {%
@@ -207,6 +208,7 @@
 }{%
   \end{pgfmanualentry}
 }%
+\makeatletter
 
 % \begin{internallist}[register]{\pgf@xa}
 % \end{internallist}

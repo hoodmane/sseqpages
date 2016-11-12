@@ -51,8 +51,9 @@
 }
 
 \let\extractkey@\extractkey
+%\show\extractkey@
 \apptocmd\extractkey@{\egroup}{}{\error}
-\def\extractkey{\bgroup\@ifnextchar*{\def\decompose####1\nil{}\@xp\extractkey@\@gobble}{\extractkey@}}
+\def\extractkey{\bgroup\@ifnextchar*{\def\decompose####1\nil{ }\relax\extractkey@\@gobble}{\extractkey@}}
 
 \def\pgfmanual@pretty@quote{"}
 \let\pgfmanual@pretty@pgfkeys@loop@\pgfmanual@pretty@pgfkeys@loop
@@ -332,7 +333,7 @@ Any code that would work in a |tikzpicture| environment will also work unchanged
 \end{scope}
 \end{sseqpage}
 %
-\begin{sseqpage}[name=tikz example]
+\begin{sseqpage}[page=3,name=tikz example]
 \node[draw,ellipse,blue,inner sep=4pt,scale=0.7,rotate fit=26.5,fit=(sseq{1,0,1}) (sseq{0,2,1})] {};
 \node[right,blue,font=\tiny] at (1.2,1.2) {Now it's gone!};
 \end{sseqpage}
@@ -386,6 +387,18 @@ Here is an example where \tikzname\ labels with the |background| key are used to
 
 \begin{keylist}{page constraint=\meta{predicate}, page constraint or=\meta{predicate}}
 This places a constraint on the pages in which the \tikzname\space primitive is printed. This predicate should look something like |(\page<=4)&&(\page>=3)|. The predicate is anded together with any previous predicates, so that you can use this as an option for a |scope| and again for the individual \tikzname\ primitive.
+
+\begin{commandlist}{\isalive(\meta{coordinate}),\isalive\{(\meta{coordinate 1})$\cdots$(\meta{coordinate n})\}}
+This command can only be used with |page constraint|. Saying 
+$$|page contraint=||{\isalive(\meta{x},\meta{y},\meta{n})}|$$ 
+will print the \tikzname\space primitive only on pages where the specified class is alive. Saying 
+$$|page contraint=||{\isalive(|\meta{coordinate 1}|)|\,\cdots\,|(|\meta{coordinate n}|)}|$$ 
+is equivalent to 
+$$|page constraint=||{\isalive(\meta{coordinate 1}) &&|\,\cdots\,|&& \isalive(\meta{coordinate n})}|$$ 
+Writing
+$$|\draw[page constraint=||{\isalive(1,0)(2,2)}](1,0)--(2,2);|$$ 
+has the same result as |\structline(1,0)(2,2)|, except that you can't later use |\structlineoptions| on it.
+\end{commandlist}
 \end{keylist}
 
 
@@ -594,7 +607,7 @@ This command is from \tikzname\space and works in pretty much the same way in |s
 %TODO fill me in
 \end{command}
 
-\begin{command}{\sseqnewcmd\opt{*}\meta{macro}\opt{(\meta{x variable macro},\meta{y variable macro})}\oarg{num args}\marg{body}}
+\begin{command}{\sseqnewcmd\opt{\lower3pt\hbox{*}}\meta{macro}\opt{(\meta{x variable macro},\meta{y variable macro})}\oarg{num args}\marg{body}}
 This command makes a new command with syntax similar to |\class|. By default it takes three arguments: |\mycommand|\oarg{options}|(|\meta{x}|,|\meta{y}|)|. To access the \meta{options} argument in the body of the command, use the macro |\options|. Likewise to access \meta{x}, use |\x|, and to access \meta{y} use |\y|:
 \begin{codeexample}[]
 \sseqnewcmd\featuregroup{
@@ -641,7 +654,7 @@ The command you create with |\sseqnewcmd| can take up to six arguments in additi
 \end{codeexample}
 \end{command}
 
-\begin{command}{\sseqnewgroup\opt{*}\oarg{num args}\marg{body}}
+\begin{command}{\sseqnewgroup\opt{\lower3pt\hbox{*}}\oarg{num args}\marg{body}}
 This is more or less a shorthand for
 \begin{codeexample}[code only, code=white]
 \sseqnewcmd\opt{*}\cscolor{(\obscurexname,\obscureyname)}\oarg{num args}{
@@ -1055,4 +1068,4 @@ Using |\addtocontext| doesn't work either:
 \end{sseqpage}
 \end{codeexample}
 Note that the position of the |\class| is decided immediately, so there are no such problems with using the same variable in the position. But make sure that if a variable is used in the options twice that it has the same value both times.
-\end{command}
+\end{command} 

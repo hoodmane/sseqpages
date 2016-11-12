@@ -1,7 +1,7 @@
 \documentclass{article}
 \usepackage[landscape,margin=0cm,top=2cm]{geometry}
 \usepackage{sseqpages}
-% 7.25 sec
+% 9.8 sec
 
 \begin{document}
 \begin{sseqdata}[
@@ -9,6 +9,7 @@
     y range={0}{20},
     x label step=2,
     degree={-1}{#1},
+    math nodes,
     classes={fill,inner sep=0.3ex},
     permanent cycles=circle,
     differentials={->,blue},
@@ -23,7 +24,7 @@
     \class(0,0)
     \foreach \y in {1,...,22}{
         \class(0,\y)
-        \structline(0,\y-1,-1)(0,\y,-1)
+        \structline(0,\y-1,-1) (0,\y,-1)
     }
 }
 
@@ -143,6 +144,7 @@
     \d2(19,-1,-1,-1)
 }
 
+%\tracingall
 \towergroup(0,0) % 36
 
 \class(8,3)\class(9,4)
@@ -153,7 +155,7 @@
     \towergroupb(8*\n,4*\n) % 120
 }
 
-\foreach \n in {2,3,4}{
+\foreach \n in {1,2,3,4}{
     \begin{scope}[xshift=8*\n,yshift=4*\n]
     \class(8,3)
     \class(9,4)
@@ -167,7 +169,7 @@
     \class(35+2*\n,7+\n)
 }
 
-\d2(18,4)
+%\d2(18,4)
 \d3(24,6)
 
 \class(36,9)
@@ -254,4 +256,4 @@
 \draw[bend right=20] (48,15,1) to (49,17);
 \structline[black](50,10,2)(51,11)
 \end{sseqpage}
-\end{document}
+\end{document} 

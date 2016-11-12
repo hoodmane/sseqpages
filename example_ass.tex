@@ -4,15 +4,15 @@
 
 
 \begin{document}
+
 \begin{sseqpage}[
-    execute at begin node=$,execute at end node=$,
     degree={-1}{#1-1},
     classes={circle,fill,inner sep=0.3ex},
     class labels={above left=0.2em},
-    edge labels=description,
+    %edge labels=description,
+    math nodes,    
     y range={0}{10}
 ]
-
 \begin{scope}[classes=red, class labels=black]
 \class(0,0)
 
@@ -23,7 +23,7 @@
 }
 
 % multiples of eta
-\class["\eta"](1,1) \structline(0,0)(1,1)
+\class["\eta"](1,1)\structline(0,0)(1,1)
 \class["\eta^2"](2,2) \structline(1,1)(2,2)
 \class(3,3) \structline(2,2)(3,3)
 
@@ -33,6 +33,7 @@
 
 \class(6,2)
 \end{scope}
+
 
 \gdef\tower[#1]#2{
     \begin{scope}[#1]

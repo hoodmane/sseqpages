@@ -3,9 +3,9 @@
 \usepackage{sseqpages}
 \begin{document}
 \sseqset{
-    Z2class/.style={circle,inner sep=0.3ex,fill=black},
-    Zclass/.style={fill=none,draw,inner sep=0.6ex},
-    2Zclass/.style={fill=none,rectangle,draw,inner sep=0.6ex,outer sep=0.5ex}
+    Z2class/.sseq style={circle,inner sep=0.3ex,fill=black},
+    Zclass/.sseq style={fill=none,draw,inner sep=0.6ex},
+    2Zclass/.sseq style={fill=none,rectangle,draw,inner sep=0.6ex,outer sep=0.5ex}
 }
 \begin{sseqdata}[
     name=KRHFPSS,
@@ -28,10 +28,10 @@
 
 \draw[background,xshift=-0.5cm,yshift=-0.51cm,step=1cm,gray,very thin] (\xmin+0.01,\ymin+0.01) grid (\xmax+0.9,\ymax+0.9);
 
-\pgfmathsetmacro\xitstart{int(\xmin/8)*8-16}
-\pgfmathsetmacro\xitgap{\xitstart+4}
-\pgfmathsetmacro\xitend{\xmax+2}
-\pgfmathsetmacro\xmaxpp{\xmax+2}
+\pgfmathsetmacro\xitstart{int(int(\xmin/8)*8-16)}
+\pgfmathsetmacro\xitgap{int(\xitstart+4)}
+\pgfmathsetmacro\xitend{int(\xmax+2)}
+\pgfmathsetmacro\xmaxpp{int(\xmax+2)}
 
 \foreach \x in {\xitstart,\xitgap,...,\xitend} {
     \class[Zclass](\x,0)
@@ -41,8 +41,8 @@
     }
 }
 
-\pgfmathsetmacro\xitstart{\xitgap}
-\pgfmathsetmacro\xitgap{\xitstart+8}
+\pgfmathsetmacro\xitstart{int(\xitgap)}
+\pgfmathsetmacro\xitgap{int(\xitstart+8)}
 
 \foreach \x in {\xitstart,\xitgap,...,\xitend} {
     \foreach\z in {0,...,\xmax}{
@@ -58,7 +58,6 @@
 \newpage
 \begin{sseqpage}[name=KRHFPSS,page=0,keep changes]
 \pgfmathsetmacro\antidiag{min(-\xmin,\ymax+0.8)}
-\addtocontext\antidiag
 \clip[background,xshift=0.28cm,yshift=-0.4cm](-\antidiag,\antidiag)--(-1,1)--(-0.4,0)--(\xmax+2,0)--(\xmax+2,\antidiag)--cycle;
 \foreach \z in {2,6}{
     \doptions[draw=none]4(-\z-1,\z-1)

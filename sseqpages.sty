@@ -14,7 +14,6 @@
 % Figure out whether e.g., "change classes" could have a better name
 % Maybe modify "change classes" mechanism
 % Fix name or make synonym for struct lines? Abbreviation seems not obvious
-% Structline only appears between most recent version of each class
 %
 % Add ifdead(class) and ifalive(class) as predicates for "page constraint" for Tikz primitives
 % Make naming of commands more consistent
@@ -34,8 +33,6 @@
 \ProvidesPackage{sseqpages}
 
 \newif\ifsseq@versionwarn
-\newcount\sseq@errormode
-\sseq@errormode=1\relax
 
 \RequirePackage{tikz}
 \RequirePackage{etoolbox}
@@ -51,7 +48,6 @@
 \def\sseq@authoremail#1{hood@mit.edu}
 
 \DeclareOption{versionwarn}{\sseq@versionwarntrue}
-\DeclareOption{fasterrors}{\sseq@fasterrorstrue}
 \ProcessOptions\relax
 \@ifpackagelater{tikz}{2015/07/08}{%
     \@ifpackagelater{tikz}{2015/08/08}{%
@@ -90,10 +86,11 @@
 \newif\ifsseq@draworphanedges
 \newif\ifsseq@drawedge
 \newif\ifsseq@tikzprims@integershift
+\sseq@drawedgetrue
 \sseq@tikzprims@integershifttrue
 
 \newif\ifsseq@tempif
-\sseq@drawedgetrue
+
 
 \newtoks\sseq@temptoks
 \newtoks\sseq@thislabelstyle
@@ -133,7 +130,7 @@
 \def\sseq@profilenew#1#2{\pgfprofilenew{#1}\pretocmd#2{\pgfprofilestart{#1}}{}{\error}\apptocmd#2{\pgfprofileend{#1}}{}{\error}}
 
 \def\sseq@stripspaces#1{\bgroup\sseq@temptoks{#1}\@xp\@xp\@xp\egroup\@xp\the\@xp\sseq@temptoks\romannumeral-`\q}
-
+\def\sseq@stripleadingspace{\romannumeral-`q}
 
 %% Error messages
 \newtoks\sseq@thiscalltoks
@@ -141,20 +138,24 @@
 \def\sseq@setthiscall{\let\sseq@error@annotation\sseq@error@annotation@call\sseq@thiscalltoks}
 \def\sseq@esetthiscall#1{\let\sseq@error@annotation\sseq@error@annotation@call\sseq@eval{\sseq@thiscalltoks{#1}}}
 
-\def\sseq@error@annotation{^^J(O\@xp\@gobble\sseq@errorinfo)}
+\def\sseq@error@annotation{.^^J(\sseq@errorinfo)}
 \def\sseq@error@annotation@call{.^^J(Error occurred during call \sseq@thiscall\space \sseq@errorinfo)}
 
 \let\sseq@errmessage@std\errmessage
 \def\sseq@errmessage#1{\sseq@builderrorinfo\sseq@errmessage@std{#1\sseq@error@annotation}}
 \def\sseq@errorwithinfo#1{\let\errmessage\sseq@errmessage@std\sseq@builderrorinfo\pgfutil@packageerror{sseqpages}{#1\sseq@error@annotation}{}}
 \def\sseq@errornoinfo#1{\let\errmessage\sseq@errmessage@std\sseq@builderrorinfo\pgfutil@packageerror{sseqpages}{#1}{}}
-\let\sseq@error\sseq@errornoinfo
-\def\sseq@errorinfo{on input line \sseq@inputlineno}% Changed during \foreach
+\DeclareRobustCommand\sseq@error{\sseq@error@}
+\let\sseq@error@\sseq@errornoinfo
+\def\sseq@errorinfo{}% Changed during \foreach
 \def\sseq@inputlineno{\the\inputlineno}
 \def\sseq@builderrorinfo{}% Changed during \foreach
 \def\sseq@errorinfo@foreach{in the \@nx\foreach block that ends on line \the\inputlineno, with variable values:}
 \def\sseq@errorifpt#1#2{\sseq@errorifpt@#1.\sseq@nil{#2}}
 \def\sseq@errorifpt@#1.#2\sseq@nil#3{\ifx\sseq@nil#2\sseq@nil\else\sseq@error{#3}\fi}
+
+\let\sseq@pgfmathparse@save\pgfmathparse
+\def\sseq@pgfmathparse#1{\let\@@protect\protect\def\protect{}\sseq@pgfmathparse@save{#1}\restore@protect}
 
 \def\sseq@error@internal#1{\sseq@error{Internal error: #1. Contact package author \sseq@authorname{} at \sseq@authoremail{}}{}}
 \def\sseq@error@range{\sseq@error{Empty spectral sequence. For every spectral sequence you must either specify both the "x range" and "y range" or include at least one \string\class}}
@@ -323,6 +324,7 @@
 \def\sseq@e@addto@macro#1#2{\begingroup\pgfutil@toks@\@xp{#1}\sseq@eval{\pgfutil@toks@{\the\pgfutil@toks@#2}}\@xp\endgroup\@xp\def\@xp#1\@xp{\the\pgfutil@toks@}} % let #2 be expanded
 \def\sseq@g@addto@macro#1#2{\@xp\gdef\@xp#1\@xp{#1#2}}
 \def\sseq@x@addto@macro#1#2{\begingroup\pgfutil@toks@\@xp{#1}\xdef#1{\the\pgfutil@toks@#2}\endgroup} % let #2 be expanded
+\def\sseq@xprotected@addto@macro#1#2{\begingroup\pgfutil@toks@\@xp{#1}\protected@xdef#1{\the\pgfutil@toks@#2}\endgroup}
 
 %% Saved paths, temporary saved paths, background saved paths
 % \sseq@savedpaths@whatever is redefined to be \sseq@savedpaths@whatever@standard or \sseq@savedpaths@whatever@temporary depending on context
@@ -351,6 +353,7 @@
 \def\sseq@savedpaths@addstructline@background#1{\sseq@error@internal{\@nx\sseq@savedpaths@addstructline occurred in background mode}}
 \def\sseq@savedpaths@add@background{\sseq@g@addto@macro\sseq@savedbackgroundpaths}
 \def\sseq@savedpaths@xadd@background{\sseq@x@addto@macro\sseq@savedbackgroundpaths}
+\def\sseq@savedpaths@show@background{\show\sseq@savedbackgroundpaths}
 
 \def\sseq@setsavedpaths#1{
     \@xp\let\@xp\sseq@savedpaths@addclass       \csname sseq@savedpaths@addclass@#1\endcsname
@@ -381,10 +384,8 @@
 % outputs into \sseq@savedoptioncode
 \def\sseq@processoptions#1#2{
     \def\sseq@savedoptioncode{}
-    \bgroup
-    \let\protect\@unexpandable@protect
-    \edef\sseq@temp{#2}
-    \sseq@eval{\egroup\@nx\pgfqkeys{/sseqpages/#1}{\unexpanded\@xp{\sseq@temp}}}
+    \protected@edef\sseq@temp{#2}
+    \sseq@eval{\@nx\pgfqkeys{/sseqpages/#1}{\unexpanded\@xp{\sseq@temp}}}
 }
 
 
@@ -411,7 +412,7 @@
     \begingroup %
     \let\sseq@builderrorinfo\sseq@builderrorinfo@foreach % Install foreach error annotations
     \let\errmessage\sseq@errmessage
-    \let\sseq@error\sseq@errorwithinfo
+    \let\sseq@error@\sseq@errorwithinfo
     \advance\sseq@context@depth1\relax
     \sseq@for@clearsavedtoks % empty the saved variables at this level
 }
@@ -541,18 +542,6 @@
     {}{\sseq@for@nopatch}
 \pretocmd\sseq@pgffor@atendforeach{\sseq@for@clearsavedtoks}{}{\sseq@for@nopatch}
 
-% TODO: delete this
-\ifnum\sseq@errormode>1\relax
-    \apptocmd\sseq@for@savemacro{\sseq@context@set#1{#2}}{}{}
-    \apptocmd\sseq@for@esavemacro{\sseq@eval{\@nx\sseq@for@savedpaths@add{\@nx\sseq@context@set\@nx#1{#2}}}}{}{}
-    \apptocmd\sseq@pgffor@atbeginforeach{%
-        \sseq@for@savedpaths@add{\bgroup}
-        \ifnum\sseq@context@depth=1\relax\sseq@for@savedpaths@add{\def\sseq@errorinfo{in the \string\foreach\space block that ends on line \the\inputlineno, with variable values}}\fi
-    }{}{}
-    \pretocmd\sseq@pgffor@atendforeach{\sseq@for@savedpaths@add{\egroup}}{}{}
-    \def\sseq@context@set#1#2{\def#1{#2}\edef\sseq@errorinfo{\unexpanded\@xp{\sseq@errorinfo: \@nx#1=}#2}\let\sseq@context@set\sseq@context@set@rest}
-    \def\sseq@context@set@rest#1#2{\def#1{#2}\edef\sseq@errorinfo{\unexpanded\@xp{\sseq@errorinfo; \@nx#1=}#2}}
-\fi
 
 %%%% Internal utilities
 \def\sseq@iffullcoord(#1){\@xp\sseq@iffullcoord@#1,\sseq@nil}
@@ -560,60 +549,91 @@
 
 % Only works for full coordinates. Used for error checking in \replaceclass and \d.
 \def\sseq@ifundefcoord{\@xp\sseq@ifundefcoord@}
-\def\sseq@ifundefcoord@(#1,#2,#3){%
-    \sseq@obj@ifundef{partcoord.(#1,#2).numnodes}%
-        {\@firstoftwo}%
-        {\ifnum#3<\sseq@obj{partcoord.(#1,#2).numnodespp}\relax\@xp\@secondoftwo\else\@xp\@firstoftwo\fi}%
+\def\sseq@ifundefcoord@(#1){%
+    \sseq@obj@ifundef{class.(#1).num}
 }
 
 \def\sseq@ifdead#1{\ifnum\sseq@obj{class.#1[\sseq@obj{class.#1.num}].page}<\sseq@infinity\relax \@xp\@firstoftwo\else\@xp\@secondoftwo\fi}
 \def\sseq@getdeathpage#1{\sseq@obj{class.#1[\sseq@obj{class.#1.num}].page}}
 
 %% \sseq@whichclass -- Find out which class an index indicates
-% if the index is positive, just check that it is within bounds
+% if the index is positive, just return it (don't check whether it is within bounds!!)
 % if the index is negative, return (number of nodes at (x,y)) - index + 1
 % if index is empty, return 1 (should it be -1?)
 %
+% We don't check whether positive indices are within bounds because \structline wants to use this command,
+% but it allows struct lines that automatically attach to endpoints that don't yet exist.
+% Calling commands that do want it to be in bounds (\d and \isalive) are responsible for checking themselves.
+%
 % #1 -- output variable
-% #2 -- x coordinate
-% #3 -- y coordinate
-% #4 -- index
+% #2,#3,#4 -- x,y,n
 % #5 -- calling command (for error messages)
-\def\sseq@whichclass#1#2#3#4#5{%
-    \edef#1{#4}%
-    \ifx#1\pgfutil@empty % If no index is provided, just use 1 TODO: Maybe we should use -1?
-        \edef#1{1}%
+\def\sseq@whichclass#1#2#3#4#5{
+    \sseq@eval{\unexpanded{\sseq@whichclassex{\def#1}}{#2}{#3}{#4}{#5}}
+    \sseq@tempcountb=\numexpr 1#1\relax % This line evaluates any error messages in #1, but if #1 is just a number vacuums it up.
+}
+
+% #1 -- callback
+% (#2,#3,#4) -- (x,y,n)
+% #5 -- error message
+\def\sseq@whichclassex#1#2#3#4#5{%
+    \ifx$#4$% If no index is provided, just use 1 TODO: Maybe we should use -1?
+        #1{1}%
     \else
-        \ifnum#4<0% Negative case -- why this command exists
-            \sseq@obj@ifundef{partcoord.(#2,#3).numnodes}{
-                \sseq@error{negative index #4 provided for #5 but no classes yet exist in #5 position (#2,#3).
-                    Negative indices count from the most recent class in the given position; in particular, there must be at least one existing class}{}
+        \ifnum#4<\numexpr0\relax% Negative case -- why this command exists
+            \sseq@obj@ifundef{partcoord.(#2,#3).numnodes}{%
+                #1{\sseq@error{negative index #4 provided for #5 but no classes yet exist in #5 position (#2,#3).
+                   Negative indices count from the most recent class in the given position; in particular, there must be at least one existing class}{}}
             }{%
-                \bgroup
-                \sseq@tempcount=\sseq@obj{partcoord.(#2,#3).numnodes}\relax
-                \advance\sseq@tempcount#4\relax
-                \advance\sseq@tempcount1\relax
-                \ifnum\sseq@tempcount<1\relax
-                    \sseq@error{index #4 provided for the #5 is out of bounds -- only \sseq@obj{partcoord.(#2,#3).numnodes} classes exist at #5 position (#2,#3)}{}
-                \fi
-                \@xp\egroup\@xp\def\@xp#1\@xp{\the\sseq@tempcount}
+               \@xp\sseq@whichclass@helper\@xp{\the\numexpr\sseq@obj{partcoord.(#2,#3).numnodes} + #4 + 1\relax}{#1}{#2}{#3}{#4}{#5}%
             }%
+        \else
+            #1{#4}%
         \fi
     \fi
 }
+
+% #1 -- calculated index
+% #2 -- the callback
+% #3,#4,#5 -- x,y,n
+% #6 -- the error message
+\def\sseq@whichclass@helper#1#2#3#4#5#6{%
+    \ifnum#1<1\space%
+        #2{\sseq@error{index #5 provided for the #6 is out of bounds -- only \sseq@obj{partcoord.(#3,#4).numnodes} classes exist at position (#3,#4)}}
+    \else
+        #2{#1}%
+    \fi
+}
+
 
 %% Parsers
 % These are very internal commands. They work. I should probably never touch or look at them again.
 
 %% \sseq@parsecoords:
 % #1 -- output command
-% #2 -- coordinate of the form "(x,y)" or "x,y" or "(x,y,n)" or "x,y,n"
+% #2 -- coordinate of the form "(x,y)" or "{x,y}" or "(x,y,n)" or "{x,y,n}"
 % Defines #1 to be #2 after applying \pgfmathparse to x and y, and then replacing numbers of the form n.0 with n for n an integer
-\def\sseq@parsecoords#1#2{\sseq@eval{\unexpanded{\sseq@parsecoords@#1}{\sseq@parsecoords@ifpar#2}}}
-\def\sseq@parsecoords@ifpar#1{\ifx(#1\@xp\sseq@parsecoords@removepar\fi#1}
-\def\sseq@parsecoords@removepar(#1){#1}
-\def\sseq@parsecoords@#1#2{\edef#1{\sseq@parsecoords@@#2,\sseq@nil,}\edef#1{\@xp\@gobble#1}\@xp\sseq@errorifpt\@xp{#1}{TODO}}
-\def\sseq@parsecoords@@#1,{\ifx\sseq@nil#1\else,\the\numexpr#1\relax \@xp\sseq@parsecoords@@\fi}
+\def\sseq@parsecoords#1{\sseq@parsecoordsex{\def#1}}
+\def\sseq@parsecoordsex#1#2{\sseq@parsecoords@ifpar#2\sseq@nil{#1}}
+\def\sseq@parsecoords@ifpar#1{%
+    \ifx(#1%
+        \@xp\sseq@parsecoords@par\@xp#1%
+    \else
+        \@xp\sseq@parsecoords@nopar\@xp#1%
+    \fi
+}
+\def\sseq@parsecoords@par(#1)\sseq@nil#2{\sseq@parsecoords@{#2}{#1}}
+\def\sseq@parsecoords@nopar#1\sseq@nil#2{\sseq@parsecoords@{#2}{#1}}
+\def\sseq@parsecoords@#1#2{\sseq@parsecoords@@{#1}{}#2,\sseq@nil,}
+\def\sseq@parsecoords@@#1#2#3,{%
+    \ifx\sseq@nil#3%
+        \@xp\sseq@parsecoords@done\@xp{\@gobble#2}{#1}%
+    \else
+        \sseq@ifhop{\@xp\sseq@parsecoords@@@\@xp{\the\numexpr#3\relax}{#1}{#2}}%
+    \fi
+}
+\def\sseq@parsecoords@@@#1#2#3{\sseq@parsecoords@@{#2}{#3,#1}}
+\def\sseq@parsecoords@done#1#2{#2{#1}}
 
 
 %% \sseq@parsecommas:
@@ -1100,9 +1120,10 @@
 \def\sseq@stylelist{}
 \def\sseq@clearchangestyles{}
 
+
 \def\sseq@newstyles#1{\def\sseq@temppath{#1}\bgroup\catcode` =\active\sseq@newstyles@}
 \def\sseq@newstyles@#1{\egroup\sseq@newstyles@@#1,\sseq@nil}
-\def\sseq@newstyles@@#1,{\sseq@newsseqstyle{\romannumeral0#1}\@ifnextchar\sseq@nil{\@gobble}{\sseq@newstyles@@}}
+\def\sseq@newstyles@@#1,{\sseq@newsseqstyle{\sseq@stripleadingspace#1}\@ifnextchar\sseq@nil{\@gobble}{\sseq@newstyles@@}}
 
 \def\sseq@set@newstyle#1{\pgfqkeys{/sseqpages}{#1}\pgfqkeys{/sseqpages/global}{#1}\pgfqkeys{/sseqpages/global/default}{#1}\pgfqkeys{/sseqpages/first pass}{#1}}
 
@@ -1149,6 +1170,9 @@
     \def\sseq@temp{#1}
     \pgfqkeys{/sseqpages/setstyle}{#2}% This is lazy, small performance cost.
 }
+
+\pgfkeys{/sseqpages/setstyle/.unknown/.code={\sseq@addstylecodetooptions@{#1}}}
+
 \def\sseq@addstylecodetooptions@#1{
     \sseq@tempiffalse
     \def\next{\sseq@addstylecodetooptions@@{#1}}
@@ -1172,14 +1196,13 @@
     }
 }
 
-\pgfkeys{/sseqpages/setstyle/.unknown/.code={\sseq@addstylecodetooptions@{#1}}}
-
 \sseq@newstyles{/sseqpages/global}{sseq, page}
 \sseq@newstyles{/sseqpages}{path, edge, label, edge label, differential label, struct line label}
 \sseq@newstyles{/sseqpages/class,/sseqpages}{class, permanent cycle, transient cycle, this page cycle}
 \sseq@newstyles{/sseqpages/differential,/sseqpages}{differential}
 \sseq@newstyles{/sseqpages/struct line,/sseqpages}{struct line, this page struct line}
 \sseq@newstyles{/sseqpages/class/label}{class label, inner class label, outer class label}
+
 
 \sseq@set@newstyle{classes/.style={classs={#1}},change classes/.style={change classs={#1}}}% "class" has a nonstandard plural
 \sseq@set@newstyle{
@@ -1202,7 +1225,6 @@
     %labels={execute at begin node=$,execute at end node=$},
     differentials=->
 }
-%\showthe\sseq@labelstyle
 
 \pgfqkeys{/handlers}{
     .sseq store in/.code 2 args={
@@ -1499,9 +1521,9 @@
 % axes options:
 \sseq@globalkeys{%
     math nodes/.style={execute at begin node=$,execute at end node=$},
-    labels/.code={},
-    x labels/.code={},
-    y labels/.code={},
+    axes labels/.code={},
+    x axis labels/.code={},
+    y axis labels/.code={},
     x axis style/.is choice,
     y axis style/.is choice,
     axes style/.sseq x y alias=axis style,
@@ -1677,8 +1699,10 @@
 
 \pgfqkeys{/sseqpages/tikz primitives}{
     shift/.code={\sseq@error@internal{Not implemented}},
-    xshift/.sseq @ second pass code=\sseq@tikz@shifttransform{x}{#1},
-    yshift/.sseq @ second pass code=\sseq@tikz@shifttransform{y}{#1},
+    xshift/.sseq @ first pass code=\sseq@tikz@firstpass@checkshifttransform{x}{#1},
+    yshift/.sseq @ first pass code=\sseq@tikz@firstpass@checkshifttransform{y}{#1},
+    xshift/.sseq @ second pass append code=\sseq@tikz@shifttransform{x}{#1},
+    yshift/.sseq @ second pass append code=\sseq@tikz@shifttransform{y}{#1},
     rotate around/.sseq @ second pass code={\sseq@standardparse\sseq@pgfkeysdocommand{rotate}{#1}},
     rotate/.sseq @ second pass code={\sseq@standardparse\sseq@pgfkeysdocommand{rotate}{#1}},
     rotate/.value required,
@@ -1827,7 +1851,8 @@
 
 % copy commands into user namespace by removing sseq@ prefixes
 % given a list of commands, \let\thiscommand\sseq@thiscommand on each one
-\def\sseq@copycommands#1{\sseq@copycommands@#1\sseq@nil}
+\def\sseq@commandlist{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions\isdead\isalive\pgfmathparse}
+\def\sseq@copycommands{\@xp\sseq@copycommands@\sseq@commandlist\sseq@nil}
 \def\sseq@copycommands@#1{%
     \ifx#1\sseq@nil\else % if so, that was the last command in the list
         \@xp\let\@xp#1\csname sseq@\sseq@macroname#1\endcsname
@@ -1835,29 +1860,109 @@
     \fi %
 }
 
-\def\sseq@tikz@pageconstraint{1}
-\def\sseq@tikz@pageconstraint@true{1}
+% This protect variant allows us to delay evaluation of \isalive, just so that we can
+% capture something close to the original argument to
+\let\sseq@isaliveprotect\relax
+\def\sseq@isaliveprotect@protect{\@nx\sseq@isaliveprotect\@nx}
+\def\sseq@isalive{\sseq@isaliveprotect\sseq@isalive@}
+\def\sseq@isalive@{\sseq@isalive@error}
+
+\def\sseq@isalive@error{\sseq@error{You can't use \@nx\isalive\sseq@macroname\ outside of a page constraint for a tikz primitive}}
+\def\sseq@isalive@active#1{%
+    \@xp\ifx\@xp$\@gobble#1$%
+        \@xp\sseq@isalive@parens\@xp#1%
+    \else
+        \sseq@isalive@list#1\sseq@nil
+    \fi
+}
+\def\sseq@isalive@list(#1)#2{%
+    \sseq@isalive@parens(#1)%
+    \ifx\sseq@nil#2\else
+        &&\@xp\sseq@isalive@list\@xp#2%
+    \fi
+}
+\def\sseq@isalive@parens(#1){\sseq@parsecoordsex\sseq@isalive@parens@{#1}}
+\def\sseq@isalive@parens@#1{\sseq@isalive@parens@@#1,,\sseq@nil}
+\def\sseq@isalive@parens@@#1,#2,#3,#4\sseq@nil{%
+    \sseq@obj@ifundef{partcoord.(#1,#2).numnodes}{%
+        \sseq@error{No class yet exists in position (#1,#2), so you can't check whether it is alive or not}%
+    }{%
+        \sseq@whichclassex{\sseq@isalive@parens@@@{#1}{#2}}{#1}{#2}{#3}{page constraint \protect\isalive(#1,#2,#3)}%
+    }%
+}
+\def\sseq@isalive@parens@@@#1#2#3{%
+    \ifnum1=\numexpr 1#3\relax % If there wasn't an error in \sseq@whichclassex, then #3 is a number which gets appended to 1 and the check fails.
+        #3 % #3 is an error, report it (obviously it is just stored here, \sseq@pageconstraint@checkerror will deal with it).
+    \else
+        \sseq@obj@ifundef{class.(#1,#2,#3).num}{%
+            \sseq@error{Fewer than #3 classes exist in position (#1,#2) so you can't check whether (#1,#2,#3) is alive}%
+        }{%
+            \@nx\sseq@isalive@final{#1}{#2}{#3}{\sseq@obj{class.(#1,#2,#3).num}}%
+        }%
+    \fi
+}
+\def\sseq@isalive@final#1#2#3#4{
+    \ifnum\sseq@obj{class.(#1,#2,#3)[#4].page}<\sseq@thepage\space
+        0
+    \else
+        \ifnum#4=0\space
+            1
+        \else
+            \ifnum\sseq@obj{class.(#1,#2,#3)[\the\numexpr #4-1\relax].page}=\sseq@thepage\space
+                0
+            \else
+                1
+            \fi
+        \fi
+    \fi
+}
+
+% #1 -- the new page constraint
+% #2 -- a binary logical operator (&& or ||).
+\def\sseq@updatepageconstraint#1#2{
+    \let\sseq@isalive@\sseq@isalive@active
+    \def\sseq@isaliveprotect{}
+    \protected@edef\sseq@pageconstraint{(\unexpanded\@xp{\sseq@pageconstraint})#2(#1)}
+    \bgroup
+    \ifx\sseq@error@\sseq@errorwithinfo\else
+        \def\sseq@error@annotation{}
+        \let\sseq@error@\sseq@errorwithinfo
+    \fi
+    \def\sseq@isaliveprotect\sseq@isalive@{\protect\isalive}
+    \edef\sseq@error@annotation{\unexpanded{.^^J(In page constraint "#1")}\unexpanded\@xp{\sseq@error@annotation}}
+    \sseq@pageconstraint@checkerror
+    \egroup
+}
+
+\edef\sseq@pageconstraint@checkerror{
+    \unexpanded{\@xp\sseq@pageconstraint@checkerror@\sseq@pageconstraint}\@xp\@nx\csname sseq@error \endcsname{}\@nx\sseq@nil
+}
+\@xp\def\@xp\sseq@pageconstraint@checkerror@\@xp#\@xp1\csname sseq@error \endcsname#2#3\sseq@nil{\ifx\sseq@nil#3\sseq@nil\else\sseq@error{#2}\fi}
+
+\def\sseq@pageconstraint{1}
+\def\sseq@pageconstraint@true{1}
 \pgfqkeys{/sseqpages/tikz primitives}{
     page constraint/.code={
-        \edef\sseq@tikz@pageconstraint{(\unexpanded\@xp{\sseq@tikz@pageconstraint})&&(\unexpanded{#1})}
+        \sseq@updatepageconstraint{#1}{&&}
     },
     page constraint or/.code={
-        \edef\sseq@tikz@pageconstraint{(\unexpanded\@xp{\sseq@tikz@pageconstraint})||(\unexpanded{#1})}
+        \sseq@updatepageconstraint{#1}{||}
     },
-    set page constraint/.store in=\sseq@tikz@pageconstraint
+    set page constraint/.store in=\sseq@pageconstraint
 }
 
 \pgfqkeys{/sseqpages/scope}{
     page constraint/.code={
-        \edef\sseq@tikz@pageconstraint{(\unexpanded\@xp{\sseq@tikz@pageconstraint})&&(\unexpanded{#1})}
+        \sseq@updatepageconstraint{#1}{&&}
     },
     page constraint or/.code={
-        \edef\sseq@tikz@pageconstraint{(\unexpanded\@xp{\sseq@tikz@pageconstraint})||(\unexpanded{#1})}
+        \sseq@updatepageconstraint{#1}{||}
     },
-    set page constraint/.store in=\sseq@tikz@pageconstraint,
+    set page constraint/.store in=\sseq@pageconstraint,
     background/.code={\sseq@standardparse\sseq@setsavedpaths{background}\pgfkeysalso{standard parse}},
     on background layer/.code={\sseq@options@secondpass{\pgfonlayer{background}}\pgfkeysalso{/tikz/on background layer={#1}}}
 }
+
 
 % Replace a tikz command with a command that saves the command on savedpaths
 \def\sseq@tikzcommands{%
@@ -1873,35 +1978,33 @@
 }
 \def\sseq@modtikzcommands@#1{%
     \ifx#1\sseq@nil\else
-        \def#1{\csname\sseq@macroname#1\space\endcsname#1}%
+        \edef#1{\@xp\@nx\csname\sseq@macroname#1\space\endcsname\@nx#1}%
         \@xp\let\csname\sseq@macroname#1\space\endcsname\sseq@defer@tikzcommand % This is just for error reporting so that it will say "Paragraph ended before \draw  was complete"
         \@xp\sseq@modtikzcommands@
     \fi
 }
 \def\sseq@defer@tikzcommand#1#2;{%
     \begingroup
+    \sseq@setthiscall{#1#2;}
+    \let\sseq@isaliveprotect\sseq@isaliveprotect@protect
     \sseq@tikzprims@handleoptions{#1}#2;[\sseq@nil]% outputs into \sseq@temptoks
     \@xp\sseq@tikzprimitives@coords\@xp{\the\sseq@temptoks}% outputs into \sseq@temp
     \sseq@temptoks\@xp{\sseq@temp}
-    \ifx\sseq@tikz@pageconstraint\sseq@tikz@pageconstraint@true
-        \sseq@savedpaths@xadd{\sseq@defer@tikzcommand@addcmd}%
+    \ifx\sseq@pageconstraint\sseq@pageconstraint@true
+        \sseq@savedpaths@xadd{\the\sseq@temptoks}%
     \else
         \sseq@savedpaths@xadd{%
-            \@nx\sseq@pgfmathparse@rescan{\unexpanded\@xp{\sseq@tikz@pageconstraint}}%
-            \@nx\ifnum\@nx\pgfmathresult>0\relax \sseq@defer@tikzcommand@addcmd\@nx\fi
+            \@nx\sseq@tikzcommand@conditionaldraw{\the\sseq@temptoks}{\unexpanded\@xp{\sseq@pageconstraint}}
         }%
     \fi
     \endgroup
 }
-\ifnum\sseq@errormode>1
-    \def\sseq@defer@tikzcommand@addcmd{%
-        \def\@nx\sseq@inputlineno{\the\inputlineno}%
-        \@nx\sseq@setthiscall{\the\sseq@temptoks}% sseq@temptoks set by \sseq@tikzprims@handleoptions
-        \the\sseq@temptoks
-    }
-\else
-    \def\sseq@defer@tikzcommand@addcmd{\the\sseq@temptoks}% sseq@temptoks set by \sseq@tikzprims@handleoptions
-\fi
+
+\def\sseq@tikzcommand@conditionaldraw#1#2{%
+    \sseq@pgfmathparse@rescan{#2}%
+    \ifnum\pgfmathresult>0\relax #1 \fi
+}
+
 
 \def\sseq@tikzprims@handleoptions#1#2[#3]{%
     \ifx\sseq@nil#3%
@@ -1935,12 +2038,16 @@
                         \ifpgfutil@in@\else
                             \pgfutil@in@,{#2}
                             \ifpgfutil@in@
-                                \sseq@iffullcoord(#2){\sseq@tikzprimitive@getcoord#2\sseq@nil}{\sseq@tikzprimitive@getcoord#2,\sseq@nil}
-                                \sseq@obj@ifundef{partcoord.(\sseq@tempx,\sseq@tempy).numnodes}{}{
-                                    \def\next##1##2{\sseq@tikzprimitives@coords@}
-                                    \sseq@whichclass\sseq@n\sseq@tempx\sseq@tempy\sseq@tempn{coordinate (#2) of tikz primitive}
-                                    \sseq@x@addto@macro\sseq@temp{\unexpanded{#1}(sseq{\sseq@tempx,\sseq@tempy,\sseq@n}\sseq@tempanchor)}
-                                }
+                                \protected@edef\sseq@temp@i{#2}
+                                \edef\sseq@temp@ii{#2}
+                                \ifx\sseq@temp@i\sseq@temp@ii
+                                    \sseq@iffullcoord(#2){\sseq@tikzprimitive@getcoord#2\sseq@nil}{\sseq@tikzprimitive@getcoord#2,\sseq@nil}
+                                    \sseq@obj@ifundef{partcoord.(\sseq@tempx,\sseq@tempy).numnodes}{}{
+                                        \def\next##1##2{\sseq@tikzprimitives@coords@}
+                                        \sseq@whichclass\sseq@n\sseq@tempx\sseq@tempy\sseq@tempn{coordinate (#2) of tikz primitive}
+                                        \sseq@x@addto@macro\sseq@temp{\unexpanded{#1}(sseq{\sseq@tempx,\sseq@tempy,\sseq@n}\sseq@tempanchor)}
+                                    }
+                                \fi
                             \fi
                         \fi
                     \fi
@@ -1950,7 +2057,7 @@
     \fi
     \next{#1}{#2}
 }
-\def\sseq@tikzprimitives@coords@notaclass#1#2{\sseq@g@addto@macro\sseq@temp{#1(#2)}\sseq@tikzprimitives@coords@}
+\def\sseq@tikzprimitives@coords@notaclass#1#2{\sseq@xprotected@addto@macro\sseq@temp{\unexpanded{#1}(#2)}\sseq@tikzprimitives@coords@}
 \def\sseq@tikzprimitives@coords@handlemath#1#2{\sseq@tikzprimitives@coords@handlemath@{#1}(#2)}
 \def\sseq@tikzprimitives@coords@handlemath@#1$#2$){\sseq@g@addto@macro\sseq@temp{#1$#2$)}}
 \def\sseq@tikzprimitive@getcoord#1,#2,#3\sseq@nil{
@@ -2001,9 +2108,11 @@
     \fi
 %
     % copy commands into the user namespace.
-    \sseq@copycommands{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions}%
-    \def\xmin{\sseq@xmin}\def\xmax{\sseq@xmax}
-    \def\ymin{\sseq@ymin}\def\ymax{\sseq@ymax}
+    \sseq@copycommands
+    \def\xmin{\protect\sseq@xmin}\def\xmax{\protect\sseq@xmax}
+    \def\ymin{\protect\sseq@ymin}\def\ymax{\protect\sseq@ymax}
+    \def\page{\protect\sseq@thepage}
+
     \sseq@modtikzcommands % Defer evaluation of tikz primitives
     \sseq@patchfor % patch \foreach to work with deferred macros
     \pgfkeys{/handlers/first char syntax/the character "/.initial=\sseq@handlequote} % install quotes parsing
@@ -2059,9 +2168,9 @@
     \let\sseq@yminmax\sseq@yminmax@active
 %
     % Copy commands into user namespace
-    \sseq@copycommands{\class\replaceclass\classoptions\d\doptions\structline\structlineoptions}
-    \def\xmin{\sseq@xmin}\def\xmax{\sseq@xmax}
-    \def\ymin{\sseq@ymin}\def\ymax{\sseq@ymax}
+    \sseq@copycommands
+    \def\xmin{\protect\sseq@xmin}\def\xmax{\protect\sseq@xmax}
+    \def\ymin{\protect\sseq@ymin}\def\ymax{\protect\sseq@ymax}
     \sseq@modtikzcommands % Redefine tikz primitives to store themselves in the appropriate place
     \sseq@patchfor % Change foreach to record it's variable values in the appropriate places
     \pgfkeys{/handlers/first char syntax/the character "/.initial=\sseq@handlequote}% install quotes parsing
@@ -2134,11 +2243,7 @@
     \sseq@handleyaxis
     \endpgfonlayer
 %
-    \ifnum\sseq@errormode>1\relax
-        \let\errmessage\sseq@errmessage
-    \fi
-%
-    \let\sseq@error\sseq@errorwithinfo
+    \let\sseq@error@\sseq@errorwithinfo
     \let\errmessage\sseq@errmessage
     \begingroup
     \sseq@savedbackgroundpaths
@@ -2738,7 +2843,7 @@
 \def\sseq@structline@setup#1{\@ifnextchar[{\sseq@structline@setup@{#1}}{\sseq@structline@setup@{#1}[]}}
 \def\sseq@structline@setup@#1[#2]#3)#4){%((((
     \sseq@esetthiscall{\@xp\string\csname#1\endcsname\ifx\sseq@nil#2\sseq@nil\else[\unexpanded{#2}]\fi\unexpanded{#3)#4)}}
-    \sseq@eval{\unexpanded{\sseq@structline@setup@@{#1}[#2]}\romannumeral0#3)\romannumeral0#4)}
+    \sseq@eval{\unexpanded{\sseq@structline@setup@@{#1}[#2]}\sseq@stripleadingspace#3)\sseq@stripleadingspace#4)}
 }
 \def\sseq@structline@setup@@#1[#2](#3)(#4){
     \begingroup
@@ -2747,6 +2852,8 @@
 }
 \def\sseq@structline@main#1#2#3{
     \def\sseq@thiscmdname{structure line }% To pass error information to \sseq@whichclass%
+    \def\sourcename{(#2)}
+    \def\targetname{(#3)}
     \sseq@parsecoords\source{#2}
     \sseq@parsecoords\target{#3}
     \sseq@eval{
@@ -2766,21 +2873,25 @@
     \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}{target of structure line '\sseq@thiscall'}%
     \edef\source{(\the\sseq@tempx,\the\sseq@tempy,\sseq@na)}
     \edef\target{(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb)}
+    \def\sseq@pagemin{0}
+    \sseq@ifundefcoord\source{}{
+        \ifnum\sseq@obj{class.\source.num}>0\relax
+            \edef\sseq@pagemin{\sseq@obj{class.\source[\the\numexpr\sseq@obj{class.\source.num}-1].page}}
+        \fi
+    }
+    \sseq@ifundefcoord\target{}{
+        \ifnum\sseq@obj{class.\target.num}>0\relax
+            \edef\sseq@test{\sseq@obj{class.\target[\the\numexpr\sseq@obj{class.\target.num}-1].page}}
+            \ifnum\sseq@test>\sseq@pagemin\relax
+                \let\sseq@pagemin\sseq@test
+            \fi
+        \fi
+    }
+    \edef\sseq@structlinename{structline.\source\target[\sseq@pagemin]}
     \csname sseq@structline@#1\endcsname
 }
 
 \def\sseq@structline@structline{
-    \def\sseq@pagemin{0}
-    \ifnum\sseq@obj{class.\source.num}>0\relax
-        \edef\sseq@pagemin{\sseq@obj{class.\source[\the\numexpr\sseq@obj{class.\source.num}-1].page}}
-    \fi
-    \ifnum\sseq@obj{class.\target.num}>0\relax
-        \edef\sseq@test{\sseq@obj{class.\target[\the\numexpr\sseq@obj{class.\target.num}-1].page}}
-        \ifnum\sseq@test>\sseq@pagemin\relax
-            \let\sseq@pagemin\sseq@test
-        \fi
-    \fi
-    \edef\sseq@structlinename{structline.\source\target[\sseq@pagemin]}
     \sseq@obj@xdef{\sseq@structlinename.page}{\sseq@infinity}
     \sseq@obj@xdef{\sseq@structlinename.pagemin}{\sseq@pagemin}
     \sseq@obj@xdef{\sseq@structlinename.source}{\source}
@@ -2793,14 +2904,14 @@
 }
 
 \def\sseq@structline@structlineoptions{
-    \sseq@obj@ifundef{structline.\source\target.page}{
+    \sseq@obj@ifundef{\sseq@structlinename.page}{
         \sseq@error{Cannot add options to struct line \source--\target because such a struct line doesn't exist}{}
     }{}
-    \sseq@cleanup@obj{structline.\source\target.options}
+    \sseq@cleanup@obj{\sseq@structlinename.options}
     \ifsseq@needstikz
-        \sseq@obj@gaddto{structline.\source\target.options}{\sseq@needstikztrue}
+        \sseq@obj@gaddto{\sseq@structlinename.options}{\sseq@needstikztrue}
     \fi
-    \sseq@obj@xoaddto{structline.\source\target.options}{\sseq@savedoptioncode}
+    \sseq@obj@xoaddto{\sseq@structlinename.options}{\sseq@savedoptioncode}
 }
 
 \def\sseq@obj@adddependence#1#2{
