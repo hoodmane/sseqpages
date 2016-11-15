@@ -11,12 +11,11 @@
 %
 % Improve errors
 % Check \sseqset used inside environments
-% Figure out whether e.g., "change classes" could have a better name
 % Maybe modify "change classes" mechanism
-% Fix name or make synonym for struct lines? Abbreviation seems not obvious
 %
-% Add ifdead(class) and ifalive(class) as predicates for "page constraint" for Tikz primitives
+% Fix name or make synonym for struct lines? Abbreviation seems not obvious
 % Make naming of commands more consistent
+% Figure out whether e.g., "change classes" could have a better name
 %
 % named standard offset patterns with options
 % improve axes options? allow axis to be centered on coordinate or centered between coordinates
@@ -72,7 +71,11 @@
 }
 
 
-%% Declarations
+%%%%%%                                            %%%%%%
+%%                                                    %%
+%%            Declarations and preliminaries          %%
+%%                                                    %%
+%%%%%%                                            %%%%%%
 \newif\ifsseq@hasname
 \newif\ifsseq@updateexisting
 \newif\ifsseq@ispageenv
@@ -126,11 +129,15 @@
 \def\sseq@id#1{#1} % Just removes braces, "identity," used with parsecommas
 
 \def\sseq@eval#1{\bgroup\edef\sseq@temp{#1}\@xp\egroup\sseq@temp}% I got this from sseq.sty
+\def\sseq@protectedeval#1{\bgroup\protected@edef\sseq@temp{#1}\@xp\egroup\sseq@temp}% I got this from sseq.sty
 \def\sseq@eval@show#1{\bgroup\edef\sseq@temp{#1}\show\sseq@temp\@xp\egroup\sseq@temp}
 \def\sseq@profilenew#1#2{\pgfprofilenew{#1}\pretocmd#2{\pgfprofilestart{#1}}{}{\error}\apptocmd#2{\pgfprofileend{#1}}{}{\error}}
 
 \def\sseq@stripspaces#1{\bgroup\sseq@temptoks{#1}\@xp\@xp\@xp\egroup\@xp\the\@xp\sseq@temptoks\romannumeral-`\q}
 \def\sseq@stripleadingspace{\romannumeral-`q}
+
+\let\sseq@pgfmathparse@save\pgfmathparse
+\def\sseq@pgfmathparse#1{\let\@@protect\protect\def\protect{}\sseq@pgfmathparse@save{#1}\restore@protect} % Prevent \protect from causing trouble for \pgfmathparse
 
 %% Error messages
 \newtoks\sseq@thiscalltoks
@@ -151,20 +158,25 @@
 \def\sseq@inputlineno{\the\inputlineno}
 \def\sseq@builderrorinfo{}% Changed during \foreach
 \def\sseq@errorinfo@foreach{in the \@nx\foreach block that ends on line \the\inputlineno, with variable values:}
-\def\sseq@errorifpt#1#2{\sseq@errorifpt@#1.\sseq@nil{#2}}
-\def\sseq@errorifpt@#1.#2\sseq@nil#3{\ifx\sseq@nil#2\sseq@nil\else\sseq@error{#3}\fi}
-
-\let\sseq@pgfmathparse@save\pgfmathparse
-\def\sseq@pgfmathparse#1{\let\@@protect\protect\def\protect{}\sseq@pgfmathparse@save{#1}\restore@protect}
 
 \def\sseq@error@internal#1{\sseq@error{Internal error: #1. Contact package author \sseq@authorname{} at \sseq@authoremail{}}{}}
 \def\sseq@error@range{\sseq@error{Empty spectral sequence. For every spectral sequence you must either specify both the "x range" and "y range" or include at least one \string\class}}
 \def\sseq@error@standardparse#1{\sseq@error{You cannot use \string#1 inside a scope that has coordinate transformations other than integer shifts or the background key}}
 
+\def\sseq@errorifpt#1#2{\sseq@errorifpt@#1.\sseq@nil{#2}}
+\def\sseq@errorifpt@#1.#2\sseq@nil#3{\ifx\sseq@nil#2\sseq@nil\else\sseq@error{#3}\fi}
+
+
+%%%%%%                                            %%%%%%
+%%                                                    %%
+%%            \sseqnewgroup and \sseqnewcommand       %%
+%%                                                    %%
+%%%%%%                                            %%%%%%
+
 %%% Commands to help the user define "groups" of commands to be reused
 \def\sseqnewgroup{\@ifnextchar*{\sseqnewgroup@}{\sseqnewgroup@{}}}
 \def\sseqnewgroup@#1#2{\@ifnextchar[{\sseqnewgroup@@{#1}#2}{\sseqnewgroup@@{#1}#2[0]}}%]
-\long\def\sseqnewgroup@@#1#2[#3]#4{
+\long\def\sseqnewgroup@@#1#2[#3]#4{%
     \sseqnewcmd#1#2(\sseq@macrox,\sseq@macroy)[#3]{%
         \bgroup
         \def\sseq@newgroup@temp{}
@@ -175,10 +187,10 @@
         \ifnum\sseq@tempcount=0\relax\else\sseq@tempiftrue\fi
         \ifnum\sseq@tempcountb=0\relax\else\sseq@tempiftrue\fi
         \ifsseq@tempif\sseq@eval{\@nx\begin{scope}[xshift=\the\sseq@tempcount,yshift=\the\sseq@tempcountb,\unexpanded{\options}]}\def\sseq@newgroup@temp{\end{scope}}\fi
-            #4% This % is necessary for some reason. Investigate?
+            #4% This % is necessary for some reason.
         \sseq@newgroup@temp
         \egroup
-    }
+    }%
 }
 
 \def\sseqnewcmd{\@ifnextchar*{\@xp\sseqnewcmd@@\@gobble}{\sseqnewcmd@}}
@@ -186,25 +198,25 @@
     \@ifundefined{\sseq@macroname #1}{}{%
         \sseq@error{%
             A command named \string#1\sseq@macroname\ already exists. If you want to overwrite an existing command, say
-            '\string\sseqnewcmd*\string#1...' or '\string\sseqnewgroup*\string#1...' as appropriate
+            '\string\sseqnewcmd*\string#1...' or '\string\sseqnewgroup*\string#1...' as appropriate%
         }{}%
     }%
-    \sseqnewcmd@@#1
+    \sseqnewcmd@@#1%
 }
 \def\sseqnewcmd@@#1{\@ifnextchar({\sseqnewcmd@@@#1}{\sseqnewcmd@@@#1(\x,\y)}}%)
-\def\sseqnewcmd@@@#1(#2,#3){
+\def\sseqnewcmd@@@#1(#2,#3){%
     \@ifnextchar[{\sseqnewcmd@@@@#1(#2,#3)}{\sseqnewcmd@@@@#1(#2,#3)[0]}%]
 }
 \bgroup\lccode`\*=`\#\lccode`C=`C\lowercase{\egroup
     \long\def\sseqnewcmd@@@@#1(#2,#3)[#4]#5{%
         \ifnum#4>6 \sseq@error{Commands defined using '\string\sseqnewcmd' or '\string\sseqnewgroup' can take at most six arguments}\fi
-        \edef\helpera{\@xp\@nx\csname \sseq@macroname#1@\endcsname}%
+        \edef\helpera{\@xp\@nx\csname \sseq@macroname#1@\endcsname}% \helpera and \helperb contain the names of the two helper macros
         \edef\helperb{\@xp\@nx\csname \sseq@macroname#1@@\endcsname}%
-        \xdef#1{\@nx\@ifnextchar[{\@xp\@nx\helpera}{\@xp\@nx\helpera[]}}%]
+        \xdef#1{\@nx\@ifnextchar[{\@xp\@nx\helpera}{\@xp\@nx\helpera[]}}% The outermost command and the first helper are easy
         \@xp\xdef\helpera[##1](##2,##3){\@xp\@nx\helperb{##1}{##2}{##3}}%
-        \def\temp##1##2##3##4##5##6{#5}%
+        \def\temp##1##2##3##4##5##6{#5}% Substitute placeholders for the arguments the user put in the body of the macro -- we'll replace these with actual pounds later.
         \sseq@temptoks\@xp{\temp\ppfour\ppfive\ppsix\ppseven\ppeight\ppnine}%
-        \bgroup
+        \bgroup% Using \aftergroup's we can make a loop to determine how many arguments the innermost macro should take
             \aftergroup\@xp\aftergroup\edef\aftergroup\helperb\aftergroup##\aftergroup1\aftergroup##\aftergroup2\aftergroup##\aftergroup3%
             \ifnum#4>0\relax
                 \sseq@tempcount=0\relax
@@ -219,13 +231,13 @@
             \aftergroup}%
         \egroup
 %
-        \bgroup
+        \bgroup % Now we need to replace those fake \ppn placeholders with real pounds. Because of lowercase, real pounds are *'s.
         % \patchcmd uses \etb@ifscanable to check whether it can patch the command
         % Essentially, \edef\temp{\scantokens{body of macro}} should be equivalent to \macro
         % We don't care about this, and something goes wrong with whitespace some of the time
         % So this next line just prevents \patchcmd from checking for this.
-        \def\etb@ifscanable##1{\@firstoftwo}
-        \@xp\sseq@patchrepeat\helperb{\options}{*1}
+        \def\etb@ifscanable##1{\@firstoftwo}%
+        \@xp\sseq@patchrepeat\helperb{\options}{*1}%
         \@xp\sseq@patchrepeat\helperb{#2}{*2}%
         \@xp\sseq@patchrepeat\helperb{#3}{*3}%
         \@xp\sseq@patchrepeat\helperb{\ppfour}{*4}%
@@ -234,13 +246,18 @@
         \@xp\sseq@patchrepeat\helperb{\ppseven}{*7}%
         \@xp\sseq@patchrepeat\helperb{\ppeight}{*8}%
         \@xp\sseq@patchrepeat\helperb{\ppnine}{*9}%
-        \sseq@eval{\global\let\@xp\@nx\helperb\@xp\@nx\helperb}
+        \sseq@eval{\global\let\@xp\@nx\helperb\@xp\@nx\helperb}%
         \egroup
     }
-}
+}% end \lowercase
 \def\sseq@patchrepeat#1#2#3{\patchcmd#1{#2}{#3}{\sseq@patchrepeat#1{#2}{#3}}{}}
 
-%%% Load/store
+
+%%%%%%                                            %%%%%%
+%%                                                    %%
+%%            Load and Store                          %%
+%%                                                    %%
+%%%%%%                                            %%%%%%
 % These are attributes that come with a given spectral sequence (by name)
 % All of these values are loaded at the beginning of sseqpage (and of sseqdata if an existing sseq is being modified).
 % They are then stored together at the end of sseqdata (and of sseqpage if "keep changes" option is present).
@@ -255,9 +272,9 @@
 \def\sseq@addiftostorelist@truedefault#1{\sseq@addiftostorelistopt{#1}{true}}
 \def\sseq@addiftostorelistopt#1#2{%
     \@xp\newif\csname ifsseq@#1\endcsname
-    \sseq@g@addto@macro\sseq@storelist{\sseq@storelistif{#1}}
+    \sseq@g@addto@macro\sseq@storelist{\sseq@storelistif{#1}}%
     \sseq@x@addto@macro\sseq@storelist@setdefaults{\@xp\@nx\csname sseq@#1@default\endcsname}%
-    \@xp\xdef\csname sseq@#1@default\endcsname{\global\@xp\@nx\csname sseq@#1#2\endcsname}
+    \@xp\xdef\csname sseq@#1@default\endcsname{\global\@xp\@nx\csname sseq@#1#2\endcsname}%
 }
 
 % transfer data about the current spectral sequence between \<command> and \<command><sseqname>
@@ -276,7 +293,7 @@
 \def\sseq@storecmds{\let\\\sseq@storelist@store\let\sseq@storelistif\sseq@storelistif@store\sseq@storelist}
 \def\sseq@getcmds{\let\\\sseq@storelist@get\let\sseq@storelistif\sseq@storelistif@get\sseq@storelist}
 
-%%% New "poor man's OOP" Load/Store
+%%%% New "poor man's OOP" Load/Store
 % Directly stores things into commands that are annotated with the name of the spectral sequence.
 % I use this primarily for commands that won't necessarily exist for every spectral sequence
 % for instance because it has the description of a particular class or differential as part of its name
@@ -319,14 +336,14 @@
     \fi
 }
 
-%%% add to macro commands
+%%%% add to macro commands
 \def\sseq@d@addto@macro#1#2{\@xp\def\@xp#1\@xp{#1#2}}
 \def\sseq@e@addto@macro#1#2{\begingroup\pgfutil@toks@\@xp{#1}\sseq@eval{\pgfutil@toks@{\the\pgfutil@toks@#2}}\@xp\endgroup\@xp\def\@xp#1\@xp{\the\pgfutil@toks@}} % let #2 be expanded
 \def\sseq@g@addto@macro#1#2{\@xp\gdef\@xp#1\@xp{#1#2}}
 \def\sseq@x@addto@macro#1#2{\begingroup\pgfutil@toks@\@xp{#1}\xdef#1{\the\pgfutil@toks@#2}\endgroup} % let #2 be expanded
 \def\sseq@xprotected@addto@macro#1#2{\begingroup\pgfutil@toks@\@xp{#1}\protected@xdef#1{\the\pgfutil@toks@#2}\endgroup}
 
-%% Saved paths, temporary saved paths, background saved paths
+%%%% Saved paths, temporary saved paths, background saved paths
 % \sseq@savedpaths@whatever is redefined to be \sseq@savedpaths@whatever@standard or \sseq@savedpaths@whatever@temporary depending on context
 % This simplifies the code a lot because I don't have to check again where I should put things.
 \sseq@addtostorelist\sseq@savedpaths{}
@@ -374,20 +391,24 @@
     \gdef\sseq@tempsavedpaths{}
 }
 
-%% Options
-\def\sseq@savedoptioncode{}
-\def\sseq@d@addto@options{\sseq@d@addto@macro\sseq@savedoptioncode}
-\def\sseq@e@addto@options{\sseq@e@addto@macro\sseq@savedoptioncode}
 
-% #1 -- name of key
-% #2 -- options
-% outputs into \sseq@savedoptioncode
-\def\sseq@processoptions#1#2{
-    \def\sseq@savedoptioncode{}
-    \protected@edef\sseq@temp{#2}
-    \sseq@eval{\@nx\pgfqkeys{/sseqpages/#1}{\unexpanded\@xp{\sseq@temp}}}
+%%% Install user commands
+% copy commands into user namespace by removing sseq@ prefixes
+% given a list of commands, \let\thiscommand\sseq@thiscommand on each one
+\def\sseq@usermacrolist{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions\isdead\isalive\pgfmathparse}
+\def\sseq@installusermacros{\@xp\sseq@installusermacros@\sseq@usermacrolist\sseq@nil}
+\def\sseq@installusermacros@#1{%
+    \ifx#1\sseq@nil\else % if so, that was the last command in the list
+        \@xp\let\@xp#1\csname sseq@\sseq@macroname#1\endcsname
+        \@xp\sseq@installusermacros@
+    \fi %
 }
 
+%%%%%%                                            %%%%%%
+%%                                                    %%
+%%            Patch \foreach error messages           %%
+%%                                                    %%
+%%%%%%                                            %%%%%%
 
 % Put together an error message that says which stage in the for loop caused the error
 \def\sseq@builderrorinfo@foreach{
@@ -431,7 +452,7 @@
     \fi
 }
 
-%% Patch \foreach
+%% Patch \foreach (Modifies tikz code)
 % Perform a deep copy
 \def\sseq@pgffor@@vars@opt[#1]{\pgfkeys{/sseqpages/foreach/.cd,#1}\pgffor@vars}
 \let\sseq@pgffor@doloop\pgffor@doloop
@@ -543,7 +564,11 @@
 \pretocmd\sseq@pgffor@atendforeach{\sseq@for@clearsavedtoks}{}{\sseq@for@nopatch}
 
 
-%%%% Internal utilities
+%%%%%%                                            %%%%%%
+%%                                                    %%
+%%               Some Internal Utilities              %%
+%%                                                    %%
+%%%%%%                                            %%%%%%
 \def\sseq@iffullcoord(#1){\@xp\sseq@iffullcoord@#1,\sseq@nil}
 \def\sseq@iffullcoord@#1,#2,#3\sseq@nil{\ifx\sseq@nil#3\sseq@nil\@xp\@secondoftwo\else\@xp\@firstoftwo\fi}
 
@@ -676,71 +701,148 @@
 \def\sseq@arg{\sseq@optarggen{\sseq@id}{\sseq@thiscanthappen}{}}
 
 
-%%%%%%% Set up keys
+%%%%%%                %%%%%%
+%%                        %%
+%%      Keys section      %%
+%%                        %%
+%%%%%%                %%%%%%
+
+
+%%%% Interface macros:
+% These are the things that are used outside of this section:
 \def\sseqset#1{\pgfqkeys{/sseqpages/global/default}{#1}}
-
-%% TODO: Verify starting values
-\let\sseq@pgfkeys@case@one@save\pgfkeys@case@one
-\let\sseq@pgfkeys@case@two@extern@save\pgfkeys@case@two@extern
-\def\sseq@pgfkeys@case@one@store{%
-    \pgfkeysifdefined{\pgfkeyscurrentkey/.@cmd}{
-        \pgfkeysgetvalue{\pgfkeyscurrentkey/.@cmd}{\pgfkeys@code}%
-        \sseq@eval{\@nx\sseq@keys@addtooptions@checkalso{\unexpanded\@xptwo{\@xp\pgfkeys@code\pgfkeyscurrentvalue\pgfeov}}}
-    }{\pgfkeys@case@two}%
-}
-\def\sseq@pgfkeys@case@two@extern@store{%
-  \ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text%
-    \pgfkeysvalueof{\pgfkeyscurrentkey}%
-  \else%
-    \sseq@e@addto@options{\@nx\pgfkeyssetvalue{\pgfkeyscurrentkey}{\unexpanded\@xp{\pgfkeyscurrentvalue}}}
-  \fi%
-}
-
-%%
 \def\sseqset@inprogress{\pgfqkeys{/sseqpages}}
 \def\sseq@set{\pgfqkeys{/sseqpages}}
+
+%%% Errors
+
+\def\sseq@error@optionillegal#1#2#3{%
+    \sseq@error{%
+        You said '#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else=\pgfkeyscurrentvalue\fi', but the option '#1' is
+        illegal in the sseqdata and sseqpage environments#3%
+    }{}%
+}
+
+\def\sseq@macrogobble#1->{}
+
+\def\sseq@error@optionglobalonly#1{%
+    \sseq@error{%
+        You said '#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else={\@xp\sseq@macrogobble\meaning\pgfkeyscurrentvalue}\fi', but the option '#1' is
+        only allowed as a global option (as in '\@nx\begin{sseqdata}[#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else={\@xp\sseq@macrogobble\meaning\pgfkeyscurrentvalue}\fi]' or
+        '\@nx\begin{sseqpage}[#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else={\@xp\sseq@macrogobble\meaning\pgfkeyscurrentvalue}\fi]')%
+    }{}%
+}
+
+\def\sseq@error@nodefaultallowed#1{
+    \sseq@error{%
+        You cannot set a default value for '#1'. Maybe try \@nx\sseqset{sseqs={#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else=\pgfkeyscurrentvalue\fi}}%
+    }{}
+}
+
+\def\sseq@error@illegalasglobal#1{
+    \sseq@error{%
+        You said '#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else=\pgfkeyscurrentvalue\fi' as a global option, but option '#1' is illegal as a global option
+    }
+}
+
+
+%%%
+%%%   Local Keys
+%%%
+
+% This is where and how we are going to store the results of our local options. Note that definitions need to be local to allow recursion.
+\def\sseq@savedoptioncode{}
+\def\sseq@d@addto@options{\sseq@d@addto@macro\sseq@savedoptioncode}
+\def\sseq@e@addto@options{\sseq@e@addto@macro\sseq@savedoptioncode}
+
+% #1 -- name of key
+% #2 -- options
+% This is the main way that we use options. (We also use \pgfqkeys{/sseqpages/global} and some similar things)
+% Dumps out code that the option indexes into \sseq@savedoptioncode
+% This is because \pgfkeys has a high performance cost, so instead of using \pgfkeys once per page,
+% we use this once when putting together the spectral sequence and save the result.
+\def\sseq@processoptions#1#2{%
+    \def\sseq@savedoptioncode{}%
+    \sseq@protectedeval{\@nx\pgfqkeys{/sseqpages/#1}{#2}}%
+}
+
+% First pass versus second pass:
+% Lot's of options mainly do stuff on the drawing run, but still need to warn the sseq setup algorithms that they're around
+% on the first pass. Some only do things on the first pass or only do things on the second pass.
+% For example, shifts: shifts apply a coordinate transform on the second pass, but also need to factor into the coordinates of
+% classes etc which are computed at specification time not at draw time. So xshift=2 increases \sseq@x by 2 on it's first pass and
+% applies a coordinate transfrom by 2cm on the second pass.
+
+% normal mode does the firstpass options now and saves the secondpass options in \sseq@savedoptioncode for later use.
+% firstpass mode does the firstpass options and throws away the secondpass options.
+% secondpass mode throws away the firstpass options and does the secondpass options NOW
+% bothpass mode does both firstpass and secondpass options NOW
+% We spend the vast majority of our time in normal mode.
+
+\def\sseq@options@use#1{#1}
+\def\sseq@options@normalmode{\let\sseq@options@firstpass\sseq@options@use\let\sseq@options@secondpass\sseq@d@addto@options}
+\def\sseq@options@firstpassmode{\let\sseq@options@firstpass\sseq@options@use\let\sseq@options@secondpass\@gobble}
+\def\sseq@options@secondpassmode{\let\sseq@options@firstpass\@gobble\let\sseq@options@secondpass\sseq@options@use}
+\def\sseq@options@bothpassmode{\let\sseq@options@firstpass\sseq@options@use\let\sseq@options@secondpass\sseq@options@use}
+\sseq@options@normalmode
+
+\pgfqkeys{/handlers}{
+    .sseq @ first pass code/.code={
+        \pgfkeysalso{\pgfkeyscurrentpath/.code={\sseq@options@firstpass{#1}}}
+    },
+    .sseq @ first pass append code/.code={
+        \pgfkeysalso{\pgfkeyscurrentpath/.append code={\sseq@options@firstpass{#1}}}
+    },
+    .sseq @ second pass code/.code={
+        \pgfkeysalso{\pgfkeyscurrentpath/.code={\sseq@options@secondpass{#1}}}
+    },
+    .sseq @ second pass append code/.code={
+        \pgfkeysalso{\pgfkeyscurrentpath/.append code={\sseq@options@secondpass{#1}}}
+    },
+    .sseq @ second pass store in/.code={
+        \pgfkeysalso{\pgfkeyscurrentpath/.code={\sseq@options@secondpass{\def#1{##1}}}}
+    },
+    .sseq @ code/.code 2 args={
+        \pgfkeysalso{\pgfkeyscurrentpath/.code={\sseq@options@firstpass{#1}}}
+        \pgfkeysalso{\pgfkeyscurrentpath/.append code={\sseq@options@secondpass{#1}}}
+    }
+}
+
+
+%%% Some easy internal macros
+
+% This is for .unknown handlers. Try same key in different directory #1.
 \def\sseq@passoptionto#1{\sseq@eval{\@nx\pgfqkeys{#1}{\pgfkeyscurrentname={\unexpanded\@xp{\pgfkeyscurrentvalue}}}}}
 
-\def\sseq@keys@lastpart#1{\sseq@eval{\@nx\sseq@keys@lastpart@#1/\@nx\sseq@nil}}
-\def\sseq@keys@lastpart@#1/{\@ifnextchar\sseq@nil{\edef\sseq@temp{#1}\@gobble}{\sseq@keys@lastpart@}}
+\def\sseq@pgfkeysdocommand#1#2{
+    \sseq@tempiffalse
+    \sseq@pgfkeysdocommand@try{/tikz/#1}{#2}
+    \sseq@pgfkeysdocommand@try{/pgf/#1}{#2}
+    \ifsseq@tempif\else\sseq@error@internal{\@nx\sseq@pgfkeysdocommand{#1}{#2} failed}\fi
+}
 
-\def\sseq@keys@try@addtooptions#1{
+\def\sseq@pgfkeysdocommand@try#1#2{
     \ifsseq@tempif\else
-        \pgfkeysifdefined{#1/\pgfkeyscurrentname/.@cmd}{
+        \pgfkeysifdefined{#1/.@cmd}{
             \sseq@tempiftrue
-            \pgfkeysgetvalue{#1/\pgfkeyscurrentname/.@cmd}{\pgfkeys@code}%
-            \sseq@eval{\@nx\sseq@keys@addtooptions@checkalso{\unexpanded\@xptwo{\@xp\pgfkeys@code\pgfkeyscurrentvalue\pgfeov}}}
+            \pgfkeysgetvalue{#1/.@cmd}{\pgfkeys@code}%
+            \pgfkeys@code#2\pgfeov
         }{
-            \pgfkeysifdefined{#1/\pgfkeyscurrentname}{
+            \pgfkeysifdefined{#1}{
                 \sseq@tempiftrue
-                \sseq@e@addto@options{\@nx\pgfkeyssetvalue{#1/\pgfkeyscurrentname}{\unexpanded\@xp{\pgfkeyscurrentvalue}}}
+                \pgfkeyssetvalue{#1}{#2}
             }{}
         }
     \fi
 }
 
-\def\sseq@keys@addtooptions@checkalso#1{%
-    \let\pgfkeys@case@one\sseq@pgfkeys@case@one@store
-    \let\pgfkeys@case@two@extern\sseq@pgfkeys@case@two@extern@store
-    \sseq@keys@addtooptions@checkalso@#1\pgfkeysalso\sseq@nil
-}
-\def\sseq@keys@addtooptions@checkalso@#1\pgfkeysalso#2{%
-    \sseq@d@addto@options{#1}
-    \ifx#2\sseq@nil
-        \let\pgfkeys@case@one\sseq@pgfkeys@case@one@save
-        \let\pgfkeys@case@two@extern\sseq@pgfkeys@case@two@extern@save
-    \else
-        \pgfkeysalso{#2}
-        \@xp\sseq@keys@addtooptions@checkalso@
-    \fi
-}
-
-\def\sseq@keys@unknown#1{%
+%%%
+% Our main unknown option handler
+% This is copied from the standard tikz .unknown handler, but instead of running the code it stores it in \sseq@savedoptioncode.
+% When it tries the key in /tikz and in /pgf it also recursively expands \pgfkeysalso's.
+\def\sseq@keys@unknown{%
     \let\tikz@key\pgfkeyscurrentname
-    \sseq@tempiffalse
-    \sseq@keys@try@addtooptions{/tikz}
-    \sseq@keys@try@addtooptions{/pgf}
-    \ifsseq@tempif\else
+    \sseq@keys@try@addtooptions{/tikz,/pgf}{}{
         \@xp\pgfutil@in@\@xp!\@xp{\tikz@key}%
         \ifpgfutil@in@%
           % this is a color!
@@ -768,83 +870,88 @@
             \fi%
           }%
       \fi%
-    \fi
-}
-
-\def\sseq@options@use#1{#1}
-\def\sseq@options@normalmode{\let\sseq@options@firstpass\sseq@options@use\let\sseq@options@secondpass\sseq@d@addto@options}
-\def\sseq@options@firstpassmode{\let\sseq@options@firstpass\sseq@options@use\let\sseq@options@secondpass\@gobble}
-\def\sseq@options@secondpassmode{\let\sseq@options@firstpass\@gobble\let\sseq@options@secondpass\sseq@options@use}
-\def\sseq@options@bothpassmode{\let\sseq@options@firstpass\sseq@options@use\let\sseq@options@secondpass\sseq@options@use}
-\sseq@options@normalmode
-
-\def\sseq@pgfkeysdocommand#1#2{
-    \sseq@tempiffalse
-    \sseq@pgfkeysdocommand@try{/tikz/#1}{#2}
-    \sseq@pgfkeysdocommand@try{/pgf/#1}{#2}
-    \ifsseq@tempif\else\sseq@error@internal{\@nx\sseq@pgfkeysdocommand{#1}{#2} failed}\fi
-}
-
-\def\sseq@pgfkeysdocommand@try#1#2{
-    \ifsseq@tempif\else
-        \pgfkeysifdefined{#1/.@cmd}{
-            \sseq@tempiftrue
-            \pgfkeysgetvalue{#1/.@cmd}{\pgfkeys@code}%
-            \pgfkeys@code#2\pgfeov
-        }{
-            \pgfkeysifdefined{#1}{
-                \sseq@tempiftrue
-                \pgfkeyssetvalue{#1}{#2}
-            }{}
-        }
-    \fi
-}
-
-\pgfqkeys{/handlers}{
-    .sseq @ first pass code/.code={
-        \pgfkeysalso{\pgfkeyscurrentpath/.code={\sseq@options@firstpass{#1}}}
-    },
-    .sseq @ first pass append code/.code={
-        \pgfkeysalso{\pgfkeyscurrentpath/.append code={\sseq@options@firstpass{#1}}}
-    },
-    .sseq @ second pass code/.code={
-        \pgfkeysalso{\pgfkeyscurrentpath/.code={\sseq@options@secondpass{#1}}}
-    },
-    .sseq @ second pass append code/.code={
-        \pgfkeysalso{\pgfkeyscurrentpath/.append code={\sseq@options@secondpass{#1}}}
-    },
-    .sseq @ second pass store in/.code={
-        \pgfkeysalso{\pgfkeyscurrentpath/.code={\sseq@options@secondpass{\def#1{##1}}}}
-    },
-    .sseq @ code/.code 2 args={
-        \pgfkeysalso{\pgfkeyscurrentpath/.code={\sseq@options@firstpass{#1}}}
-        \pgfkeysalso{\pgfkeyscurrentpath/.append code={\sseq@options@secondpass{#1}}}
     }
+}
+
+%%% \sseq@keys@try@addtooptions
+% #1 -- a comma separated list of directories
+% #2 -- success code
+% #3 -- failure code
+%
+% This is for the main .unknown handler and for \sseq@addstylecodetooptions (which pretends to be \pgfkeys executed in a directory with only a .unknown)
+% Tries to run the current key (\pgfkeyscurrentname=\pgfkeyscurrentvalue) in each of the directories in turn.
+% If it finds the key in one of the directories, recursively expand the \pgfkeysalso in the code,
+% add the final result to \sseq@savedoptionscode, and run success code. Otherwise run failure code.
+%
+% The goal is to avoid storing any commands that require the use of pgfkeys.
+% This is only a partial solution, because it misses \tikzset, \pfgqkeys, etc.
+% \pgfkeysalso is particularly dangerous though because we might not remember what directory it was supposed to happen in.
+% In order to get the recursive expansion of \pgfkeysalso's we need to modify the pgfkeys algorithm so that it
+% passes control back to \sseq@keys@addtooptions@checkalso when it's done.
+% TODO: Verify starting values of the commands we modify.
+% Modifies tikz code!
+\def\sseq@keys@try@addtooptions#1{
+    \sseq@keys@try@addtooptions@#1,\sseq@nil
+}
+\def\sseq@keys@try@addtooptions@#1,{
+    \bgroup
+    \def\pgfkeysdefaultpath{#1/}
+    \def\next{\egroup\@ifnextchar\sseq@nil{\@xp\@secondoftwo\@gobble}{\sseq@keys@try@addtooptions@}}
+    \pgfkeysifdefined{#1/\pgfkeyscurrentname/.@cmd}{
+        \pgfkeysgetvalue{#1/\pgfkeyscurrentname/.@cmd}{\pgfkeys@code}%
+        \sseq@eval{\@nx\sseq@keys@addtooptions@checkalso{\unexpanded\@xptwo{\@xp\pgfkeys@code\pgfkeyscurrentvalue\pgfeov}}}
+        \@xp\egroup
+        \@xp\def\@xp\sseq@savedoptioncode\@xp{\sseq@savedoptioncode}
+        \def\next{\@xp\@firstoftwo\sseq@gobble@to@nil}
+    }{
+        \pgfkeysifdefined{#1/\pgfkeyscurrentname}{
+            \egroup
+            \sseq@e@addto@options{\@nx\pgfkeyssetvalue{#1/\pgfkeyscurrentname}{\unexpanded\@xp{\pgfkeyscurrentvalue}}}
+            \def\next{\@xp\@firstoftwo\sseq@gobble@to@nil}
+        }{}
+    }
+    \next
+}
+
+\def\sseq@keys@addtooptions@checkalso#1{%
+    \let\pgfkeys@case@one\sseq@pgfkeys@case@one@store
+    \let\pgfkeys@case@two@extern\sseq@pgfkeys@case@two@extern@store
+    \sseq@keys@addtooptions@checkalso@#1\pgfkeysalso\sseq@nil
+}
+\def\sseq@keys@addtooptions@checkalso@#1\pgfkeysalso#2{%
+    \sseq@d@addto@options{#1}
+    \ifx\sseq@nil#2
+        \let\pgfkeys@case@one\sseq@pgfkeys@case@one@save
+        \let\pgfkeys@case@two@extern\sseq@pgfkeys@case@two@extern@save
+    \else
+        \pgfkeysalso{#2}
+        \@xp\sseq@keys@addtooptions@checkalso@
+    \fi
+}
+
+\let\sseq@pgfkeys@case@one@save\pgfkeys@case@one
+\let\sseq@pgfkeys@case@two@extern@save\pgfkeys@case@two@extern
+\def\sseq@pgfkeys@case@one@store{%
+    \pgfkeysifdefined{\pgfkeyscurrentkey/.@cmd}{%
+        \pgfkeysgetvalue{\pgfkeyscurrentkey/.@cmd}{\pgfkeys@code}%
+        % The following line is the only change, it used to be \@xp\pgfkeys@code\pgfkeyscurrentvalue\pgfeov which would just run the code.
+        % Instead we recursively expand the \pgfkeysalso's and then store in it \sseq@savedoptioncode
+        \sseq@eval{\@nx\sseq@keys@addtooptions@checkalso{\unexpanded\@xptwo{\@xp\pgfkeys@code\pgfkeyscurrentvalue\pgfeov}}}
+    }{\pgfkeys@case@two}%
+}
+\def\sseq@pgfkeys@case@two@extern@store{%
+  \ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text%
+    \pgfkeysvalueof{\pgfkeyscurrentkey}%
+  \else%
+    % The following line is the only change, it used to be (roughly) \pgfkeyssetvalue{\pgfkeyscurrentkey}{\pgfkeyscurrentvalue}
+    % which would immediately set the value. Instead we store in it \sseq@savedoptioncode
+    \sseq@e@addto@options{\@nx\pgfkeyssetvalue{\pgfkeyscurrentkey}{\unexpanded\@xp{\pgfkeyscurrentvalue}}}
+  \fi%
 }
 
 \pgfkeys{%
     /sseqpages/.is family,
-    /sseqpages/.unknown/.code={\sseq@keys@unknown{#1}},
-    /sseqpages/unknown/.unknown/.code={\sseq@keys@unknown{#1}},% Force unknown key handling
-    % \sseq@currentoptionpath is set to \sseq@thename in \sseqdata, then "temp" in \sseqpage
-    /sseqpages/global/.unknown/.code={%
-        \let\sseq@tempa\pgfkeyscurrentname
-        \let\sseq@tempb\pgfkeyscurrentvalue
-        \pgfkeysifdefined{/tikz/\pgfkeyscurrentname/.@cmd}{}{\pgfkeysifdefined{/tikz/\pgfkeyscurrentname}{}{%
-          %  \pgfkeysifdefined{/sseqpages/\pgfkeyscurrentname/.@cmd}{}{\pgfkeysifdefined{/sseqpages/\pgfkeyscurrentname}{}{% TODO: Does this belong here?
-                \sseq@error{Undefined global option '\pgfkeyscurrentname\@xp\ifx\pgfkeyscurrentvalue\pgfkeysnovalue\else=\pgfkeyscurrentvalue\fi'}%
-          %  }}%
-        }}%
-        \pgfkeysalso{{\sseq@currentoptionpath} options/.append code/.expand twice={\@xp\@xp\@xp\tikzset\@xp\@xp\@xp{\@xp\sseq@tempa\@xp=\@xp{\sseq@tempb}}}}%
-    },
-    /sseqpages/global/default/.unknown/.code={
-        \let\sseq@currentoptionpath@save\sseq@currentoptionpath
-        \def\sseq@currentoptionpath{default}
-        \sseq@passoptionto{/sseqpages/global}
-        \let\sseq@currentoptionpath\sseq@currentoptionpath@save
-    },
-    /sseqpages/global/{default} options/.code={},
-    /sseqpages/global/name only/.unknown/.code={},
+    /sseqpages/.unknown/.code={\sseq@keys@unknown},
 %
     /sseqpages/class/.unknown/.code={
         \expandafter\ifx\csname pgf@sh@s@\pgfkeyscurrentname\endcsname\relax % is it the name of a shape?
@@ -858,7 +965,7 @@
     /sseqpages/scope/.unknown/.code={\sseq@passoptionto{/sseqpages}},
     /sseqpages/class/.is family,
     /sseqpages/class/label/.is family,
-    /sseqpages/class/label/.unknown/.code={\sseq@keys@unknown{#1}},
+    /sseqpages/class/label/.unknown/.code={\sseq@keys@unknown},
     /sseqpages/class/node texts/.is family,
     /sseqpages/class/node texts/.unknown/.code={\sseq@passoptionto{/tikz}},
     /sseqpages/differential/.is family,
@@ -868,7 +975,7 @@
     /sseqpages/label/.is family,
     /sseqpages/label/.unknown/.code={\sseq@passoptionto{/tikz}},
     /sseqpages/tikz primitives/.is family,
-    /sseqpages/tikz primitives/.unknown/.code={\sseq@keys@unknown{/tikz}},
+    /sseqpages/tikz primitives/.unknown/.code={\sseq@keys@unknown},
     % One off directories
     /sseqpages/foreach/.unknown/.code={\sseq@passoptionto{/pgf/foreach}},
     /sseqpages/class placement/.unknown/.code={\sseq@passoptionto{/tikz}}
@@ -888,14 +995,6 @@
 \def\sseq@defaultlabeldistance#1{\csname sseq@default@#1@distance\endcsname}
 \def\sseq@setdefaultlabeldistance#1#2{\sseq@savedpaths@add{\@xp\def\csname sseq@default@#1@distance\endcsname{#2}}}
 \def\sseq@setdefaultlabeldistances#1{\def\\##1{\sseq@setdefaultlabeldistance{##1}{#1}}\sseq@labeldirectionlist}
-\def\sseq@savedefaultlabeldistances{%% TODO: This doesn't make sense and isn't called anywhere
-    \def\\##1{
-        \sseq@eval{
-            \sseq@temptoks{\the\sseq@temptoks\@nx\sseq@setdefaultlabeldistance{##1}{\sseq@defaultlabeldistance{##1}}}
-        }
-    }
-    \sseq@labeldirectionlist
-}
 
 \def\sseq@setlabeldirectionkeys@#1[#2]#3{
     \def\sseq@temp##1{#3}
@@ -920,8 +1019,7 @@
     }
 }
 
-
-\def\sseq@edgeoptionhook{}
+\def\sseq@edgeoptionhook{}% This is just to make description work.
 
 \sseq@setlabeldirectionkeys{/sseqpages/class/label}[/.sseq @ first pass code]{\sseq@classlabeltrue}
 \sseq@setlabeldirectionkeys{/sseqpages/class/label}[/.sseq @ second pass append code]{\sseq@class@positionlabel{#1}{##1}}
@@ -962,11 +1060,9 @@
         \sseq@options@firstpassmode
         \the\sseq@labelstyle
         \the\sseq@classlabelstyle
-        \def\sseq@savedoptioncode{}
         \let\sseq@firstpass@shifttransform\@gobbletwo
-        \def\pgfkeysdefaultpath{/sseqpages/class/label/}
         \sseq@options@normalmode
-        \pgfkeysalso{#2}
+        \sseq@processoptions{class/label/}{#2}
         \ifsseq@classlabel
             \sseq@options@firstpassmode
             \the\sseq@outerclasslabelstyle
@@ -1005,7 +1101,7 @@
             \sseq@options@firstpassmode
             \the\sseq@innerclasslabelstyle
             \sseq@options@normalmode
-            \pgfkeysalso{#2}
+            \sseq@protectedeval{\@nx\pgfqkeys{/sseqpages/class/label}{#2}}
             \gdef\sseq@classnodetext{#1}%
             \xdef\sseq@classnodetextoptions{
                 \def\@nx\pgfkeysdefaultpath{/sseqpages/class/node texts/}
@@ -1116,7 +1212,12 @@
     target anchor/.sseq @ second pass store in=\sseq@edgetargetanchor
 }
 
-%% Style options
+
+%%%
+%%%   Global Keys
+%%%
+
+%%% Style options
 \def\sseq@stylelist{}
 \def\sseq@clearchangestyles{}
 
@@ -1165,38 +1266,43 @@
         }
     }%
 }
-
+% This is a faster way of doing:
+%\def\sseq@temp{#1}
+%\pgfqkeys{/sseqpages/alwaysunknown}{#2}
+% and defining an event handler: alwaysunknown/.unknown/.code={\@xp\sseq@keys@try@addtooptions\@xp{\sseq@temp}{}{\sseq@keys@unknown}
 \def\sseq@addstylecodetooptions#1#2{
     \def\sseq@temp{#1}
-    \pgfqkeys{/sseqpages/setstyle}{#2}% This is lazy, small performance cost.
+    \sseq@simple@pgfkeys@parse#2,\pgfkeys@mainstop
 }
 
-\pgfkeys{/sseqpages/setstyle/.unknown/.code={\sseq@addstylecodetooptions@{#1}}}
-
-\def\sseq@addstylecodetooptions@#1{
-    \sseq@tempiffalse
-    \def\next{\sseq@addstylecodetooptions@@{#1}}
-    \@xp\next\sseq@temp,\sseq@nil
-}
-\def\sseq@addstylecodetooptions@@#1#2,{
-    \@ifnextchar\sseq@nil{% Ran out of paths to try
-        \sseq@keys@try@addtooptions{#2}
-        \ifsseq@tempif\else
-            \sseq@keys@unknown{#1}
-        \fi
-        \@gobble
-    }{
-        \sseq@keys@try@addtooptions{#2}
-        \ifsseq@tempif
-            \let\next\sseq@gobble@to@nil
-        \else
-            \def\next{\sseq@addstylecodetooptions@@{#1}}
-        \fi
-        \next
-    }
+\def\sseq@simple@pgfkeys@parse{\futurelet\pgfkeys@possiblerelax\sseq@simple@pgfkeys@parse@main}
+\def\sseq@simple@pgfkeys@parse@main{%
+  \ifx\pgfkeys@possiblerelax\pgfkeys@mainstop%
+      \@xp\@gobble
+  \else%
+      \@xp\sseq@simple@pgfkeys@@normal
+  \fi%
 }
 
-\sseq@newstyles{/sseqpages/global}{sseq, page}
+\def\sseq@simple@pgfkeys@@normal#1,{
+    \sseq@simple@pgfkeys@unpack#1=\pgfkeysnovalue=\pgfkeys@stop
+    \sseq@simple@pgfkeys@parse
+}
+
+\def\sseq@simple@pgfkeys@unpack#1=#2=#3\pgfkeys@stop{%
+  \pgfkeys@spdef\pgfkeyscurrentkey{#1}%
+  \edef\pgfkeyscurrentkey{\pgfkeyscurrentkey}%
+  \ifx\pgfkeyscurrentkey\pgfkeys@empty%
+    % Skip
+  \else%
+    \pgfkeys@spdef\pgfkeyscurrentvalue{#2}
+    \let\pgfkeyscurrentname\pgfkeyscurrentkey
+    \@xp\sseq@keys@try@addtooptions\@xp{\sseq@temp}{}{\sseq@keys@unknown}
+  \fi
+}
+
+
+\sseq@newstyles{/sseqpages/global}{sseq, page}% DON'T make this /global/default! Bad things will happen.
 \sseq@newstyles{/sseqpages}{path, edge, label, edge label, differential label, struct line label}
 \sseq@newstyles{/sseqpages/class,/sseqpages}{class, permanent cycle, transient cycle, this page cycle}
 \sseq@newstyles{/sseqpages/differential,/sseqpages}{differential}
@@ -1217,14 +1323,10 @@
     class label position/.code={\pgfkeysalso{class label positions={#1}}}
 }%
 
-\sseqset{
-    %class labels=above,
-    classes={draw,circle,inner sep=0.13em},
-    edges=draw,
-    edge labels={auto=right},
-    %labels={execute at begin node=$,execute at end node=$},
-    differentials=->
-}
+%%% Global keys handlers and infrastructure
+
+\def\sseq@keys@lastpart#1{\sseq@eval{\@nx\sseq@keys@lastpart@#1/\@nx\sseq@nil}}
+\def\sseq@keys@lastpart@#1/{\@ifnextchar\sseq@nil{\edef\sseq@temp{#1}\@gobble}{\sseq@keys@lastpart@}}
 
 \pgfqkeys{/handlers}{
     .sseq store in/.code 2 args={
@@ -1242,7 +1344,8 @@
         \edef\sseq@temp@ii{\pgfkeyscurrentpath}
         \pgfkeys{
             \sseq@temp@ii/.is if=sseq@#1,
-            /sseqpages/global/default/\sseq@temp/.code={\@xp\edef\csname sseq@#1@default\endcsname{\global\@xp\@nx\csname sseq@#1##1\endcsname}}
+            /sseqpages/global/default/\sseq@temp/.code={\@xp\edef\csname sseq@#1@default\endcsname{\global\@xp\@nx\csname sseq@#1##1\endcsname}},
+            /sseqpages/global/default/\sseq@temp/.default=true,
         }
     },
     .sseq default code/.code={
@@ -1308,8 +1411,7 @@
     .sseq grading/.code 2 args={
         \sseq@keys@lastpart{\pgfkeyscurrentpath}
         \pgfkeys{
-            /sseqpages/global/\sseq@temp/.estyle={\unexpanded{degree={#1}{#2}}},%I'm not really sure why this needs the \unexpanded but it does
-            %/sseqpages/global/\sseq@temp/.code 2 args={},
+            /sseqpages/global/\sseq@temp/.estyle={\unexpanded{degree={#1}{#2}}},%I'm not really sure why these need to be estyle and \unexpanded but it does...
             /sseqpages/global/default/\sseq@temp/.estyle={\unexpanded{degree={#1}{#2}}}
         }
     },
@@ -1318,16 +1420,7 @@
     cohomological Serre grading/.sseq grading={#1}{1-#1},
 }
 
-
-\def\sseq@keys@ignorehandlers{\\{value forbidden}\\{value required}\\{default}\\{sseq store in}\\{sseq is if}\\{sseq default code}\\{sseq default code 2 args}\\{sseq default copy}}
-\def\sseq@keys@removehandler#1{\sseq@keys@removehandler@#1=\sseq@nil}
-\def\sseq@keys@removehandler@#1/.#2=#3\sseq@nil{
-    \def\sseq@temp{#2}
-    \def\\##1{\def\sseq@tempii{##1}\ifx\sseq@tempii\sseq@temp \sseq@tempiffalse\let\\\@gobble\fi}
-    \sseq@keys@ignorehandlers
-    \def\sseq@temp{#1}
-}
-
+%%% Define global keys setter
 \gdef\sseq@globalkeys#1{
     \let\sseq@storetilde~
     \def~{}
@@ -1362,8 +1455,39 @@
     }
 }
 
+\def\sseq@keys@ignorehandlers{\\{value forbidden}\\{value required}\\{default}\\{sseq store in}\\{sseq is if}\\{sseq default code}\\{sseq default code 2 args}\\{sseq default copy}}
+\def\sseq@keys@removehandler#1{\sseq@keys@removehandler@#1=\sseq@nil}
+\def\sseq@keys@removehandler@#1/.#2=#3\sseq@nil{
+    \def\sseq@temp{#2}
+    \def\\##1{\def\sseq@tempii{##1}\ifx\sseq@tempii\sseq@temp \sseq@tempiffalse\let\\\@gobble\fi}
+    \sseq@keys@ignorehandlers
+    \def\sseq@temp{#1}
+}
 
-%% Global options
+
+%%% Define global keys
+\def\sseq@currentoptionpath{default}
+\pgfkeys{
+    % \sseq@currentoptionpath is set to \sseq@thename in \sseqdata, then "temp" in \sseqpage
+    /sseqpages/global/.unknown/.code={%
+        \let\sseq@tempa\pgfkeyscurrentname
+        \let\sseq@tempb\pgfkeyscurrentvalue
+        \pgfkeysifdefined{/tikz/\pgfkeyscurrentname/.@cmd}{}{\pgfkeysifdefined{/tikz/\pgfkeyscurrentname}{}{%
+                \sseq@error{Undefined global option '\pgfkeyscurrentname\@xp\ifx\pgfkeyscurrentvalue\pgfkeysnovalue\else=\pgfkeyscurrentvalue\fi'}%
+        }}%
+        \pgfkeysalso{{\sseq@currentoptionpath} options/.append code/.expand twice={\@xp\@xp\@xp\tikzset\@xp\@xp\@xp{\@xp\sseq@tempa\@xp=\@xp{\sseq@tempb}}}}%
+        \sseq@eval{
+            \global\let\@xp\@nx\csname pgfk@/sseqpages/global/{\sseq@currentoptionpath} options/.@cmd\endcsname
+                \@xp\@nx\csname pgfk@/sseqpages/global/{\sseq@currentoptionpath} options/.@cmd\endcsname
+        }
+    },
+    /sseqpages/global/default/.unknown/.code={
+        \sseq@passoptionto{/sseqpages/global}
+    },
+    /sseqpages/global/{default} options/.code={},
+    /sseqpages/global/name only/.unknown/.code={}
+}
+
 \pgfqkeys{/sseqpages/global/name only}{
     name/.code={\def\sseq@thename{#1}\sseq@hasnametrue},
     name/.value required,
@@ -1383,6 +1507,7 @@
         \ifsseq@hasname\else\sseq@error{Option 'keep changes' is only for named spectral sequences}\fi
         \ifsseq@ispageenv\else\sseq@error{Option 'keep changes' is only for the sseqpage environment}\fi
     },
+    math nodes/.sseq is if=mathnodes,
     custom clip/.sseq store in=\sseq@customclip{},
     clip/.sseq is if=clip,
     draw differentials/.sseq is if=drawdifferentials,
@@ -1411,7 +1536,7 @@
 \sseq@addiftostorelist@truedefault{borderxaxis}\sseq@addiftostorelist@truedefault{borderyaxis}
 \sseq@addtostorelist\sseq@xaxisorigin{0}\sseq@addtostorelist\sseq@yaxisorigin{0}
 
-%% Range
+%%% Range keys and commands
 \sseq@globalkeys{%
     x range/.code 2 args={\sseq@xrange{#1}{#2}},
     x range/.sseq default code 2 args={\sseq@xrange@default{#1}{#2}},
@@ -1424,6 +1549,10 @@
 \@xp\sseq@addtostorelist\@xp\sseq@ymin\@xp{\sseq@infinity}
 \@xp\sseq@addtostorelist\@xp\sseq@xmax\@xp{\@xp-\sseq@infinity}
 \@xp\sseq@addtostorelist\@xp\sseq@ymax\@xp{\@xp-\sseq@infinity}
+\sseq@addtostorelist\xmin{\protect\sseq@xmin}
+\sseq@addtostorelist\ymin{\protect\sseq@ymin}
+\sseq@addtostorelist\xmax{\protect\sseq@xmax}
+\sseq@addtostorelist\ymax{\protect\sseq@ymax}
 % These are used to decide whether to add a certain node to savedpaths.
 % In general the check is whether xmin<=xcoord<=xmax, but since Latex has no <=, set xminmm=xmin-1, xmaxpp=xmax+1.
 % If the user doesn't specify a range, all nodes should be rendered
@@ -1437,6 +1566,8 @@
     \global\let\sseq@xminmax\@gobbletwo % Don't need to calculate range of nodes if user specifies it
     \gdef\sseq@xmin{#1}%
     \gdef\sseq@xmax{#2}%
+    \let\xmin\sseq@xmin
+    \let\xmax\sseq@xmax
     % Need to know decremented \xmin and incremented \xmax to decide which nodes to print
     \sseq@tempcount=#1 \advance\sseq@tempcount-1\xdef\sseq@xminmm{\the\sseq@tempcount}%
     \sseq@tempcount=#2 \advance\sseq@tempcount1\xdef\sseq@xmaxpp{\the\sseq@tempcount}%
@@ -1445,6 +1576,8 @@
     \global\let\sseq@yminmax\@gobbletwo %
     \gdef\sseq@ymin{#1}%
     \gdef\sseq@ymax{#2}%
+    \let\ymin\sseq@ymin
+    \let\ymax\sseq@ymax
     \sseq@tempcount=#1 \advance\sseq@tempcount-1\xdef\sseq@yminmm{\the\sseq@tempcount}%
     \sseq@tempcount=#2 \advance\sseq@tempcount1\xdef\sseq@ymaxpp{\the\sseq@tempcount}%
 }
@@ -1468,10 +1601,10 @@
 % If #1 is less than \xmin or greater than \xmax, update \xmin or \xmax appropriately
 % Gets set to \@gobble if user specifies range
 \def\sseq@xminmax@active#1#2{%
-    \ifnum#1<\sseq@xmin
+    \ifnum#1<\sseq@xmin\relax
         \ifx\sseq@yminmax\@gobbletwo
-            \ifnum#2>\sseq@yminmm
-                \ifnum#2<\sseq@ymaxpp
+            \ifnum#2>\sseq@yminmm\relax
+                \ifnum#2<\sseq@ymaxpp\relax
                     \xdef\sseq@xmin{#1}%
                 \fi
             \fi
@@ -1479,10 +1612,10 @@
             \xdef\sseq@xmin{#1}%
         \fi
     \fi
-    \ifnum#1>\sseq@xmax
+    \ifnum#1>\sseq@xmax\relax
         \ifx\sseq@yminmax\@gobbletwo
-            \ifnum#2>\sseq@yminmm
-                \ifnum#2<\sseq@ymaxpp
+            \ifnum#2>\sseq@yminmm\relax
+                \ifnum#2<\sseq@ymaxpp\relax
                     \xdef\sseq@xmax{#1}%
                 \fi
             \fi
@@ -1493,10 +1626,10 @@
 }
 
 \def\sseq@yminmax@active#1#2{%
-    \ifnum#2<\sseq@ymin
+    \ifnum#2<\sseq@ymin\relax
         \ifx\sseq@xminmax\@gobbletwo
-            \ifnum#1>\sseq@xminmm
-                \ifnum#1<\sseq@xmaxpp
+            \ifnum#1>\sseq@xminmm\relax
+                \ifnum#1<\sseq@xmaxpp\relax
                     \xdef\sseq@ymin{#2}%
                 \fi
             \fi
@@ -1504,10 +1637,10 @@
             \xdef\sseq@ymin{#2}%
         \fi
     \fi
-    \ifnum#2>\sseq@ymax
+    \ifnum#2>\sseq@ymax\relax
         \ifx\sseq@xminmax\@gobbletwo
-            \ifnum#1>\sseq@xminmm
-                \ifnum#1<\sseq@xmaxpp
+            \ifnum#1>\sseq@xminmm\relax
+                \ifnum#1<\sseq@xmaxpp\relax
                     \xdef\sseq@ymax{#2}%
                 \fi
             \fi
@@ -1517,10 +1650,8 @@
     \fi
 }
 
-%% Axes and Layout options
-% axes options:
+%%% Axes and Layout options
 \sseq@globalkeys{%
-    math nodes/.style={execute at begin node=$,execute at end node=$},
     axes labels/.code={},
     x axis labels/.code={},
     y axis labels/.code={},
@@ -1595,7 +1726,11 @@
     bottom clip padding/.sseq store in=\sseq@clip@padding@bottom{0.4cm}
 }
 
-%% Global Coordinate transformations
+%%%
+%%% Coordinate transformations
+%%%
+
+%%% Global Coordinate Transformations
 \sseq@globaldetonetrue
 \sseq@addtostorelist\sseq@globaldetonetransform{}
 \sseq@addtostorelist\sseq@globalrotatetransform{}
@@ -1652,6 +1787,8 @@
     scale/.value required
 }
 
+%%% Local Coordinate transformations
+
 \pgfqkeys{/sseqpages/class placement}{
     x shift/.code={\sseq@error@noclassplacementshift{x shift}{#1}},
     y shift/.code={\sseq@error@noclassplacementshift{y shift}{#1}},
@@ -1696,7 +1833,7 @@
     transform canvas/.value required
 }
 
-
+% These two should be exactly the same
 \pgfqkeys{/sseqpages/tikz primitives}{
     shift/.code={\sseq@error@internal{Not implemented}},
     xshift/.sseq @ first pass code=\sseq@tikz@firstpass@checkshifttransform{x}{#1},
@@ -1725,8 +1862,8 @@
 \pgfqkeys{/sseqpages/scope}{
     shift/.code={\sseq@error@internal{Not implemented}},
     xshift/.sseq @ second pass code={\sseq@tikz@shifttransform{x}{#1}},
-    xshift/.sseq @ first pass append code={\sseq@tikz@firstpass@checkshifttransform{x}{#1}},
     yshift/.sseq @ second pass code={\sseq@tikz@shifttransform{y}{#1}},
+    xshift/.sseq @ first pass append code={\sseq@tikz@firstpass@checkshifttransform{x}{#1}},
     yshift/.sseq @ first pass append code={\sseq@tikz@firstpass@checkshifttransform{y}{#1}},
     rotate around/.sseq @ code={\sseq@standardparse}{\sseq@standardparse\sseq@pgfkeysdocommand{rotate}{#1}},
     rotate/.sseq @ code={\sseq@standardparse}{\sseq@standardparse\sseq@pgfkeysdocommand{rotate}{#1}},
@@ -1748,38 +1885,7 @@
     scale around/.sseq @ code={\sseq@standardparse}{\sseq@standardparse\sseq@pgfkeysdocommand{scale around}{#1}}
 }
 
-
-
-\def\sseq@error@optionillegal#1#2#3{%
-    \sseq@error{%
-        You said '#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else=\pgfkeyscurrentvalue\fi', but the option '#1' is
-        illegal in the sseqdata and sseqpage environments#3%
-    }{}%
-}
-
-\def\sseq@macrogobble#1->{}
-
-\def\sseq@error@optionglobalonly#1{%
-    \sseq@error{%
-        You said '#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else={\@xp\sseq@macrogobble\meaning\pgfkeyscurrentvalue}\fi', but the option '#1' is
-        only allowed as a global option (as in '\@nx\begin{sseqdata}[#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else={\@xp\sseq@macrogobble\meaning\pgfkeyscurrentvalue}\fi]' or
-        '\@nx\begin{sseqpage}[#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else={\@xp\sseq@macrogobble\meaning\pgfkeyscurrentvalue}\fi]')%
-    }{}%
-}
-
-\def\sseq@error@nodefaultallowed#1{
-    \sseq@error{%
-        You cannot set a default value for '#1'. Maybe try \@nx\sseqset{sseqs={#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else=\pgfkeyscurrentvalue\fi}}%
-    }{}
-}
-
-\def\sseq@error@illegalasglobal#1{
-    \sseq@error{%
-        You said '#1\ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text\else=\pgfkeyscurrentvalue\fi' as a global option, but option '#1' is illegal as a global option
-    }
-}
-
-
+%%% Error checking for nonglobal transformations:
 \def\sseq@okaytransform#1#2{\sseq@pgfkeysdocommand{#1}{#2}}
 \def\sseq@error@illegaltransform#1#2{%
     \sseq@error{%
@@ -1845,102 +1951,20 @@
 \def\sseq@ifpgfmathresultisint{\@xp\sseq@ifpgfmathresultisint@\pgfmathresult..\sseq@nil}
 \def\sseq@ifpgfmathresultisint@#1.#2.#3\sseq@nil{\ifx\sseq@nil#2\sseq@nil\@xp\@firstoftwo\else \ifnum#2=0\relax \@xp\@xp\@xp\@firstoftwo\else \@xp\@xp\@xp\@secondoftwo\fi\fi}
 
-
-
-%%% Command redefinition commands
-
-% copy commands into user namespace by removing sseq@ prefixes
-% given a list of commands, \let\thiscommand\sseq@thiscommand on each one
-\def\sseq@commandlist{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions\isdead\isalive\pgfmathparse}
-\def\sseq@copycommands{\@xp\sseq@copycommands@\sseq@commandlist\sseq@nil}
-\def\sseq@copycommands@#1{%
-    \ifx#1\sseq@nil\else % if so, that was the last command in the list
-        \@xp\let\@xp#1\csname sseq@\sseq@macroname#1\endcsname
-        \@xp\sseq@copycommands@
-    \fi %
+%%% Some default key settings
+\sseqset{
+    classes={draw,circle,inner sep=0.13em},
+    edges=draw,
+    edge labels={auto=right},
+    math nodes,
+    differentials=->
 }
 
-% This protect variant allows us to delay evaluation of \isalive, just so that we can
-% capture something close to the original argument to
-\let\sseq@isaliveprotect\relax
-\def\sseq@isaliveprotect@protect{\@nx\sseq@isaliveprotect\@nx}
-\def\sseq@isalive{\sseq@isaliveprotect\sseq@isalive@}
-\def\sseq@isalive@{\sseq@isalive@error}
-
-\def\sseq@isalive@error{\sseq@error{You can't use \@nx\isalive\sseq@macroname\ outside of a page constraint for a tikz primitive}}
-\def\sseq@isalive@active#1{%
-    \@xp\ifx\@xp$\@gobble#1$%
-        \@xp\sseq@isalive@parens\@xp#1%
-    \else
-        \sseq@isalive@list#1\sseq@nil
-    \fi
-}
-\def\sseq@isalive@list(#1)#2{%
-    \sseq@isalive@parens(#1)%
-    \ifx\sseq@nil#2\else
-        &&\@xp\sseq@isalive@list\@xp#2%
-    \fi
-}
-\def\sseq@isalive@parens(#1){\sseq@parsecoordsex\sseq@isalive@parens@{#1}}
-\def\sseq@isalive@parens@#1{\sseq@isalive@parens@@#1,,\sseq@nil}
-\def\sseq@isalive@parens@@#1,#2,#3,#4\sseq@nil{%
-    \sseq@obj@ifundef{partcoord.(#1,#2).numnodes}{%
-        \sseq@error{No class yet exists in position (#1,#2), so you can't check whether it is alive or not}%
-    }{%
-        \sseq@whichclassex{\sseq@isalive@parens@@@{#1}{#2}}{#1}{#2}{#3}{page constraint \protect\isalive(#1,#2,#3)}%
-    }%
-}
-\def\sseq@isalive@parens@@@#1#2#3{%
-    \ifnum1=\numexpr 1#3\relax % If there wasn't an error in \sseq@whichclassex, then #3 is a number which gets appended to 1 and the check fails.
-        #3 % #3 is an error, report it (obviously it is just stored here, \sseq@pageconstraint@checkerror will deal with it).
-    \else
-        \sseq@obj@ifundef{class.(#1,#2,#3).num}{%
-            \sseq@error{Fewer than #3 classes exist in position (#1,#2) so you can't check whether (#1,#2,#3) is alive}%
-        }{%
-            \@nx\sseq@isalive@final{#1}{#2}{#3}{\sseq@obj{class.(#1,#2,#3).num}}%
-        }%
-    \fi
-}
-\def\sseq@isalive@final#1#2#3#4{
-    \ifnum\sseq@obj{class.(#1,#2,#3)[#4].page}<\sseq@thepage\space
-        0
-    \else
-        \ifnum#4=0\space
-            1
-        \else
-            \ifnum\sseq@obj{class.(#1,#2,#3)[\the\numexpr #4-1\relax].page}=\sseq@thepage\space
-                0
-            \else
-                1
-            \fi
-        \fi
-    \fi
-}
-
-% #1 -- the new page constraint
-% #2 -- a binary logical operator (&& or ||).
-\def\sseq@updatepageconstraint#1#2{
-    \let\sseq@isalive@\sseq@isalive@active
-    \def\sseq@isaliveprotect{}
-    \protected@edef\sseq@pageconstraint{(\unexpanded\@xp{\sseq@pageconstraint})#2(#1)}
-    \bgroup
-    \ifx\sseq@error@\sseq@errorwithinfo\else
-        \def\sseq@error@annotation{}
-        \let\sseq@error@\sseq@errorwithinfo
-    \fi
-    \def\sseq@isaliveprotect\sseq@isalive@{\protect\isalive}
-    \edef\sseq@error@annotation{\unexpanded{.^^J(In page constraint "#1")}\unexpanded\@xp{\sseq@error@annotation}}
-    \sseq@pageconstraint@checkerror
-    \egroup
-}
-
-\edef\sseq@pageconstraint@checkerror{
-    \unexpanded{\@xp\sseq@pageconstraint@checkerror@\sseq@pageconstraint}\@xp\@nx\csname sseq@error \endcsname{}\@nx\sseq@nil
-}
-\@xp\def\@xp\sseq@pageconstraint@checkerror@\@xp#\@xp1\csname sseq@error \endcsname#2#3\sseq@nil{\ifx\sseq@nil#3\sseq@nil\else\sseq@error{#2}\fi}
+%%%% Options for Tikz primitives
 
 \def\sseq@pageconstraint{1}
 \def\sseq@pageconstraint@true{1}
+
 \pgfqkeys{/sseqpages/tikz primitives}{
     page constraint/.code={
         \sseq@updatepageconstraint{#1}{&&}
@@ -1963,6 +1987,206 @@
     on background layer/.code={\sseq@options@secondpass{\pgfonlayer{background}}\pgfkeysalso{/tikz/on background layer={#1}}}
 }
 
+%%%%%%%
+%%%
+%%%  Environment definitions
+%%%
+%%%%%%%
+
+\sseq@addtostorelist\sseq@savedbackgroundpaths{}
+
+\def\sseqdata{\@ifnextchar[{\sseqdata@}{\sseqdata@[]}}%}
+
+\def\sseqdata@[#1]{%
+    \selectfont\nullfont % Avoid space hazards!
+    \def\par{}
+%
+    \let\sseqset\sseqset@inprogress % Not sure if this is right/necessary. Probably is though.
+    \sseq@keepchangestrue
+    \sseq@storelist@setdefaults
+%
+    \ifx\sseq@xmin@default\sseq@infinity
+        \let\sseq@xminmax\sseq@xminmax@active
+    \fi
+    \ifx\sseq@ymin@default\sseq@infinity
+        \let\sseq@yminmax\sseq@yminmax@active
+    \fi
+%
+    % copy commands into the user namespace.
+    \sseq@installusermacros
+    \def\xmin{\protect\sseq@xmin}\def\xmax{\protect\sseq@xmax}
+    \def\ymin{\protect\sseq@ymin}\def\ymax{\protect\sseq@ymax}
+    \def\page{\protect\sseq@thepage}
+
+    \sseq@modtikzcommands % Defer evaluation of tikz primitives
+    \sseq@patchfor % patch \foreach to work with deferred macros
+    \pgfkeys{/handlers/first char syntax/the character "/.initial=\sseq@handlequote} % install quotes parsing
+%
+%
+    \pgfqkeys{/sseqpages/global/name only}{#1}
+    \@ifundefined{sseq@thename}{\sseq@error{Every 'sseqdata' environment must have a name. Specify one by saying 'name=your sseq name'}{}}{}
+    \sseq@obj@ifundef{exists}{
+        \sseq@obj@gdef{exists}{}
+        \pgfqkeys{/sseqpages/global}{{\sseq@thename} options/.code={}}
+    }{
+        \ifsseq@updateexisting
+            \sseq@getcmds
+        \else
+            \sseq@error{A spectral sequence with the name '\sseq@thename' already exists.
+                If you want to add to an already existing spectral sequence, please pass the option 'update existing'}
+        \fi
+    }
+    \sseq@setsavedpaths{standard}
+%
+    % the default option handler for /sseqpages/global adds to \sseq@currentoptionpath options
+    \let\sseq@currentoptionpath\sseq@thename
+    \pgfqkeys{/sseqpages/global}{#1}
+    \sseq@eval{
+        \global\let\@xp\@nx\csname pgfk@/sseqpages/global/{\sseq@currentoptionpath} options/.@cmd\endcsname
+            \@xp\@nx\csname pgfk@/sseqpages/global/{\sseq@currentoptionpath} options/.@cmd\endcsname
+    }
+    \sseq@savedpaths@xadd{\sseq@stylelist}
+    \sseq@savedpaths@add{\begingroup} % prevent some of the two-pass user macros horrors
+    \ifx\sseq@targetx\pgfutil@empty \let\d\sseq@d@error@nodegree \fi % Unless degree has a default, make \d be an error until a degree is set.
+}
+
+% Just store all the settings
+\def\endsseqdata{
+    % To fix the \classlabelstyle glitch:
+    \sseq@obj@xdef{restorelabelstyles}{\sseq@labelstyle{\the\sseq@labelstyle}\sseq@classlabelstyle{\the\sseq@classlabelstyle}}
+    \sseq@savedpaths@add{\endgroup} % prevent some of the two-pass user macros horrors
+    \sseq@storecmds
+}
+
+\def\sseqpage{\@ifnextchar[{\sseqpage@}{\sseqpage@[]}} %]
+
+\def\sseqpage@[#1]{%
+    \selectfont\nullfont % Avoid space hazards!
+    \def\par{}
+%
+    \let\sseqset\sseqset@inprogress
+    \sseq@ispageenvtrue
+%
+    \let\sseq@xminmax\sseq@xminmax@active
+    \let\sseq@yminmax\sseq@yminmax@active
+%
+    % Copy commands into user namespace
+    \sseq@installusermacros
+    \def\xmin{\protect\sseq@xmin}\def\xmax{\protect\sseq@xmax}
+    \def\ymin{\protect\sseq@ymin}\def\ymax{\protect\sseq@ymax}
+    \sseq@modtikzcommands % Redefine tikz primitives to store themselves in the appropriate place
+    \sseq@patchfor % Change foreach to record it's variable values in the appropriate places
+    \pgfkeys{/handlers/first char syntax/the character "/.initial=\sseq@handlequote}% install quotes parsing
+%
+    \gdef\sseq@pagecleanup{}% For undoing local option settings
+%
+    \def\sseq@thepage{0}% page defaults to 0
+    \pgfqkeys{/sseqpages/global/name only}{#1}% Get the name
+    \ifsseq@hasname
+        \sseq@obj@ifundef{exists}{
+            \sseq@error{No spectral sequence named '\sseq@thename' exists}{}
+        }{}
+        \sseq@getcmds
+        \ifsseq@keepchanges
+            \sseq@setsavedpaths{standard}
+        \else
+            \sseq@setsavedpaths{temporary}
+        \fi
+    \else
+        \def\sseq@thename{temp@sseq@number@\the\sseq@anonsseqcount}
+        \global\advance\sseq@anonsseqcount1
+        \sseq@storelist@setdefaults
+        \sseq@setsavedpaths{temporary}
+        \sseq@savedpaths@xadd{\sseq@stylelist}
+        \pgfqkeys{/sseqpages/global}{{\sseq@thename} options/.code={}}
+    \fi
+    \sseq@savedpaths@add{\begingroup} % prevent some of the two-pass user macros horrors
+    % To fix the \classlabelstyle glitch:
+    \sseq@obj{restorelabelstyles}
+    \def\sseq@currentoptionpath{this page}
+    \pgfqkeys{/sseqpages/global}{{this page} options/.code={},#1}
+%
+    \ifx\sseq@targetx\pgfutil@empty \let\d\sseq@d@error@nodegree\fi
+}
+
+% Here we do all of the work to actually print the page
+\def\endsseqpage{
+    \sseq@savedpaths@add{\endgroup} % prevent some of the two-pass user macros horrors
+    % Copied from tikzcd code. Pass quotes forward to edge and format edge label appropriately
+    \ifx\sseq@xmin\sseq@infinity\sseq@error@range\fi
+    \ifx\sseq@ymin\sseq@infinity\sseq@error@range\fi
+    \pgfkeys{
+      /tikz/edge quotes mean={
+        edge node={node [/sseqpages/label,
+                         /utils/exec={\sseq@thelabelstyle\sseq@theedgelabelstyle},
+                         ##2,
+                         /utils/exec={
+                        %    \ifsseq@rotatelabels\iftikz@fullytransformed\else \tikz@fullytransformedtrue\tikz@addtransform{\pgftransformresetnontranslations\sseq@globalrotatetransform}\fi\fi
+                             \sseq@edgeoptionhook % this is just to make description work
+                        }
+                   ]{##1}}}}
+%
+    \tikzset{
+        z=0pt,
+        every path/.style={},
+        every node/.style={}
+    }
+    \begin{tikzpicture}[/sseqpages/global/{default} options,\ifsseq@hasname/sseqpages/global/{\sseq@thename} options\fi,/sseqpages/global/{this page} options]%
+    \the\sseq@sseqstyle
+    \the\sseq@pagestyle
+    \ifsseq@mathnodes
+        \tikzset{execute at begin node=$,execute at end node=$}%
+    \fi
+    \pgftransformreset
+    \sseq@globaldetonetransform
+    \sseq@globalscaletransform
+%
+    \let\sseq@transform\sseq@error@illegaltransform % Disallow most coordinate transforms
+    \let\sseq@shifttransform\sseq@checkshifttransform % Allow shifts as long as they are by integers and have no units.
+%
+    \pgfonlayer{background}%
+    \sseq@handlexaxis % Draw the axis with pgf primitives. These are defined all the way at the end in the "drawing department"
+    \sseq@handleyaxis
+    \endpgfonlayer
+%
+    \let\sseq@error@\sseq@errorwithinfo
+    \let\errmessage\sseq@errmessage
+    \begingroup
+    \sseq@savedbackgroundpaths
+    \endgroup
+%
+    \sseq@clip
+%
+    \ifsseq@drawdifferentials\else
+        \let\sseq@differential@draw@ifpage\@gobble
+    \fi
+    \ifsseq@drawstructlines\else
+        \let\sseq@structline@draw@ifpage\@gobble
+    \fi
+%
+    \sseq@usesavedpaths
+%
+    \end{tikzpicture}%
+    \ifsseq@keepchanges
+        \sseq@storecmds   % store changes
+    \else
+        \sseq@pagecleanup % undo any changes specific to this page
+    \fi
+}
+
+% Shorthand for sseqpage with empty body
+\def\printpage[#1]{%
+    \begin{sseqpage}[#1]
+    \end{sseqpage}%
+}
+
+
+
+%%%%%%
+%%%
+%%%   Tikz Primitives
+%%%
+%%%%%%
 
 % Replace a tikz command with a command that saves the command on savedpaths
 \def\sseq@tikzcommands{%
@@ -2017,7 +2241,7 @@
 \def\sseq@pgfmathparse@rescan#1{\catcode`\&=12\relax\scantokens{\pgfmathparse{#1}}}
 \def\sseq@ifhop#1#2\fi{\fi#1}
 
-%% Tikz primitives
+%%% Coordinate parser
 \def\sseq@tikzprimitives@coords#1{\def\sseq@temp{}\sseq@tikzprimitives@coords@#1(\sseq@nil)}
 \def\sseq@tikzprimitives@coords@#1(#2){
     \ifx\sseq@nil#2
@@ -2078,6 +2302,90 @@
 \def\sseq@tikzprimitive@getcoord@anchor@eatdot#1.{#1}
 \def\sseq@uptopt#1.#2\sseq@nil{#1}
 
+%%% Page constraint and \isalive
+
+% #1 -- the new page constraint
+% #2 -- a binary logical operator (&& or ||).
+\def\sseq@updatepageconstraint#1#2{
+    \let\sseq@isalive@\sseq@isalive@active
+    \def\sseq@isaliveprotect{}
+    \protected@edef\sseq@pageconstraint{(\unexpanded\@xp{\sseq@pageconstraint})#2(#1)}
+    \bgroup
+    \ifx\sseq@error@\sseq@errorwithinfo\else
+        \def\sseq@error@annotation{}
+        \let\sseq@error@\sseq@errorwithinfo
+    \fi
+    \def\sseq@isaliveprotect\sseq@isalive@{\protect\isalive}
+    \edef\sseq@error@annotation{\unexpanded{.^^J(In page constraint "#1")}\unexpanded\@xp{\sseq@error@annotation}}
+    \sseq@pageconstraint@checkerror
+    \egroup
+}
+
+\edef\sseq@pageconstraint@checkerror{
+    \unexpanded{\@xp\sseq@pageconstraint@checkerror@\sseq@pageconstraint}\@xp\@nx\csname sseq@error \endcsname{}\@nx\sseq@nil
+}
+\@xp\def\@xp\sseq@pageconstraint@checkerror@\@xp#\@xp1\csname sseq@error \endcsname#2#3\sseq@nil{\ifx\sseq@nil#3\sseq@nil\else\sseq@error{#2}\fi}
+
+
+% This protect variant allows us to delay evaluation of \isalive, just so that we can
+% capture something close to the original argument to
+\let\sseq@isaliveprotect\relax
+\def\sseq@isaliveprotect@protect{\@nx\sseq@isaliveprotect\@nx}
+\def\sseq@isalive{\sseq@isaliveprotect\sseq@isalive@}
+\def\sseq@isalive@{\sseq@isalive@error}
+
+\def\sseq@isalive@error{\sseq@error{You can't use \@nx\isalive\sseq@macroname\ outside of a page constraint for a tikz primitive}}
+\def\sseq@isalive@active#1{%
+    \@xp\ifx\@xp$\@gobble#1$%
+        \@xp\sseq@isalive@parens\@xp#1%
+    \else
+        \sseq@isalive@list#1\sseq@nil
+    \fi
+}
+\def\sseq@isalive@list(#1)#2{%
+    \sseq@isalive@parens(#1)%
+    \ifx\sseq@nil#2\else
+        &&\@xp\sseq@isalive@list\@xp#2%
+    \fi
+}
+\def\sseq@isalive@parens(#1){\sseq@parsecoordsex\sseq@isalive@parens@{#1}}
+\def\sseq@isalive@parens@#1{\sseq@isalive@parens@@#1,,\sseq@nil}
+\def\sseq@isalive@parens@@#1,#2,#3,#4\sseq@nil{%
+    \sseq@obj@ifundef{partcoord.(#1,#2).numnodes}{%
+        \sseq@error{No class yet exists in position (#1,#2), so you can't check whether it is alive or not}%
+    }{%
+        \sseq@whichclassex{\sseq@isalive@parens@@@{#1}{#2}}{#1}{#2}{#3}{page constraint \protect\isalive(#1,#2,#3)}%
+    }%
+}
+\def\sseq@isalive@parens@@@#1#2#3{%
+    \ifnum1=\numexpr 1#3\relax % If there wasn't an error in \sseq@whichclassex, then #3 is a number which gets appended to 1 and the check fails.
+        #3 % #3 is an error, report it (obviously it is just stored here, \sseq@pageconstraint@checkerror will deal with it).
+    \else
+        \sseq@obj@ifundef{class.(#1,#2,#3).num}{%
+            \sseq@error{Fewer than #3 classes exist in position (#1,#2) so you can't check whether (#1,#2,#3) is alive}%
+        }{%
+            \@nx\sseq@isalive@final{#1}{#2}{#3}{\sseq@obj{class.(#1,#2,#3).num}}%
+        }%
+    \fi
+}
+\def\sseq@isalive@final#1#2#3#4{
+    \ifnum\sseq@obj{class.(#1,#2,#3)[#4].page}<\sseq@thepage\space
+        0
+    \else
+        \ifnum#4=0\space
+            1
+        \else
+            \ifnum\sseq@obj{class.(#1,#2,#3)[\the\numexpr #4-1\relax].page}=\sseq@thepage\space
+                0
+            \else
+                1
+            \fi
+        \fi
+    \fi
+}
+
+
+%%% Scope
 \def\sseq@scope{\@ifnextchar[{\sseq@scope@}{\sseq@scope@[]}}%]
 \def\sseq@scope@[#1]{%
     \sseq@scope@savedpaths@add{\begin{scope}}
@@ -2087,360 +2395,13 @@
 \def\sseq@endscope{\sseq@scope@savedpaths@add{\end{scope}}}
 
 
-%%%% Environment definitions
-\sseq@addtostorelist\sseq@savedbackgroundpaths{}
+%%%%%
+%%
+%% The main commands
+%%
+%%%%%
 
-\def\sseqdata{\@ifnextchar[{\sseqdata@}{\sseqdata@[]}}%}
-
-\def\sseqdata@[#1]{%
-    \selectfont\nullfont % Avoid space hazards!
-    \def\par{}
-%
-    \let\sseqset\sseqset@inprogress % Not sure if this is right/necessary. Probably is though.
-    \sseq@keepchangestrue
-    \sseq@storelist@setdefaults
-%
-    \ifx\sseq@xmin@default\sseq@infinity
-        \let\sseq@xminmax\sseq@xminmax@active
-    \fi
-    \ifx\sseq@ymin@default\sseq@infinity
-        \let\sseq@yminmax\sseq@yminmax@active
-    \fi
-%
-    % copy commands into the user namespace.
-    \sseq@copycommands
-    \def\xmin{\protect\sseq@xmin}\def\xmax{\protect\sseq@xmax}
-    \def\ymin{\protect\sseq@ymin}\def\ymax{\protect\sseq@ymax}
-    \def\page{\protect\sseq@thepage}
-
-    \sseq@modtikzcommands % Defer evaluation of tikz primitives
-    \sseq@patchfor % patch \foreach to work with deferred macros
-    \pgfkeys{/handlers/first char syntax/the character "/.initial=\sseq@handlequote} % install quotes parsing
-%
-%
-    \pgfqkeys{/sseqpages/global/name only}{#1}
-    \@ifundefined{sseq@thename}{\sseq@error{Every 'sseqdata' environment must have a name. Specify one by saying 'name=your sseq name'}{}}{}
-    \sseq@obj@ifundef{exists}{
-        \sseq@obj@gdef{exists}{}
-        \pgfqkeys{/sseqpages/global}{{\sseq@thename} options/.code={}}
-    }{
-        \ifsseq@updateexisting
-            \sseq@getcmds
-        \else
-            \sseq@error{A spectral sequence with the name '\sseq@thename' already exists.
-                If you want to add to an already existing spectral sequence, please pass the option 'update existing'}
-        \fi
-    }
-    \sseq@setsavedpaths{standard}
-%
-    % the default option handler for /sseqpages/global adds to \sseq@currentoptionpath options
-    \let\sseq@currentoptionpath\sseq@thename
-    \the\sseq@sseqstyle
-    \pgfqkeys{/sseqpages/global}{#1}
-    \sseq@savedpaths@xadd{\sseq@stylelist}
-    \sseq@savedpaths@add{\begingroup} % prevent some of the two-pass user macros horrors
-    %To give these options global scope we say \global\let\sseq@<name of sseq>options\sseq@<name of sseq>options
-    \sseq@eval{
-        \global\let\@xp\@nx\csname pgfk@/sseqpages/global/{\sseq@thename} options/.@cmd\endcsname
-            \@xp\@nx\csname pgfk@/sseqpages/global/{\sseq@thename} options/.@cmd\endcsname
-    }
-    \ifx\sseq@targetx\pgfutil@empty \let\d\sseq@d@error@nodegree \fi % Unless degree has a default, make \d be an error until a degree is set.
-}
-
-% Just store all the settings
-\def\endsseqdata{
-    % To fix the \classlabelstyle glitch:
-    \sseq@obj@xdef{restorelabelstyles}{\sseq@labelstyle{\the\sseq@labelstyle}\sseq@classlabelstyle{\the\sseq@classlabelstyle}}
-    \sseq@savedpaths@add{\endgroup} % prevent some of the two-pass user macros horrors
-    \sseq@storecmds
-}
-
-\def\sseqpage{\@ifnextchar[{\sseqpage@}{\sseqpage@[]}} %]
-
-\def\sseqpage@[#1]{%
-    \selectfont\nullfont % Avoid space hazards!
-    \def\par{}
-%
-    \let\sseqset\sseqset@inprogress
-    \sseq@ispageenvtrue
-%
-    \let\sseq@xminmax\sseq@xminmax@active
-    \let\sseq@yminmax\sseq@yminmax@active
-%
-    % Copy commands into user namespace
-    \sseq@copycommands
-    \def\xmin{\protect\sseq@xmin}\def\xmax{\protect\sseq@xmax}
-    \def\ymin{\protect\sseq@ymin}\def\ymax{\protect\sseq@ymax}
-    \sseq@modtikzcommands % Redefine tikz primitives to store themselves in the appropriate place
-    \sseq@patchfor % Change foreach to record it's variable values in the appropriate places
-    \pgfkeys{/handlers/first char syntax/the character "/.initial=\sseq@handlequote}% install quotes parsing
-%
-    \gdef\sseq@pagecleanup{}% For undoing local option settings
-%
-    \def\sseq@thepage{0}% page defaults to 0
-    \pgfqkeys{/sseqpages/global/name only}{#1}% Get the name
-    \ifsseq@hasname
-        \sseq@obj@ifundef{exists}{
-            \sseq@error{No spectral sequence named '\sseq@thename' exists}{}
-        }{}
-        \sseq@getcmds
-        \ifsseq@keepchanges
-            \sseq@setsavedpaths{standard}
-        \else
-            \sseq@setsavedpaths{temporary}
-        \fi
-    \else
-        \def\sseq@thename{temp@sseq@number@\the\sseq@anonsseqcount}
-        \global\advance\sseq@anonsseqcount1
-        \sseq@storelist@setdefaults
-        \sseq@setsavedpaths{temporary}
-        \sseq@savedpaths@xadd{\sseq@stylelist}
-        \pgfqkeys{/sseqpages/global}{{\sseq@thename} options/.code={}}
-    \fi
-    \sseq@savedpaths@add{\begingroup} % prevent some of the two-pass user macros horrors
-    % To fix the \classlabelstyle glitch:
-    \sseq@obj{restorelabelstyles}
-    \def\sseq@currentoptionpath{this page}
-    \pgfqkeys{/sseqpages/global}{{this page} options/.code={},#1}
-%
-    \ifx\sseq@targetx\pgfutil@empty \let\d\sseq@d@error@nodegree\fi
-}
-
-% Here we do all of the work to actually print the page
-\def\endsseqpage{
-    \sseq@savedpaths@add{\endgroup} % prevent some of the two-pass user macros horrors
-    % Copied from tikzcd code. Pass quotes forward to edge and format edge label appropriately
-    \ifx\sseq@xmin\sseq@infinity\sseq@error@range\fi
-    \ifx\sseq@ymin\sseq@infinity\sseq@error@range\fi
-    \pgfkeys{
-      /tikz/edge quotes mean={
-        edge node={node [/sseqpages/label,
-                         /utils/exec={\sseq@thelabelstyle\sseq@theedgelabelstyle},
-                         ##2,
-                         /utils/exec={
-                        %    \ifsseq@rotatelabels\iftikz@fullytransformed\else \tikz@fullytransformedtrue\tikz@addtransform{\pgftransformresetnontranslations\sseq@globalrotatetransform}\fi\fi
-                             \sseq@edgeoptionhook
-                        }
-                   ]{##1}}}}
-%
-    \tikzset{
-        z=0pt,
-        every path/.style={},
-        every node/.style={}
-    }
-    \begin{tikzpicture}[/sseqpages/global/{default} options,\ifsseq@hasname/sseqpages/global/{\sseq@thename} options\fi,/sseqpages/global/{this page} options]%
-    \the\sseq@sseqstyle
-    \the\sseq@pagestyle
-    \pgftransformreset
-    \sseq@globaldetonetransform
-    \sseq@globalscaletransform
-%
-    \let\sseq@transform\sseq@error@illegaltransform % Disallow most coordinate transforms
-    \let\sseq@shifttransform\sseq@checkshifttransform % Allow shifts as long as they are by integers and have no units.
-%
-    \pgfonlayer{background}
-    \sseq@handlexaxis
-    \sseq@handleyaxis
-    \endpgfonlayer
-%
-    \let\sseq@error@\sseq@errorwithinfo
-    \let\errmessage\sseq@errmessage
-    \begingroup
-    \sseq@savedbackgroundpaths
-    \endgroup
-%
-    \sseq@clip
-%
-    \ifsseq@drawdifferentials\else
-        \let\sseq@differential@draw@ifpage\@gobble
-    \fi
-    \ifsseq@drawstructlines\else
-        \let\sseq@structline@draw@ifpage\@gobble
-    \fi
-%
-    \sseq@usesavedpaths
-%
-    \end{tikzpicture}
-    \ifsseq@keepchanges
-        \sseq@storecmds   % store changes
-    \else
-        \sseq@pagecleanup % undo any changes specific to this page
-    \fi
-}
-
-% Shorthand for sseqpage with empty body
-\def\printpage[#1]{%
-    \begin{sseqpage}[#1]
-    \end{sseqpage}%
-}
-
-%% Draw axes and clip
-
-\def\sseq@handlexaxis{
-    \ifsseq@drawxaxis
-        \bgroup
-        \ifsseq@borderxaxis\else
-            \let\sseq@ymin\sseq@yaxisorigin % Warning: this is a stupid, lazy hack.
-        \fi
-        \sseq@drawxaxis
-        \ifsseq@drawxaxislabels
-            \sseq@drawxlabels
-        \fi
-        \egroup
-    \fi
-}
-\def\sseq@handleyaxis{
-    \ifsseq@drawyaxis
-        \bgroup
-        \ifsseq@borderyaxis\else
-            \let\sseq@xmin\sseq@xaxisorigin % Warning: this is a stupid, lazy hack.
-        \fi
-        \sseq@drawyaxis
-        \ifsseq@drawyaxislabels
-            \sseq@drawylabels
-        \fi
-        \egroup
-    \fi
-}
-
-\def\sseq@drawxaxis{
-    \bgroup
-    \pgftransformreset
-    \sseq@globaldetonetransform
-    %
-    \bgroup
-    \pgftransformxshift{\sseq@xaxis@end@extend}\pgftransformyshift{-\sseq@xaxisgap}
-    \sseq@globalscaletransform
-    \pgfpathmoveto{\pgfpoint{\sseq@xmax cm}{\sseq@ymin cm}}
-    \egroup
-    \bgroup
-    \pgftransformxshift{-\sseq@yaxisgap}
-    %\pgftransformxshift{-\sseq@ylabelgap}
-    \pgftransformxshift{-\sseq@xaxis@start@extend}
-    \pgftransformyshift{-\sseq@xaxisgap}
-    \sseq@globalscaletransform
-    \pgfpathlineto{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}
-    \egroup
-    \egroup
-    \pgfusepath{stroke}
-}
-\def\sseq@drawyaxis{
-    \bgroup
-    \pgftransformreset
-    \sseq@globaldetonetransform
-    \bgroup
-    \pgftransformyshift{\sseq@yaxis@end@extend}\pgftransformxshift{-\sseq@yaxisgap}
-    \sseq@globalscaletransform
-    \pgfpathmoveto{\pgfpoint{\sseq@xmin cm}{\sseq@ymax cm}}
-    \egroup
-    \bgroup
-    \pgftransformyshift{-\sseq@xaxisgap}
-    %\pgftransformyshift{-\sseq@xlabelgap}
-    \pgftransformyshift{-\sseq@yaxis@start@extend}
-    \pgftransformxshift{-\sseq@yaxisgap}
-    \sseq@globalscaletransform
-    \pgfpathlineto{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}
-    \egroup
-    \egroup
-    \pgfusepath{stroke}%
-}
-
-\def\sseq@drawxlabels{
-    \sseq@tempy=\sseq@ymin\relax
-    %\advance\sseq@tempy-1\relax
-    \sseq@tempx=\sseq@xmax\relax
-    \advance\sseq@tempx1\relax
-    \edef\sseq@temp{\the\sseq@tempx}%
-    \sseq@tempx=\sseq@xmin\relax
-    \loop
-        \bgroup
-        %\node at (\sseq@x,\sseq@ymin-1) {\sseq@x};%
-        \pgftransformshift{\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm}}
-        \pgftransformresetnontranslations
-        \sseq@globaldetonetransform
-        \pgftransformyshift{-\sseq@xlabelgap}\pgftransformyshift{-\sseq@xaxisgap}
-        \pgftransformresetnontranslations
-        \ifsseq@rotatelabels\sseq@globalrotatetransform\fi
-        \pgftext{$\the\sseq@tempx$}
-        \egroup
-        \advance\sseq@tempx\sseq@xlabelstep\relax
-    \ifnum\sseq@tempx<\sseq@temp\repeat
-}
-\def\sseq@drawylabels{
-    \sseq@tempx=\sseq@xmin\relax
-    %\advance\sseq@tempx-1\relax
-    \sseq@tempy=\sseq@ymax\relax
-    \advance\sseq@tempy1\relax
-    \edef\sseq@tempmax{\the\sseq@tempy}
-    \sseq@tempy=\sseq@ymin\relax
-    \loop
-        %\node at (\sseq@x,\sseq@ymin-1) {\sseq@x};%
-        \bgroup
-        \pgftransformshift{\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm}}
-        \pgftransformresetnontranslations
-        \sseq@globaldetonetransform
-        \pgftransformxshift{-\sseq@ylabelgap}\pgftransformxshift{-\sseq@yaxisgap}
-        \pgftransformresetnontranslations
-        \ifsseq@rotatelabels\sseq@globalrotatetransform\fi
-        \pgftext{$\the\sseq@tempy$}%
-        \egroup
-        \advance\sseq@tempy\sseq@ylabelstep\relax
-    \ifnum\sseq@tempy<\sseq@tempmax\repeat
-}
-
-\def\sseq@clip{
-    %\clip(\sseq@xmin-0.4,\sseq@ymin-0.4) rectangle (\sseq@xmax+0.5,\sseq@ymax+0.5);%
-    \ifsseq@clip
-        \ifx\sseq@customclip\pgfutil@empty
-            \bgroup
-            \pgftransformreset
-            \sseq@globaldetonetransform
-            \ifsseq@borderyaxis
-                \def\xmin{\pgftransformxshift{-\sseq@yaxisgap}\pgftransformxshift{\sseq@yclip@axisgap}}
-            \else
-                \def\xmin{\pgftransformxshift{-\sseq@xaxis@start@extend}\pgftransformxshift{-\sseq@clip@padding@left}}
-            \fi
-            \ifsseq@borderxaxis
-                \def\ymin{\pgftransformyshift{-\sseq@xaxisgap}\pgftransformyshift{\sseq@xclip@axisgap}}
-            \else
-                \def\ymin{\pgftransformyshift{-\sseq@yaxis@start@extend}\pgftransformyshift{-\sseq@clip@padding@bottom}}
-            \fi
-            \def\xmax{\pgftransformxshift{\sseq@xaxis@end@extend}\pgftransformxshift{\sseq@clip@padding@right}}
-            \def\ymax{\pgftransformyshift{\sseq@yaxis@end@extend}\pgftransformyshift{\sseq@clip@padding@top}}
-            \bgroup
-            \xmin\ymin\sseq@globalscaletransform
-            \pgfpathmoveto{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}
-            \egroup
-            \bgroup
-            \xmin\ymax\sseq@globalscaletransform
-            \pgfpathlineto{\pgfpoint{\sseq@xmin cm}{\sseq@ymax cm}}
-            \egroup
-            \bgroup
-            \xmax\ymax\sseq@globalscaletransform
-            \pgfpathlineto{\pgfpoint{\sseq@xmax cm}{\sseq@ymax cm}}
-            \egroup
-            \bgroup
-            \xmax\ymin\sseq@globalscaletransform
-            \pgfpathlineto{\pgfpoint{\sseq@xmax cm}{\sseq@ymin cm}}
-            \egroup
-            \egroup
-            \pgfpathclose
-            \pgfgetpath\sseq@theclippath % This stores the clipping so I can find intersections later
-            \pgfusepath{clip}% This has to be after the egroup or else the clipping gets screwed up
-        \else
-            \def\sseq@temp{\clip[name path=temp]}
-            \@xptwo\sseq@temp\@xp\@gobble\sseq@customclip
-            \pgfgetpath\sseq@theclippath
-            \let\sseq@theclippath\tikz@intersect@path@name@temp
-        \fi
-    \else
-        \pgfgetpath\sseq@theclippath
-    \fi
-}
-
-%%%% The main commands
-
-%% First, \class and its buddies
+%%% \class, \classoptions, \replaceclass
 
 \def\sseq@class{\@ifnextchar[{\sseq@class@}{\sseq@class@[]}}%}
 \def\sseq@class@[#1]{\sseq@stripspaces{\sseq@class@@[#1]}}
@@ -2632,7 +2593,10 @@
     \egroup
 }
 
-%% \d and \doptions
+%%%
+%%% \d and \doptions
+%%%
+
 \bgroup\lccode`@=`\#\lccode`Y=`Y\lccode`S=`S \lowercase{\egroup
     \def\sseq@d@error@nodegree#1){%(
         \sseq@setthiscall\@xp{\string\d#1)}
@@ -2836,7 +2800,10 @@
     \egroup
 }
 
-%% \structline and \structlineoptions
+%%%
+%%% \structline and \structlineoptions
+%%%
+
 \def\sseq@structline{\sseq@structline@setup{structline}}%]
 \def\sseq@structlineoptions{\sseq@structline@setup{structlineoptions}}%]
 
@@ -2943,11 +2910,183 @@
 }
 \def\sseq@structline@draw#1{\sseq@eval{\@nx\sseq@drawedge\sseq@obj{#1.source}\sseq@obj{#1.target}{structline}{\@nx\sseq@obj{#1.options}}}}
 
+%%%%%%%%
+%%%
+%%% The drawing department
+%%%
+%%%%%%%%
 
+%%%
+%%% Draw axes and clip
+%%%
 
-%%%% The drawing department
+\def\sseq@handlexaxis{
+    \ifsseq@drawxaxis
+        \bgroup
+        \ifsseq@borderxaxis\else
+            \let\sseq@ymin\sseq@yaxisorigin % Warning: this is a stupid, lazy hack.
+        \fi
+        \sseq@drawxaxis
+        \ifsseq@drawxaxislabels
+            \sseq@drawxlabels
+        \fi
+        \egroup
+    \fi
+}
+\def\sseq@handleyaxis{
+    \ifsseq@drawyaxis
+        \bgroup
+        \ifsseq@borderyaxis\else
+            \let\sseq@xmin\sseq@xaxisorigin % Warning: this is a stupid, lazy hack.
+        \fi
+        \sseq@drawyaxis
+        \ifsseq@drawyaxislabels
+            \sseq@drawylabels
+        \fi
+        \egroup
+    \fi
+}
 
-%% Class offsets
+\def\sseq@drawxaxis{
+    \bgroup
+    \pgftransformreset
+    \sseq@globaldetonetransform
+    %
+    \bgroup
+    \pgftransformxshift{\sseq@xaxis@end@extend}\pgftransformyshift{-\sseq@xaxisgap}
+    \sseq@globalscaletransform
+    \pgfpathmoveto{\pgfpoint{\sseq@xmax cm}{\sseq@ymin cm}}
+    \egroup
+    \bgroup
+    \pgftransformxshift{-\sseq@yaxisgap}
+    %\pgftransformxshift{-\sseq@ylabelgap}
+    \pgftransformxshift{-\sseq@xaxis@start@extend}
+    \pgftransformyshift{-\sseq@xaxisgap}
+    \sseq@globalscaletransform
+    \pgfpathlineto{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}
+    \egroup
+    \egroup
+    \pgfusepath{stroke}
+}
+\def\sseq@drawyaxis{
+    \bgroup
+    \pgftransformreset
+    \sseq@globaldetonetransform
+    \bgroup
+    \pgftransformyshift{\sseq@yaxis@end@extend}\pgftransformxshift{-\sseq@yaxisgap}
+    \sseq@globalscaletransform
+    \pgfpathmoveto{\pgfpoint{\sseq@xmin cm}{\sseq@ymax cm}}
+    \egroup
+    \bgroup
+    \pgftransformyshift{-\sseq@xaxisgap}
+    %\pgftransformyshift{-\sseq@xlabelgap}
+    \pgftransformyshift{-\sseq@yaxis@start@extend}
+    \pgftransformxshift{-\sseq@yaxisgap}
+    \sseq@globalscaletransform
+    \pgfpathlineto{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}
+    \egroup
+    \egroup
+    \pgfusepath{stroke}%
+}
+
+\def\sseq@drawxlabels{
+    \sseq@tempy=\sseq@ymin\relax
+    %\advance\sseq@tempy-1\relax
+    \sseq@tempx=\sseq@xmax\relax
+    \advance\sseq@tempx1\relax
+    \edef\sseq@temp{\the\sseq@tempx}%
+    \sseq@tempx=\sseq@xmin\relax
+    \loop
+        \bgroup
+        %\node at (\sseq@x,\sseq@ymin-1) {\sseq@x};%
+        \pgftransformshift{\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm}}
+        \pgftransformresetnontranslations
+        \sseq@globaldetonetransform
+        \pgftransformyshift{-\sseq@xlabelgap}\pgftransformyshift{-\sseq@xaxisgap}
+        \pgftransformresetnontranslations
+        \ifsseq@rotatelabels\sseq@globalrotatetransform\fi
+        \pgftext{$\the\sseq@tempx$}
+        \egroup
+        \advance\sseq@tempx\sseq@xlabelstep\relax
+    \ifnum\sseq@tempx<\sseq@temp\repeat
+}
+\def\sseq@drawylabels{
+    \sseq@tempx=\sseq@xmin\relax
+    %\advance\sseq@tempx-1\relax
+    \sseq@tempy=\sseq@ymax\relax
+    \advance\sseq@tempy1\relax
+    \edef\sseq@tempmax{\the\sseq@tempy}
+    \sseq@tempy=\sseq@ymin\relax
+    \loop
+        %\node at (\sseq@x,\sseq@ymin-1) {\sseq@x};%
+        \bgroup
+        \pgftransformshift{\pgfpoint{\the\sseq@tempx cm}{\the\sseq@tempy cm}}
+        \pgftransformresetnontranslations
+        \sseq@globaldetonetransform
+        \pgftransformxshift{-\sseq@ylabelgap}\pgftransformxshift{-\sseq@yaxisgap}
+        \pgftransformresetnontranslations
+        \ifsseq@rotatelabels\sseq@globalrotatetransform\fi
+        \pgftext{$\the\sseq@tempy$}%
+        \egroup
+        \advance\sseq@tempy\sseq@ylabelstep\relax
+    \ifnum\sseq@tempy<\sseq@tempmax\repeat
+}
+
+\def\sseq@clip{
+    %\clip(\sseq@xmin-0.4,\sseq@ymin-0.4) rectangle (\sseq@xmax+0.5,\sseq@ymax+0.5);%
+    \ifsseq@clip
+        \ifx\sseq@customclip\pgfutil@empty
+            \bgroup
+            \pgftransformreset
+            \sseq@globaldetonetransform
+            \ifsseq@borderyaxis
+                \def\xmin{\pgftransformxshift{-\sseq@yaxisgap}\pgftransformxshift{\sseq@yclip@axisgap}}
+            \else
+                \def\xmin{\pgftransformxshift{-\sseq@xaxis@start@extend}\pgftransformxshift{-\sseq@clip@padding@left}}
+            \fi
+            \ifsseq@borderxaxis
+                \def\ymin{\pgftransformyshift{-\sseq@xaxisgap}\pgftransformyshift{\sseq@xclip@axisgap}}
+            \else
+                \def\ymin{\pgftransformyshift{-\sseq@yaxis@start@extend}\pgftransformyshift{-\sseq@clip@padding@bottom}}
+            \fi
+            \def\xmax{\pgftransformxshift{\sseq@xaxis@end@extend}\pgftransformxshift{\sseq@clip@padding@right}}
+            \def\ymax{\pgftransformyshift{\sseq@yaxis@end@extend}\pgftransformyshift{\sseq@clip@padding@top}}
+            \bgroup
+            \xmin\ymin\sseq@globalscaletransform
+            \pgfpathmoveto{\pgfpoint{\sseq@xmin cm}{\sseq@ymin cm}}
+            \egroup
+            \bgroup
+            \xmin\ymax\sseq@globalscaletransform
+            \pgfpathlineto{\pgfpoint{\sseq@xmin cm}{\sseq@ymax cm}}
+            \egroup
+            \bgroup
+            \xmax\ymax\sseq@globalscaletransform
+            \pgfpathlineto{\pgfpoint{\sseq@xmax cm}{\sseq@ymax cm}}
+            \egroup
+            \bgroup
+            \xmax\ymin\sseq@globalscaletransform
+            \pgfpathlineto{\pgfpoint{\sseq@xmax cm}{\sseq@ymin cm}}
+            \egroup
+            \egroup
+            \pgfpathclose
+            \pgfgetpath\sseq@theclippath % This stores the clipping so I can find intersections later
+            \pgfusepath{clip}% This has to be after the egroup or else the clipping gets screwed up
+        \else
+            \def\sseq@temp{\clip[name path=temp]}
+            \@xptwo\sseq@temp\@xp\@gobble\sseq@customclip
+            \pgfgetpath\sseq@theclippath
+            \let\sseq@theclippath\tikz@intersect@path@name@temp
+        \fi
+    \else
+        \pgfgetpath\sseq@theclippath
+    \fi
+}
+
+%%%
+%%% Draw Classes
+%%%
+
+%%% Class offsets
 \def\sseq@setstdoffsets#1#2#3#4{\@xp\def\csname sseq@stdxoffset#1/#2\endcsname{#3}\@xp\def\csname sseq@stdyoffset#1/#2\endcsname{#4}}
 
 \sseq@setstdoffsets11{0}{0}
@@ -3160,8 +3299,9 @@
   \global\pgflinewidth=\pgfutil@tempdima%
 }
 
-
-%% Drawing edges
+%%%
+%%% Drawing edges
+%%%
 
 \pgfdeclarearrow{
     name = ...,
