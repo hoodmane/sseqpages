@@ -9,14 +9,6 @@
 % TODO:
 % manual
 %
-% Improve errors
-% Check \sseqset used inside environments
-% Check "change classes" mechanism
-%
-% Fix name or make synonym for struct lines? Abbreviation seems not obvious
-% Make naming of commands more consistent
-% Figure out whether e.g., "change classes" could have a better name
-%
 %
 % named standard offset patterns with options
 %
@@ -24,11 +16,20 @@
 % User interface to control arrow head for edges that go off page (option to turn ellipses off)
 % automated grids
 %
-% Make "rotate" on labels rotate in place
 % Make transform shape default for labels?
 %
 % Make shift={coord} work
 % "page range" option for tikz primitives
+%
+%
+%
+% Improve errors
+% Check \sseqset used inside environments
+% Check "change classes" mechanism
+%
+% Fix name or make synonym for struct lines? Abbreviation seems not obvious
+% Make naming of commands more consistent
+% Figure out whether e.g., "change classes" could have a better name
 
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{sseqpages}
@@ -891,7 +892,7 @@
 % This is for the main .unknown handler and for \sseq@addstylecodetooptions (which pretends to be \pgfkeys executed in a directory with only a .unknown)
 % Tries to run the current key (\pgfkeyscurrentname=\pgfkeyscurrentvalue) in each of the directories in turn.
 % If it finds the key in one of the directories, recursively expand the \pgfkeysalso in the code,
-% add the final result to \sseq@savedoptionscode, and run success code. Otherwise run failure code.
+% add the final result to \sseq@savedoptioncode, and run success code. Otherwise run failure code.
 %
 % The goal is to avoid storing any commands that require the use of pgfkeys.
 % This is only a partial solution, because it misses \tikzset, \pfgqkeys, etc.
@@ -1016,10 +1017,28 @@
     \sseq@eval{\@nx\pgfqkeys{#1}{\the\sseq@temptoks}}
 }
 
+\def\sseq@labeltextfn#1{#1}
+\def\sseq@labeltextfn@rotate#1{\@nx\ifmmode\@nx\rotatebox{\sseq@labletext@rotate@angle}{$#1$}\@nx\else\@nx\rotatebox{\sseq@labletext@rotate@angle}{#1}\@nx\fi}
+\def\sseq@labletext@rotate@angle{0}
+\bgroup\lccode`8=`p\lccode`9=`t\lowercase{\egroup
+\def\sseq@eatpt#189{#1}
+}
 \pgfqkeys{/sseqpages/class/label}{% maybe implement multipart node labels this way? No way!
     node/.sseq @ first pass code={\sseq@classlabelfalse},
-    inside/.sseq @ first pass code={\sseq@classlabelfalse}
+    inside/.sseq @ first pass code={\sseq@classlabelfalse},
+    rotate/.code={
+        \let\sseq@labeltextfn\sseq@labeltextfn@rotate
+        \edef\sseq@labletext@rotate@angle{\@xp\sseq@eatpt\the\dimexpr\sseq@labletext@rotate@angle pt+#1pt}
+    }
 }
+
+\pgfqkeys{/sseqpages/label}{
+    rotate/.code={
+        \let\sseq@labeltextfn\sseq@labeltextfn@rotate
+        \edef\sseq@labletext@rotate@angle{\@xp\sseq@eatpt\the\dimexpr\sseq@labletext@rotate@angle pt+#1pt}
+    }
+}
+
 
 \pgfqkeys{/sseqpages/global}{background color/.initial=white}
 \pgfqkeys{/sseqpages/label}{
@@ -1059,7 +1078,11 @@
         \tikz@quote@parser{#1}
         \endgroup
     },
-    /sseqpages/handle quote/.code={\sseq@needstikztrue\sseq@d@addto@options{\tikzset{every to/.append style={#1}}}}
+    /sseqpages/handle quote/.code={
+        \begingroup % group gets ended by handleedgequotes
+        \let\tikz@quotes@as\sseq@handleedgequotes
+        \tikz@quote@parser{#1}
+    }
 }
 \def\sseq@classnodetext{}
 \def\sseq@classnodetextoptions{}
@@ -1086,12 +1109,14 @@
                             \let\@nx\tikz@transform\relax % The next line was set up to fix the classlabelstyle glitch
                             \the\sseq@labelstyle\@nx\the\sseq@labelstyle@page\the\sseq@classlabelstyle\@nx\the\sseq@classlabelstyle@page
                             \sseq@theouterclasslabelstyle\unexpanded\@xp{\sseq@savedoptioncode}
-                            \@nx\iftikz@fullytransformed\@nx\else
-                                \@nx\tikz@fullytransformedtrue\@nx\tikz@addtransform{\@nx\pgftransformresetnontranslations\@nx\sseq@globalrotatetransform}
-                            \@nx\fi
+                         %   \@nx\iftikz@fullytransformed\@nx
+                         %      \@nx\tikz@fullytransformedtrue
+                         %   \else
+                         %       \@nx{\@nx\pgftransformresetnontranslations\@nx\sseq@globalrotatetransform}
+                         %   \@nx\fi
                             \let\@nx\tikz@transform\@nx\sseq@tikz@transform@save
                          }
-                    ]{\unexpanded{#1}}%
+                    ]{\sseq@labeltextfn{\unexpanded{{#1}}}}%
                 \@nx\else
                     \@nx\node[
                         /sseqpages/class/label,
@@ -1100,12 +1125,14 @@
                             \let\@nx\tikz@transform\relax % The next line was set up to fix the classlabelstyle glitch
                             \the\sseq@labelstyle\@nx\the\sseq@labelstyle@page\the\sseq@classlabelstyle\@nx\the\sseq@classlabelstyle@page
                             \sseq@theouterclasslabelstyle\unexpanded\@xp{\sseq@savedoptioncode}
-                            \@nx\iftikz@fullytransformed\@nx\else
-                                \@nx\tikz@fullytransformedtrue\@nx\tikz@addtransform{\@nx\pgftransformresetnontranslations\@nx\sseq@globalrotatetransform}
-                            \@nx\fi
+                         %   \@nx\iftikz@fullytransformed\@nx
+                         %      \@nx\tikz@fullytransformedtrue
+                         %   \else
+                         %       \@nx{\@nx\pgftransformresetnontranslations\@nx\sseq@globalrotatetransform}
+                         %   \@nx\fi
                            \let\@nx\tikz@transform\@nx\sseq@tikz@transform@save
                          }
-                    ]{\unexpanded{#1}};%
+                    ]{\sseq@labeltextfn{\unexpanded{{#1}}}};%
                 \@nx\fi
             }%
         \else
@@ -1121,6 +1148,31 @@
         \fi
         \endpgfscope\endgroup
     }%
+}
+
+\def\sseq@handleedgequotes#1#2{% We use this via \let\tikz@quotes@as\sseq@handleedgequotes
+    /utils/exec={% so it's called inside \pgfkeysalso{stuff}. Need to surround with /utils/exec={} to get out.
+        \endgroup
+        \let\sseq@savedoptioncode@save\sseq@savedoptioncode
+        \sseq@processoptions{label}{#2}
+        \sseq@needstikztrue
+        \let\sseq@temp\sseq@savedoptioncode
+        \let\sseq@savedoptioncode\sseq@savedoptioncode@save
+        \sseq@e@addto@options{
+            \@nx\tikzset{
+                every to/.append style={
+                    edge node={node [/sseqpages/label,
+                         /utils/exec={\@nx\sseq@thelabelstyle\@nx\sseq@theedgelabelstyle
+                             \unexpanded\@xp{\sseq@temp},
+                        %    \ifsseq@rotatelabels\iftikz@fullytransformed\else \tikz@fullytransformedtrue\tikz@addtransform{\pgftransformresetnontranslations\sseq@globalrotatetransform}\fi\fi
+                             \@nx\sseq@edgeoptionhook % this is just to make description work
+                        }
+                   ]{\sseq@labeltextfn{\unexpanded{#1}}}}
+                }
+            }
+        }
+
+    }
 }
 
 %% Parsing, background vs foreground, and context
@@ -2127,16 +2179,6 @@
     % Copied from tikzcd code. Pass quotes forward to edge and format edge label appropriately
     \ifx\sseq@xmin\sseq@infinity\sseq@error@range\fi
     \ifx\sseq@ymin\sseq@infinity\sseq@error@range\fi
-    \pgfkeys{
-      /tikz/edge quotes mean={
-        edge node={node [/sseqpages/label,
-                         /utils/exec={\sseq@thelabelstyle\sseq@theedgelabelstyle},
-                         ##2,
-                         /utils/exec={
-                        %    \ifsseq@rotatelabels\iftikz@fullytransformed\else \tikz@fullytransformedtrue\tikz@addtransform{\pgftransformresetnontranslations\sseq@globalrotatetransform}\fi\fi
-                             \sseq@edgeoptionhook % this is just to make description work
-                        }
-                   ]{##1}}}}
 %
     \tikzset{
         z=0pt,
