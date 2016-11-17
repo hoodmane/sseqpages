@@ -11,13 +11,15 @@
 %
 % Improve errors
 % Check \sseqset used inside environments
-% Maybe modify "change classes" mechanism
+% Check "change classes" mechanism
 %
 % Fix name or make synonym for struct lines? Abbreviation seems not obvious
 % Make naming of commands more consistent
 % Figure out whether e.g., "change classes" could have a better name
 %
+%
 % named standard offset patterns with options
+%
 % improve axes options? allow axis to be centered on coordinate or centered between coordinates
 % User interface to control arrow head for edges that go off page (option to turn ellipses off)
 % automated grids
@@ -133,8 +135,16 @@
 \def\sseq@eval@show#1{\bgroup\edef\sseq@temp{#1}\show\sseq@temp\@xp\egroup\sseq@temp}
 \def\sseq@profilenew#1#2{\pgfprofilenew{#1}\pretocmd#2{\pgfprofilestart{#1}}{}{\error}\apptocmd#2{\pgfprofileend{#1}}{}{\error}}
 
-\def\sseq@stripspaces#1{\bgroup\sseq@temptoks{#1}\@xp\@xp\@xp\egroup\@xp\the\@xp\sseq@temptoks\romannumeral-`\q}
-\def\sseq@stripleadingspace{\romannumeral-`q}
+% Stolen from trimspaces.sty
+\bgroup
+\catcode`\Q=3
+\gdef\sseq@trimspaces#1{%
+  \romannumeral-`\q\sseq@trim@trim@\noexpand#1Q Q%
+}
+\long\gdef\sseq@trim@trim@#1 Q{\sseq@trim@trim@@#1Q}
+\long\gdef\sseq@trim@trim@@#1Q#2{#1}
+\egroup
+\def\sseq@trimleadingspaces{\romannumeral-`q}
 
 \let\sseq@pgfmathparse@save\pgfmathparse
 \def\sseq@pgfmathparse#1{\let\@@protect\protect\def\protect{}\sseq@pgfmathparse@save{#1}\restore@protect} % Prevent \protect from causing trouble for \pgfmathparse
@@ -1062,7 +1072,8 @@
         \the\sseq@classlabelstyle
         \let\sseq@firstpass@shifttransform\@gobbletwo
         \sseq@options@normalmode
-        \sseq@processoptions{class/label/}{#2}
+        \sseq@processoptions{class/label}{#2}
+        \sseq@classlabeltrue
         \ifsseq@classlabel
             \sseq@options@firstpassmode
             \the\sseq@outerclasslabelstyle
@@ -1224,7 +1235,7 @@
 
 \def\sseq@newstyles#1{\def\sseq@temppath{#1}\bgroup\catcode` =\active\sseq@newstyles@}
 \def\sseq@newstyles@#1{\egroup\sseq@newstyles@@#1,\sseq@nil}
-\def\sseq@newstyles@@#1,{\sseq@newsseqstyle{\sseq@stripleadingspace#1}\@ifnextchar\sseq@nil{\@gobble}{\sseq@newstyles@@}}
+\def\sseq@newstyles@@#1,{\sseq@newsseqstyle{\sseq@trimleadingspaces#1}\@ifnextchar\sseq@nil{\@gobble}{\sseq@newstyles@@}}
 
 \def\sseq@set@newstyle#1{\pgfqkeys{/sseqpages}{#1}\pgfqkeys{/sseqpages/global}{#1}\pgfqkeys{/sseqpages/global/default}{#1}\pgfqkeys{/sseqpages/first pass}{#1}}
 
@@ -1518,6 +1529,7 @@
     no struct lines/.value forbidden,
     draw orphan edges/.sseq is if=draworphanedges,
     no orphan edges/.code={\sseq@draworphanedgesfalse},
+    class pattern/.sseq store in=\sseq@classpattern{standard},
     class placement transform/.code={%
         \bgroup
         \let\tikz@transform\pgfutil@empty
@@ -2404,7 +2416,7 @@
 %%% \class, \classoptions, \replaceclass
 
 \def\sseq@class{\@ifnextchar[{\sseq@class@}{\sseq@class@[]}}%}
-\def\sseq@class@[#1]{\sseq@stripspaces{\sseq@class@@[#1]}}
+\def\sseq@class@[#1]{\sseq@trimspaces{\sseq@class@@[#1]}}
 \def\sseq@class@@[#1](#2,#3){
     \begingroup
     \sseq@esetthiscall{\string\class\ifx\sseq@nil#1\sseq@nil\else[\unexpanded{#1}]\fi\unexpanded{(#2,#3)}}
@@ -2456,7 +2468,7 @@
 }
 
 \def\sseq@classoptions{\begingroup\@ifnextchar[{\sseq@classoptions@}{\sseq@error{There is no reason to use \string\sseq@classoptions without giving options}{}}}%]
-\def\sseq@classoptions@[#1]{\sseq@stripspaces{\sseq@classoptions@@[#1]}}
+\def\sseq@classoptions@[#1]{\sseq@trimspaces{\sseq@classoptions@@[#1]}}
 \def\sseq@classoptions@@[#1](#2){
     \@ifnextchar[{\sseq@classoptions@@@var[#1](#2)}{\sseq@classoptions@@@[#1](#2)}
 }
@@ -2533,7 +2545,7 @@
 
 
 \def\sseq@replaceclass{\@ifnextchar[{\sseq@replaceclass@}{\sseq@replaceclass@[]}}%}
-\def\sseq@replaceclass@[#1]{\sseq@stripspaces{\sseq@replaceclass@@[#1]}}
+\def\sseq@replaceclass@[#1]{\sseq@trimspaces{\sseq@replaceclass@@[#1]}}
 \def\sseq@replaceclass@@[#1](#2){%
     \begingroup
     \sseq@setthiscall{\replaceclass[#1](#2)}
@@ -2810,7 +2822,7 @@
 \def\sseq@structline@setup#1{\@ifnextchar[{\sseq@structline@setup@{#1}}{\sseq@structline@setup@{#1}[]}}
 \def\sseq@structline@setup@#1[#2]#3)#4){%((((
     \sseq@esetthiscall{\@xp\string\csname#1\endcsname\ifx\sseq@nil#2\sseq@nil\else[\unexpanded{#2}]\fi\unexpanded{#3)#4)}}
-    \sseq@eval{\unexpanded{\sseq@structline@setup@@{#1}[#2]}\sseq@stripleadingspace#3)\sseq@stripleadingspace#4)}
+    \sseq@eval{\unexpanded{\sseq@structline@setup@@{#1}[#2]}\sseq@trimleadingspaces#3)\sseq@trimleadingspaces#4)}
 }
 \def\sseq@structline@setup@@#1[#2](#3)(#4){
     \begingroup
@@ -3087,37 +3099,46 @@
 %%%
 
 %%% Class offsets
-\def\sseq@setstdoffsets#1#2#3#4{\@xp\def\csname sseq@stdxoffset#1/#2\endcsname{#3}\@xp\def\csname sseq@stdyoffset#1/#2\endcsname{#4}}
+\def\sseq@setoffsets#1#2{
+    \sseq@eval{\@nx\sseq@setoffsets@checksemicolon{#1}\sseq@trimspaces{#2};;\@nx\sseq@nil}
+}
+\def\sseq@setoffsets@checksemicolon#1#2;;#3\sseq@nil{
+    \sseq@setoffsets@1{#1}#2;\sseq@nil
+}
 
-\sseq@setstdoffsets11{0}{0}
+\def\sseq@setoffsets@#1#2#3;{%
+    \sseq@setoffsets@@1#1{#2}#3%
+    \@ifnextchar\sseq@nil{\@gobble}{\@xp\sseq@setoffsets@\the\numexpr#1+1\relax{#2}}%
+}
+\def\sseq@setoffsets@@#1#2#3#4(#5,#6){%
+    \@xp\def\csname sseq@#3xoffset#1/#2\endcsname{#5}\@xp\def\csname sseq@#3yoffset#1/#2\endcsname{#6}%
+    \@ifnextchar({%
+        \@xp\sseq@setoffsets@@\the\numexpr#1+1\relax{#2}{#3}%
+    }{}%
+}
 
-\sseq@setstdoffsets12{-0.13}{0}
-\sseq@setstdoffsets22{0.13}{0}
+\sseq@setoffsets{standard}{
+    (0,0);
+    (-0.13,0)(0.13,0);
+    (-0.2,0)(0,0)(0.2,0);
+    (-0.13,-0.13)(0.13,-0.13)(-0.13,0.13)(0.13,0.13);
+    (-0.16,-0.16)(0.16,-0.16)(-0.16,0.16)(0.16,0.16)(0,0);
+    (-0.13,-0.2)(-0.13,0)(-0.13,0.2)(0.13,-0.2)(0.13,0)(0.13,0.2);
+}
 
-\sseq@setstdoffsets13{-0.2}{0}
-\sseq@setstdoffsets23{0}{0}
-\sseq@setstdoffsets33{0.2}{0}
+\sseq@setoffsets{linear}{
+    (0,0);
+    (-0.13,0)(0.13,0);
+    (-0.2,0)(0,0)(0.2,0);
+    (-0.3,0)(-0.1,0)(0.1,0)(0.3,0);
+    (-0.4,0)(-0.2,0)(0,0)(0.2,0)(0.4,0);
+    (-0.5,0)(-0.3,0)(-0.1,0)(0.1,0)(0.3,0)(0.5,0);
+}
 
-\sseq@setstdoffsets14{-0.13}{-0.13}
-\sseq@setstdoffsets24{0.13}{-0.13}
-\sseq@setstdoffsets34{-0.13}{0.13}
-\sseq@setstdoffsets44{0.13}{0.13}
 
-\sseq@setstdoffsets15{-0.16}{-0.16}
-\sseq@setstdoffsets25{0.16}{-0.16}
-\sseq@setstdoffsets35{-0.16}{0.16}
-\sseq@setstdoffsets45{0.16}{0.16}
-\sseq@setstdoffsets55{0}{0}
-
-\sseq@setstdoffsets16{-0.13}{-0.2}
-\sseq@setstdoffsets26{-0.13}{0}
-\sseq@setstdoffsets36{-0.13}{0.2}
-\sseq@setstdoffsets46{0.13}{-0.2}
-\sseq@setstdoffsets56{0.13}{0}
-\sseq@setstdoffsets66{0.13}{0.2}
 
 \def\sseq@offset#1#2{
-    \sseq@eval{\@nx\pgftransformshift{\@nx\pgfpoint{0\csname sseq@stdxoffset#1/#2\endcsname cm}{0\csname sseq@stdyoffset#1/#2\endcsname cm}}}
+    \sseq@eval{\@nx\pgftransformshift{\@nx\pgfpoint{0\csname sseq@\sseq@classpattern xoffset#1/#2\endcsname cm}{0\csname sseq@\sseq@classpattern yoffset#1/#2\endcsname cm}}}
 }
 
 \def\sseq@class@getparts#1(#2,#3,#4)[#5].{
