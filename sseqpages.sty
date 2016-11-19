@@ -10,24 +10,18 @@
 % manual
 %
 %
-% named standard offset patterns with options
+% fix \structlineoptions
+% User interface to control arrow head for edges that go off page (option to turn ellipses off)
+% Make shift={coord} work
+% Fix shifts
 %
 % improve axes options? allow axis to be centered on coordinate or centered between coordinates
-% User interface to control arrow head for edges that go off page (option to turn ellipses off)
-% automated grids
-%
-% Make transform shape default for labels?
-%
-% Make shift={coord} work
-% "page range" option for tikz primitives
-%
 %
 %
 % Improve errors
 % Check \sseqset used inside environments
 % Check "change classes" mechanism
 %
-% Fix name or make synonym for struct lines? Abbreviation seems not obvious
 % Make naming of commands more consistent
 % Figure out whether e.g., "change classes" could have a better name
 
@@ -116,6 +110,9 @@
 \sseq@context@depth\z@
 \sseq@x\z@ \sseq@y\z@
 
+\newdimen\sseq@gridstrokethickness
+\sseq@gridstrokethickness=.1pt
+
 
 % Ensure \@xp and \@nx have the correct values in case that amsmath isn't loaded
 \let\@xp\expandafter
@@ -146,6 +143,8 @@
 \long\gdef\sseq@trim@trim@@#1Q#2{#1}
 \egroup
 \def\sseq@trimleadingspaces{\romannumeral-`q}
+
+\def\sseq@eatspacesthen#1{\bgroup\sseq@temptoks{#1}\@xp\@xp\@xp\egroup\@xp\the\@xp\sseq@temptoks\romannumeral-`\q}
 
 \let\sseq@pgfmathparse@save\pgfmathparse
 \def\sseq@pgfmathparse#1{\let\@@protect\protect\def\protect{}\sseq@pgfmathparse@save{#1}\restore@protect} % Prevent \protect from causing trouble for \pgfmathparse
@@ -984,7 +983,7 @@
     /sseqpages/struct line/.is family,
     /sseqpages/struct line/.unknown/.code={\sseq@passoptionto{/sseqpages}},
     /sseqpages/label/.is family,
-    /sseqpages/label/.unknown/.code={\sseq@passoptionto{/tikz}},
+    /sseqpages/label/.unknown/.code={\sseq@keys@unknown},
     /sseqpages/tikz primitives/.is family,
     /sseqpages/tikz primitives/.unknown/.code={\sseq@keys@unknown},
     % One off directories
@@ -994,6 +993,10 @@
 
 \pgfqkeys{/sseqpages/class}{shape/.code={\edef\tikz@shape{\pgfkeyscurrentname}}} % shape=whatever shape passing
 
+\pgfqkeys{/sseqpages/class/label}{% maybe implement multipart node labels this way? No way!
+    node/.sseq @ first pass code={\sseq@classlabelfalse},
+    inside/.sseq @ first pass code={\sseq@classlabelfalse}
+}
 
 %% label directions
 \def\sseq@labeldirectionlist{\\{above}\\{below}\\{left}\\{right}\\{above left}\\{above right}\\{below left}\\{below right}}
@@ -1018,24 +1021,42 @@
 }
 
 \def\sseq@labeltextfn#1{#1}
-\def\sseq@labeltextfn@rotate#1{\@nx\ifmmode\@nx\rotatebox{\sseq@labletext@rotate@angle}{$#1$}\@nx\else\@nx\rotatebox{\sseq@labletext@rotate@angle}{#1}\@nx\fi}
+\def\sseq@labeltextfn@rotatescale#1{
+    \@nx\ifmmode
+        \@nx\scalebox{\sseq@labletext@scale@factor}{\@nx\rotatebox{\sseq@labletext@rotate@angle}{$#1$}}
+    \@nx\else
+        \@nx\scalebox{\sseq@labletext@scale@factor}{\@nx\rotatebox{\sseq@labletext@rotate@angle}{#1}}
+    \@nx\fi
+}
 \def\sseq@labletext@rotate@angle{0}
+\def\sseq@labletext@scale@factor{1}
+
 \bgroup\lccode`8=`p\lccode`9=`t\lowercase{\egroup
 \def\sseq@eatpt#189{#1}
 }
-\pgfqkeys{/sseqpages/class/label}{% maybe implement multipart node labels this way? No way!
-    node/.sseq @ first pass code={\sseq@classlabelfalse},
-    inside/.sseq @ first pass code={\sseq@classlabelfalse},
+
+\pgfqkeys{/sseqpages/class/label}{
     rotate/.code={
-        \let\sseq@labeltextfn\sseq@labeltextfn@rotate
+        \let\sseq@labeltextfn\sseq@labeltextfn@rotatescale
         \edef\sseq@labletext@rotate@angle{\@xp\sseq@eatpt\the\dimexpr\sseq@labletext@rotate@angle pt+#1pt}
-    }
+    },
+    scale/.code={
+        \let\sseq@labeltextfn\sseq@labeltextfn@rotatescale
+        \edef\sseq@labletext@scale@factor{\@xp\sseq@eatpt\the\dimexpr\sseq@labletext@scale@factor pt*#1}
+    },
+%    shift/.sseq @ second pass code={\pgfkeysalso{xshift=\sseq@shift@getx#1}\pgfkeysalso{yshift=\sseq@shift@gety#1}}
 }
+
+%\def\test#1{\def\temp{#1}\show\temp}
 
 \pgfqkeys{/sseqpages/label}{
     rotate/.code={
-        \let\sseq@labeltextfn\sseq@labeltextfn@rotate
+        \let\sseq@labeltextfn\sseq@labeltextfn@rotatescale
         \edef\sseq@labletext@rotate@angle{\@xp\sseq@eatpt\the\dimexpr\sseq@labletext@rotate@angle pt+#1pt}
+    },
+    scale/.code={
+        \let\sseq@labeltextfn\sseq@labeltextfn@rotatescale
+        \edef\sseq@labletext@scale@factor{\@xp\sseq@eatpt\the\dimexpr\sseq@labletext@scale@factor pt*#1}
     }
 }
 
@@ -1093,10 +1114,8 @@
         \sseq@options@firstpassmode
         \the\sseq@labelstyle
         \the\sseq@classlabelstyle
-        \let\sseq@firstpass@shifttransform\@gobbletwo
         \sseq@options@normalmode
         \sseq@processoptions{class/label}{#2}
-        \sseq@classlabeltrue
         \ifsseq@classlabel
             \sseq@options@firstpassmode
             \the\sseq@outerclasslabelstyle
@@ -1162,23 +1181,27 @@
             \@nx\tikzset{
                 every to/.append style={
                     edge node={node [/sseqpages/label,
-                         /utils/exec={\@nx\sseq@thelabelstyle\@nx\sseq@theedgelabelstyle
+                         /utils/exec={
+                            \let\@nx\sseq@tikz@transform@save\@nx\tikz@transform
+                            \let\@nx\tikz@transform\relax
+                            \@nx\sseq@thelabelstyle\@nx\sseq@theedgelabelstyle
                              \unexpanded\@xp{\sseq@temp},
                         %    \ifsseq@rotatelabels\iftikz@fullytransformed\else \tikz@fullytransformedtrue\tikz@addtransform{\pgftransformresetnontranslations\sseq@globalrotatetransform}\fi\fi
                              \@nx\sseq@edgeoptionhook % this is just to make description work
+                             \let\@nx\tikz@transform\@nx\sseq@tikz@transform@save
                         }
                    ]{\sseq@labeltextfn{\unexpanded{#1}}}}
                 }
             }
         }
-
     }
 }
 
 %% Parsing, background vs foreground, and context
 \def\sseq@standardparse{%
-    %\let\sseq@transform\sseq@okaytransform % Allow all coordinate transformations
-    %\let\sseq@tikz@shifttransform\sseq@okayshifttransform
+    \let\sseq@tikzprimitives@coords@maybeclass\sseq@tikzprimitives@coords@notaclass
+    \let\sseq@transform\sseq@okaytransform % Allow all coordinate transformations
+    \let\sseq@tikz@shifttransform\sseq@okayshifttransform
     %((((((((((((((((((
     \def\class##1){\sseq@setthiscall{\string\class##1)}\sseq@error@standardparse{\class}}%
     \def\replaceclass##1){\sseq@setthiscall{\string\replaceclass##1)}\sseq@error@standardparse{\replaceclass}}%
@@ -1190,6 +1213,8 @@
 }
 
 \def\sseq@nodeparse{%
+    \let\sseq@tikzprimitives@coords@maybeclass\sseq@tikzprimitives@coords@maybeclass@save
+    \let\sseq@tikzprimitives@coords@maybeclass
     \let\sseq@transform\sseq@error@illegaltransform % Disallow most coordinate transforms
     \let\sseq@shifttransform\sseq@checkshifttransform
     \let\class\sseq@class
@@ -1558,6 +1583,7 @@
     update existing/.code={\ifsseq@ispageenv\sseq@error{Option 'update existing' is only for the sseqdata environment}\fi\sseq@updateexistingtrue}
 }
 
+\sseq@addtostorelist\sseq@grid{\relax}
 \sseq@globalkeys{%
     name/.code={},
     name/.sseq default error,
@@ -1570,6 +1596,7 @@
         \ifsseq@hasname\else\sseq@error{Option 'keep changes' is only for named spectral sequences}\fi
         \ifsseq@ispageenv\else\sseq@error{Option 'keep changes' is only for the sseqpage environment}\fi
     },
+    grid/.code={\ifcsname sseq@grid@#1\endcsname\@xp\let\@xp\sseq@grid\csname sseq@grid@#1\endcsname\else\sseq@error{Undefined grid style "#1"}\fi},
     math nodes/.sseq is if=mathnodes,
     custom clip/.sseq store in=\sseq@customclip{},
     clip/.sseq is if=clip,
@@ -1582,6 +1609,7 @@
     draw orphan edges/.sseq is if=draworphanedges,
     no orphan edges/.code={\sseq@draworphanedgesfalse},
     class pattern/.sseq store in=\sseq@classpattern{standard},
+    class pattern/.append code={\ifcsname sseq@\sseq@classpattern xoffset1/1\endcsname\else\sseq@error{Unknown class pattern "\sseq@classpattern"}\fi},
     class placement transform/.code={%
         \bgroup
         \let\tikz@transform\pgfutil@empty
@@ -2198,9 +2226,11 @@
     \let\sseq@transform\sseq@error@illegaltransform % Disallow most coordinate transforms
     \let\sseq@shifttransform\sseq@checkshifttransform % Allow shifts as long as they are by integers and have no units.
 %
+    \sseq@setupclip
     \pgfonlayer{background}%
     \sseq@handlexaxis % Draw the axis with pgf primitives. These are defined all the way at the end in the "drawing department"
     \sseq@handleyaxis
+    \sseq@grid
     \endpgfonlayer
 %
     \let\sseq@error@\sseq@errorwithinfo
@@ -2209,7 +2239,7 @@
     \sseq@savedbackgroundpaths
     \endgroup
 %
-    \sseq@clip
+    \sseq@useclip
 %
     \ifsseq@drawdifferentials\else
         \let\sseq@differential@draw@ifpage\@gobble
@@ -2295,7 +2325,7 @@
 \def\sseq@pgfmathparse@rescan#1{\catcode`\&=12\relax\scantokens{\pgfmathparse{#1}}}
 \def\sseq@ifhop#1#2\fi{\fi#1}
 
-%%% Coordinate parser
+%%% Coordinate parser, copied from tikz.code.tex and modified I think?
 \def\sseq@tikzprimitives@coords#1{\def\sseq@temp{}\sseq@tikzprimitives@coords@#1(\sseq@nil)}
 \def\sseq@tikzprimitives@coords@#1(#2){
     \ifx\sseq@nil#2
@@ -2316,16 +2346,7 @@
                         \ifpgfutil@in@\else
                             \pgfutil@in@,{#2}
                             \ifpgfutil@in@
-                                \protected@edef\sseq@temp@i{#2}
-                                \edef\sseq@temp@ii{#2}
-                                \ifx\sseq@temp@i\sseq@temp@ii
-                                    \sseq@iffullcoord(#2){\sseq@tikzprimitive@getcoord#2\sseq@nil}{\sseq@tikzprimitive@getcoord#2,\sseq@nil}
-                                    \sseq@obj@ifundef{partcoord.(\sseq@tempx,\sseq@tempy).numnodes}{}{
-                                        \def\next##1##2{\sseq@tikzprimitives@coords@}
-                                        \sseq@whichclass\sseq@n\sseq@tempx\sseq@tempy\sseq@tempn{coordinate (#2) of tikz primitive}
-                                        \sseq@x@addto@macro\sseq@temp{\unexpanded{#1}(sseq{\sseq@tempx,\sseq@tempy,\sseq@n}\sseq@tempanchor)}
-                                    }
-                                \fi
+                                \let\next\sseq@tikzprimitives@coords@maybeclass
                             \fi
                         \fi
                     \fi
@@ -2335,6 +2356,23 @@
     \fi
     \next{#1}{#2}
 }
+
+\def\sseq@tikzprimitives@coords@maybeclass#1#2{
+    \let\next\sseq@tikzprimitives@coords@notaclass
+    \protected@edef\sseq@temp@i{#2}
+    \edef\sseq@temp@ii{#2}
+    \ifx\sseq@temp@i\sseq@temp@ii
+        \sseq@iffullcoord(#2){\sseq@tikzprimitive@getcoord#2\sseq@nil}{\sseq@tikzprimitive@getcoord#2,\sseq@nil}
+        \sseq@obj@ifundef{partcoord.(\sseq@tempx,\sseq@tempy).numnodes}{}{
+            \def\next##1##2{\sseq@tikzprimitives@coords@}
+            \sseq@whichclass\sseq@n\sseq@tempx\sseq@tempy\sseq@tempn{coordinate (#2) of tikz primitive}
+            \sseq@x@addto@macro\sseq@temp{\unexpanded{#1}(sseq{\sseq@tempx,\sseq@tempy,\sseq@n}\sseq@tempanchor)}
+        }
+    \fi
+    \next{#1}{#2}
+}
+\let\sseq@tikzprimitives@coords@maybeclass@save\sseq@tikzprimitives@coords@maybeclass
+
 \def\sseq@tikzprimitives@coords@notaclass#1#2{\sseq@xprotected@addto@macro\sseq@temp{\unexpanded{#1}(#2)}\sseq@tikzprimitives@coords@}
 \def\sseq@tikzprimitives@coords@handlemath#1#2{\sseq@tikzprimitives@coords@handlemath@{#1}(#2)}
 \def\sseq@tikzprimitives@coords@handlemath@#1$#2$){\sseq@g@addto@macro\sseq@temp{#1$#2$)}}
@@ -2458,7 +2496,7 @@
 %%% \class, \classoptions, \replaceclass
 
 \def\sseq@class{\@ifnextchar[{\sseq@class@}{\sseq@class@[]}}%}
-\def\sseq@class@[#1]{\sseq@trimspaces{\sseq@class@@[#1]}}
+\def\sseq@class@[#1]{\sseq@eatspacesthen{\sseq@class@@[#1]}}
 \def\sseq@class@@[#1](#2,#3){
     \begingroup
     \sseq@esetthiscall{\string\class\ifx\sseq@nil#1\sseq@nil\else[\unexpanded{#1}]\fi\unexpanded{(#2,#3)}}
@@ -2510,7 +2548,7 @@
 }
 
 \def\sseq@classoptions{\begingroup\@ifnextchar[{\sseq@classoptions@}{\sseq@error{There is no reason to use \string\sseq@classoptions without giving options}{}}}%]
-\def\sseq@classoptions@[#1]{\sseq@trimspaces{\sseq@classoptions@@[#1]}}
+\def\sseq@classoptions@[#1]{\sseq@eatspacesthen{\sseq@classoptions@@[#1]}}
 \def\sseq@classoptions@@[#1](#2){
     \@ifnextchar[{\sseq@classoptions@@@var[#1](#2)}{\sseq@classoptions@@@[#1](#2)}
 }
@@ -2587,7 +2625,7 @@
 
 
 \def\sseq@replaceclass{\@ifnextchar[{\sseq@replaceclass@}{\sseq@replaceclass@[]}}%}
-\def\sseq@replaceclass@[#1]{\sseq@trimspaces{\sseq@replaceclass@@[#1]}}
+\def\sseq@replaceclass@[#1]{\sseq@eatspacesthen{\sseq@replaceclass@@[#1]}}
 \def\sseq@replaceclass@@[#1](#2){%
     \begingroup
     \sseq@setthiscall{\replaceclass[#1](#2)}
@@ -3086,7 +3124,7 @@
     \ifnum\sseq@tempy<\sseq@tempmax\repeat
 }
 
-\def\sseq@clip{
+\def\sseq@setupclip{
     %\clip(\sseq@xmin-0.4,\sseq@ymin-0.4) rectangle (\sseq@xmax+0.5,\sseq@ymax+0.5);%
     \ifsseq@clip
         \ifx\sseq@customclip\pgfutil@empty
@@ -3124,9 +3162,9 @@
             \egroup
             \pgfpathclose
             \pgfgetpath\sseq@theclippath % This stores the clipping so I can find intersections later
-            \pgfusepath{clip}% This has to be after the egroup or else the clipping gets screwed up
+            \pgfusepath{discard}% This has to be after the egroup or else the clipping gets screwed up
         \else
-            \def\sseq@temp{\clip[name path=temp]}
+            \def\sseq@temp{\path[name path=temp]}
             \@xptwo\sseq@temp\@xp\@gobble\sseq@customclip
             \pgfgetpath\sseq@theclippath
             \let\sseq@theclippath\tikz@intersect@path@name@temp
@@ -3136,30 +3174,102 @@
     \fi
 }
 
+\def\sseq@useclip{\pgfsetpath\sseq@theclippath\pgfusepath{clip}}
+
+
+\def\sseq@grid@chess{
+ \bgroup
+ \pgfscope
+ \sseq@useclip
+ \pgflowlevelsynccm
+ \pgfsetlinewidth{1cm}
+ \pgfsetdash{{1cm}{1cm}}{1cm}
+ \pgfsetcolor{lightgray}
+ \pgfpathgrid[stepx=2cm,stepy=2cm]{\pgfpoint{-0.5cm}{-0.5cm}}{\pgfpoint{\sseq@xmax cm+0.499cm}{\sseq@ymax cm+0.499cm}}
+ \pgfusepath{stroke}
+ \endpgfscope
+ \egroup
+}
+
+\def\sseq@grid@crossword{
+ \bgroup
+ \pgfscope
+ \pgfsetlinewidth{\the\sseq@gridstrokethickness}
+ \sseq@useclip
+ \pgftransformxshift{-0.5cm}
+ \pgftransformyshift{-0.5cm}
+ \pgfpathgrid[stepx=1cm,stepy=1cm]{\pgfpoint{-1cm}{-1cm}}{\pgfpoint{\xmax cm+0.99cm}{\ymax cm+0.99cm}}
+ \pgfusepath{stroke}
+ \endpgfscope
+ \egroup
+}
+
+\def\sseq@grid@go{
+ \bgroup
+ \pgfscope
+ \sseq@useclip
+ \pgfsetlinewidth{\the\sseq@gridstrokethickness}
+ \pgfpathgrid[stepx=1cm,stepy=1cm]{\pgfpoint{-1cm}{-1cm}}{\pgfpoint{\xmax cm+0.5cm}{\ymax cm+0.5cm}}
+ \pgfusepath{stroke}
+ \endpgfscope
+ \egroup
+}
+
+\def\sseq@grid@none{}
+
+\def\sseq@grid@dots{
+ \bgroup
+ \pgfscope
+ \pgfgettransform\sseq@savetransform
+ \pgftransformreset
+ \sseq@globalscaletransform
+ \pgfgettransformentries{\sseq@a}{\sseq@b}{\sseq@c}{\sseq@d}{\sseq@u}{\sseq@v}
+ \pgfsettransform\sseq@savetransform
+ \sseq@useclip
+ \pgftransformxshift{-1.5cm}
+ \pgftransformyshift{-0.5cm}
+ \pgfsetdash{{1pt}{\sseq@a*1cm-1pt}}{0.5cm+.5pt}
+ \pgfsetlinewidth{1pt}
+ \sseq@tempy=\sseq@ymin\relax
+ \advance\sseq@tempy-1\relax
+ \loop
+ \advance\sseq@tempy1\relax
+ \pgfpathmoveto{\pgfpoint{\sseq@xmin cm+0.5cm/\sseq@a}{\the\sseq@tempy cm}}
+ \pgfpathlineto{\pgfpoint{\sseq@xmax cm+1.01cm }{\the\sseq@tempy cm}}
+ \ifnum\sseq@tempy<\sseq@ymax\repeat
+ %\pgfpathgrid[stepx=1cm,stepy=1cm]{\pgfpoint{-0.5cm}{-0.5cm}}{\pgfpoint{\xmax cm-0.5cm}{\ymax cm-0.5cm}}
+ \pgfusepath{stroke}
+ \endpgfscope
+ \egroup
+}
+
+
+
 %%%
 %%% Draw Classes
 %%%
 
 %%% Class offsets
-\def\sseq@setoffsets#1#2{
-    \sseq@eval{\@nx\sseq@setoffsets@checksemicolon{#1}\sseq@trimspaces{#2};;\@nx\sseq@nil}
+\def\newsseqclasspattern#1#2{
+    \ifcsname sseq@#1xoffset1/1\endcsname\sseq@error{Class pattern "#1" already defined}\fi
+    \sseq@eval{\@nx\newsseqclasspattern@checksemicolon{#1}\sseq@trimspaces{#2};;\@nx\sseq@nil}
 }
-\def\sseq@setoffsets@checksemicolon#1#2;;#3\sseq@nil{
-    \sseq@setoffsets@1{#1}#2;\sseq@nil
+\def\newsseqclasspattern@checksemicolon#1#2;;#3\sseq@nil{
+    \newsseqclasspattern@1{#1}#2;\sseq@nil
 }
 
-\def\sseq@setoffsets@#1#2#3;{%
-    \sseq@setoffsets@@1#1{#2}#3%
-    \@ifnextchar\sseq@nil{\@gobble}{\@xp\sseq@setoffsets@\the\numexpr#1+1\relax{#2}}%
+\def\newsseqclasspattern@#1#2#3;{%
+    \newsseqclasspattern@@1#1{#2}#3%
+    \@ifnextchar\sseq@nil{\@gobble}{\@xp\newsseqclasspattern@\the\numexpr#1+1\relax{#2}}%
 }
-\def\sseq@setoffsets@@#1#2#3#4(#5,#6){%
+\def\newsseqclasspattern@@#1#2#3#4(#5,#6){%
     \@xp\def\csname sseq@#3xoffset#1/#2\endcsname{#5}\@xp\def\csname sseq@#3yoffset#1/#2\endcsname{#6}%
     \@ifnextchar({%
-        \@xp\sseq@setoffsets@@\the\numexpr#1+1\relax{#2}{#3}%
+        \@xp\newsseqclasspattern@@\the\numexpr#1+1\relax{#2}{#3}%
     }{}%
 }
 
-\sseq@setoffsets{standard}{
+\newsseqclasspattern{standard}{
     (0,0);
     (-0.13,0)(0.13,0);
     (-0.2,0)(0,0)(0.2,0);
@@ -3168,7 +3278,7 @@
     (-0.13,-0.2)(-0.13,0)(-0.13,0.2)(0.13,-0.2)(0.13,0)(0.13,0.2);
 }
 
-\sseq@setoffsets{linear}{
+\newsseqclasspattern{linear}{
     (0,0);
     (-0.13,0)(0.13,0);
     (-0.2,0)(0,0)(0.2,0);
