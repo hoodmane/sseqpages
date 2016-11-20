@@ -128,8 +128,11 @@
 \def\sseq@getfirstchar#1#2\sseq@nil{#1} % used in parsecoords and shift/checkshift transform
 \def\sseq@id#1{#1} % Just removes braces, "identity," used with parsecommas
 
+\def\sseq@ifhop#1#2\fi{\fi#1}
+\def\sseq@sneak#1#2\egroup{\@xp\egroup\@xp\def\@xp#1\@xp{#1}}
+
 \def\sseq@eval#1{\bgroup\edef\sseq@temp{#1}\@xp\egroup\sseq@temp}% I got this from sseq.sty
-\def\sseq@protectedeval#1{\bgroup\protected@edef\sseq@temp{#1}\@xp\egroup\sseq@temp}% I got this from sseq.sty
+\def\sseq@protectedeval#1{\bgroup\protected@edef\sseq@temp{#1}\@xp\egroup\sseq@temp}
 \def\sseq@eval@show#1{\bgroup\edef\sseq@temp{#1}\show\sseq@temp\@xp\egroup\sseq@temp}
 \def\sseq@profilenew#1#2{\pgfprofilenew{#1}\pretocmd#2{\pgfprofilestart{#1}}{}{\error}\apptocmd#2{\pgfprofileend{#1}}{}{\error}}
 
@@ -605,7 +608,9 @@
 % #5 -- calling command (for error messages)
 \def\sseq@whichclass#1#2#3#4#5{
     \sseq@eval{\unexpanded{\sseq@whichclassex{\def#1}}{#2}{#3}{#4}{#5}}
-    \sseq@tempcountb=\numexpr 1#1\relax % This line evaluates any error messages in #1, but if #1 is just a number vacuums it up.
+    \bgroup
+        \sseq@tempcount=\numexpr 1#1\relax % This line evaluates any error messages in #1, but if #1 is just a number vacuums it up.
+    \egroup
 }
 
 % #1 -- callback
@@ -910,8 +915,8 @@
     \pgfkeysifdefined{#1/\pgfkeyscurrentname/.@cmd}{
         \pgfkeysgetvalue{#1/\pgfkeyscurrentname/.@cmd}{\pgfkeys@code}%
         \sseq@eval{\@nx\sseq@keys@addtooptions@checkalso{\unexpanded\@xptwo{\@xp\pgfkeys@code\pgfkeyscurrentvalue\pgfeov}}}
-        \@xp\egroup
-        \@xp\def\@xp\sseq@savedoptioncode\@xp{\sseq@savedoptioncode}
+        \sseq@sneak\sseq@savedoptioncode
+        \egroup
         \def\next{\@xp\@firstoftwo\sseq@gobble@to@nil}
     }{
         \pgfkeysifdefined{#1/\pgfkeyscurrentname}{
@@ -2323,7 +2328,6 @@
     \fi
 }
 \def\sseq@pgfmathparse@rescan#1{\catcode`\&=12\relax\scantokens{\pgfmathparse{#1}}}
-\def\sseq@ifhop#1#2\fi{\fi#1}
 
 %%% Coordinate parser, copied from tikz.code.tex and modified I think?
 \def\sseq@tikzprimitives@coords#1{\def\sseq@temp{}\sseq@tikzprimitives@coords@#1(\sseq@nil)}
@@ -2554,9 +2558,15 @@
 }
 
 \def\sseq@classoptions@@@var[#1](#2)[#3]{
-    \edef\sseq@classgen{\the\numexpr#3}
+    \pgfutil@in@{--}{#3}
+    \ifpgfutil@in@
+        \sseq@classoptions@@@var@range#3\sseq@nil
+    \else
+        \edef\sseq@class@page{\the\numexpr#3}
+    \fi
     \sseq@classoptions@@@[#1](#2)
 }
+\def\sseq@classoptions@@@var@range#1--#2\sseq@nil{\edef\sseq@class@page{\the\numexpr#1}\edef\sseq@class@pagemax{\the\numexpr#2}}
 
 \def\sseq@classoptions@@@[#1](#2){
     \sseq@setthiscall{\classoptions[#1](#2)}
@@ -2575,54 +2585,91 @@
     \sseq@obj@ifundef{partcoord.(\the\sseq@tempx,\the\sseq@tempy).numnodes}{\sseq@error{No class in the specified position exists}{}}{}
     \sseq@whichclass\sseq@n{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}3}{replace class command '\sseq@thiscall'}
     \edef\coord{(\the\sseq@tempx,\the\sseq@tempy,\sseq@n)}
-    \ifsseq@keepchanges\else
-        \sseq@ifdead\coord{
-            \ifnum\sseq@thepage>\sseq@getdeathpage\coord\relax
-                \sseq@error{The node (#2) perished on page \sseq@getdeathpage\coord\sseq@macroname\ so there is no reason to add an option to it on page \sseq@thepage}{}%
-            \fi
-        }{}%
-    \fi
-    \@ifundefined{sseq@classgen}{
+
+    \@ifundefined{sseq@class@page}{
         \@ifundefined{sseq@thepage}{
-            \def\sseq@classgen{\sseq@obj{class.\coord.num}}
+            \edef\sseq@gen{\sseq@obj{class.\coord.num}}
         }{
-            \sseq@tempcount=-1\relax
-            \sseq@tempcountb=\sseq@obj{class.\coord.num}\relax
-            \loop
-                \advance\sseq@tempcount1\relax
-                \unless\ifnum\sseq@obj{class.\coord[\the\sseq@tempcount].page}<\sseq@thepage\relax
-                    \edef\sseq@classgen{\the\sseq@tempcount}
-                    \sseq@tempcount=\sseq@tempcountb\relax
-                \fi
-            \ifnum\sseq@tempcount<\sseq@tempcountb\repeat
+            \sseq@class@pagetogen{class.\coord}{\sseq@thepage} % stores in \sseq@gen
         }
+        \let\sseq@genmax\sseq@gen
     }{
-        \ifnum\sseq@classgen<0\relax
-            \sseq@tempcount=\sseq@obj{class.\coord.num}\relax
-            \advance\sseq@tempcount1\relax
-            \advance\sseq@tempcount\sseq@classgen\relax
-            \edef\sseq@classgen{\the\sseq@tempcount}
-        \fi
+        \sseq@getgen{\sseq@class@page}
+        \@ifundefined{sseq@class@pagemax}{
+            \let\sseq@genmax\sseq@gen
+        }{
+            \let\sseq@genmin\sseq@gen
+            \sseq@getgen{\sseq@class@pagemax}
+            \let\sseq@genmax\sseq@gen
+            \let\sseq@gen\sseq@genmin
+        }
     }
-    \edef\classname{class.\coord[\sseq@classgen]}
-    \sseq@cleanup@obj{\classname.options}
-    \sseq@obj@xoaddto{\classname.options}{\sseq@savedoptioncode}%
-%
-    \ifx\sseq@classnodetext\pgfutil@empty\else
-        \sseq@cleanup@obj{\classname.nodetext}
-        \sseq@obj@xodef{\classname.nodetext}{\sseq@classnodetext}
+
+    \edef\classname{class.\coord[\sseq@gen]}
+    \ifsseq@keepchanges\else
+        \ifnum\sseq@genmax>\sseq@gen\relax
+            \sseq@error{}
+        \fi
+        \ifnum\sseq@thepage>\sseq@obj{\classname.page}\relax
+            \sseq@error{Generation \sseq@gen\sseq@macroname\ (index [\sseq@class@page]) of the node (#2) perished on page \sseq@obj{\classname.page} so there is no reason to add an option to it on page \sseq@thepage}{}%
+        \fi
+        \ifnum\sseq@gen>0\relax
+            \ifnum\sseq@thepage>\sseq@obj{class.\coord[\the\numexpr\sseq@gen-1].page}\relax\else
+                \sseq@error{Generation \sseq@gen\sseq@macroname\ (index [\sseq@class@page]) of the node (#2) is not yet present on page \sseq@thepage\sseq@macroname\ so there is no reason to add an option to it on page \sseq@thepage}{}%
+            \fi
+        \fi
     \fi
-    \ifx\sseq@classnodetextoptions\pgfutil@empty\else
-        \sseq@cleanup@obj{\classname.nodetext.options}
-        \sseq@obj@xoaddto{\classname.nodetext.options}{\sseq@classnodetextoptions}
-    \fi
-    \ifx\sseq@classlabelnodes\pgfutil@empty\else
-        \sseq@cleanup@obj{\classname.labelnodes}
-        \sseq@obj@xoaddto{\classname.labelnodes}{\sseq@classlabelnodes}
-    \fi
+    \sseq@tempcount=\sseq@gen\relax
+    \advance\sseq@tempcount-1\relax
+    \loop
+        \advance\sseq@tempcount1\relax
+        \edef\classname{class.\coord[\the\sseq@tempcount]}
+        \sseq@cleanup@obj{\classname.options}
+        \sseq@obj@xoaddto{\classname.options}{\sseq@savedoptioncode}%
+    %
+        \ifx\sseq@classnodetext\pgfutil@empty\else
+            \sseq@cleanup@obj{\classname.nodetext}
+            \sseq@obj@xodef{\classname.nodetext}{\sseq@classnodetext}
+        \fi
+        \ifx\sseq@classnodetextoptions\pgfutil@empty\else
+            \sseq@cleanup@obj{\classname.nodetext.options}
+            \sseq@obj@xoaddto{\classname.nodetext.options}{\sseq@classnodetextoptions}
+        \fi
+        \ifx\sseq@classlabelnodes\pgfutil@empty\else
+            \sseq@cleanup@obj{\classname.labelnodes}
+            \sseq@obj@xoaddto{\classname.labelnodes}{\sseq@classlabelnodes}
+        \fi
+    \ifnum\sseq@tempcount<\sseq@genmax\repeat
     \endgroup
 }
 
+\def\sseq@getgen#1{
+    \bgroup
+        \sseq@tempcount=\sseq@obj{class.\coord.num}\relax
+        \ifnum\sseq@tempcount>0\relax
+            \ifnum#1<0\relax
+                \@ifundefined{sseq@thepage}{
+                    \ifnum\sseq@obj{class.\coord[\the\sseq@tempcount].page}<\sseq@infinity\relax
+                        \sseq@tempcount=\sseq@obj{class.\coord[\the\sseq@tempcount].page}\relax
+                    \else
+                        \advance\sseq@tempcount-1\relax
+                        \sseq@tempcount=\sseq@obj{class.\coord[\the\sseq@tempcount].page}\relax
+                        \advance\sseq@tempcount1\relax
+                    \fi
+                }{
+                    \sseq@tempcount=\sseq@thepage\relax
+                }
+                \advance\sseq@tempcount1\relax
+                \advance\sseq@tempcount#1\relax
+            \fi
+            \sseq@eval{\unexpanded{\sseq@class@pagetogen{class.\coord}}{\the\sseq@tempcount}} % stores in \sseq@gen
+        \else
+            \def\sseq@gen{0}
+        \fi
+        \sseq@sneak\sseq@gen
+    \egroup
+
+}
 
 \def\sseq@replaceclass{\@ifnextchar[{\sseq@replaceclass@}{\sseq@replaceclass@[]}}%}
 \def\sseq@replaceclass@[#1]{\sseq@eatspacesthen{\sseq@replaceclass@@[#1]}}
@@ -2666,22 +2713,33 @@
 
 \def\sseq@class@draw@ifpage#1{
     \bgroup
-    \sseq@tempcount=-1\relax
-    \sseq@tempcountb=\sseq@obj{#1.num}\relax
-    \loop
-        \advance\sseq@tempcount1\relax
-        \ifnum\sseq@obj{#1[\the\sseq@tempcount].page}>\sseq@thepage\relax
-            \sseq@setthiscall{class #1}
-            \sseq@class@drawnode{#1[\the\sseq@tempcount]}
-            \sseq@tempcount=\sseq@tempcountb\relax
-        \else
-            \ifnum\sseq@obj{#1[\the\sseq@tempcount].page}=\sseq@thepage\relax
-                \sseq@thispagetrue
-                \sseq@class@drawnode{#1[\the\sseq@tempcount]}
+    \sseq@class@pagetogen{#1}{\sseq@thepage} % sets \sseq@gen
+    \ifnum\sseq@gen>-1\relax % If not, no class to print
+        \ifnum\sseq@obj{#1[\sseq@gen].page}=\sseq@thepage\relax
+            \sseq@thispagetrue
+        \fi
+        \sseq@setthiscall{class #1}
+        \sseq@class@drawnode{#1[\sseq@gen]}
+    \fi
+    \egroup
+}
+
+% #1 -- class
+% #2 -- page
+% If there is a class #1 drawn on page #2, set \sseq@gen to be the generation of that class, otherwise set \sseq@gen to be -1.
+\def\sseq@class@pagetogen#1#2{
+    \bgroup
+        \def\sseq@gen{-1}
+        \sseq@tempcount=-1\relax
+        \sseq@tempcountb=\sseq@obj{#1.num}\relax
+        \loop
+            \advance\sseq@tempcount1\relax
+            \ifnum\sseq@obj{#1[\the\sseq@tempcount].page}<#2\relax\else
+                \edef\sseq@gen{\the\sseq@tempcount}
                 \sseq@tempcount=\sseq@tempcountb\relax
             \fi
-        \fi
-    \ifnum\sseq@tempcount<\sseq@tempcountb\repeat
+        \ifnum\sseq@tempcount<\sseq@tempcountb\repeat
+        \sseq@sneak\sseq@gen
     \egroup
 }
 
@@ -2924,8 +2982,8 @@
 }
 
 \def\sseq@structline@main@#1(#2,#3,#4)(#5,#6,#7){
-    \sseq@tempx=\sseq@x\relax\advance\sseq@tempx#2\relax
-    \sseq@tempy=\sseq@y\relax\advance\sseq@tempy#3\relax
+    \sseq@tempx=\sseq@x\advance\sseq@tempx#2\relax
+    \sseq@tempy=\sseq@y\advance\sseq@tempy#3\relax
     \sseq@tempxb=\sseq@x\advance\sseq@tempxb#5\relax
     \sseq@tempyb=\sseq@y\advance\sseq@tempyb#6\relax
     \sseq@whichclass\sseq@na{\the\sseq@tempx}{\the\sseq@tempy}{#4}{source of structure line '\sseq@thiscall'}%
@@ -2964,7 +3022,7 @@
 
 \def\sseq@structline@structlineoptions{
     \sseq@obj@ifundef{\sseq@structlinename.page}{
-        \sseq@error{Cannot add options to struct line \source--\target because such a struct line doesn't exist}{}
+        \sseq@error{Cannot add options to struct line \source--\target\sseq@macroname\ because such a struct line doesn't exist}{}
     }{}
     \sseq@cleanup@obj{\sseq@structlinename.options}
     \ifsseq@needstikz
