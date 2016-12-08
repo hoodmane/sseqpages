@@ -48,9 +48,10 @@
 
 \foreach\x in {-4,-8,...,-\pgfmathresult}{
     \class[Zclass](\x,0)
-    \foreach \z in {0,-1,...,-\pgfmathresult}{
+    \class(\x-2,0)
+    \foreach \z in {-1,...,-\pgfmathresult}{
         \class(\x+\z-2,\z)
-        \structline(\x+\z-2,\z)(\x+\z-3,\z-1)
+        \structline(\x+\z-1,\z+1)(\x+\z-2,\z)
     }
 }
 

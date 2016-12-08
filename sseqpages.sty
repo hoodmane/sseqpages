@@ -16,7 +16,7 @@
 % Fix shifts
 %
 % improve axes options? allow axis to be centered on coordinate or centered between coordinates
-%
+% Make sure user can't \sseqset{keep changes} inside environment
 %
 % Improve errors
 % Check \sseqset used inside environments
@@ -129,7 +129,7 @@
 \def\sseq@id#1{#1} % Just removes braces, "identity," used with parsecommas
 
 \def\sseq@ifhop#1#2\fi{\fi#1}
-\def\sseq@sneak#1#2\egroup{\@xp\egroup\@xp\def\@xp#1\@xp{#1}}
+\def\sseq@smuggle@macro#1#2\egroup{\@xp\egroup\@xp\def\@xp#1\@xp{#1}}
 
 \def\sseq@eval#1{\bgroup\edef\sseq@temp{#1}\@xp\egroup\sseq@temp}% I got this from sseq.sty
 \def\sseq@protectedeval#1{\bgroup\protected@edef\sseq@temp{#1}\@xp\egroup\sseq@temp}
@@ -165,7 +165,7 @@
 \def\sseq@errmessage#1{\sseq@builderrorinfo\sseq@errmessage@std{#1\sseq@error@annotation}}
 \def\sseq@errorwithinfo#1{\let\errmessage\sseq@errmessage@std\sseq@builderrorinfo\pgfutil@packageerror{sseqpages}{#1\sseq@error@annotation}{}}
 \def\sseq@errornoinfo#1{\let\errmessage\sseq@errmessage@std\sseq@builderrorinfo\pgfutil@packageerror{sseqpages}{#1}{}}
-\DeclareRobustCommand\sseq@error{\sseq@error@}
+\DeclareRobustCommand\sseq@error{\sseq@error@}% This is robust just for \isalive...
 \let\sseq@error@\sseq@errornoinfo
 \def\sseq@errorinfo{}% Changed during \foreach
 \def\sseq@inputlineno{\the\inputlineno}
@@ -180,6 +180,59 @@
 \def\sseq@errorifpt@#1.#2\sseq@nil#3{\ifx\sseq@nil#2\sseq@nil\else\sseq@error{#3}\fi}
 
 
+%%% Monomials
+\def\sseq@normalizepolynomial#1{\def\sseq@polynomial{}\def\sseq@curbase{}\def\sseq@curpower{1}\sseq@normalizepolynomial@#1\sseq@nil}
+\def\sseq@normalizepolynomial@{\futurelet\sseq@lettoken\sseq@normalizepolynomial@@}
+\def\sseq@normalizepolynomial@@{
+    \let\next\sseq@normalizepolynomial@@normal
+    \ifx\sseq@lettoken_
+        \let\next\sseq@normalizepolynomial@@sub
+    \else
+        \ifx\sseq@lettoken^
+            \let\next\sseq@normalizepolynomial@@sup
+        \else
+            \ifx\sseq@lettoken\bgroup
+                \let\next\sseq@normalizepolynomial@@group
+            \else
+                \ifx\sseq@lettoken+
+                    \let\next\sseq@normalizepolynomial@@plusminus
+                \else
+                    \ifx\sseq@lettoken-
+                        \let\next\sseq@normalizepolynomial@@plusminus
+                    \else
+                        \ifx\sseq@lettoken\sseq@nil
+                            \let\next\sseq@normalizepolynomial@@done
+                        \fi
+                    \fi
+                \fi
+            \fi
+        \fi
+    \fi
+    \next
+}
+
+\def\sseq@normalizepolynomial@@normal#1{%
+    \sseq@normalizepolynomial@@addvariable
+    \def\sseq@curbase{#1}%
+    \sseq@normalizepolynomial@
+}
+\def\sseq@normalizepolynomial@@sub_#1{\sseq@g@addto@macro\sseq@curbase{_{#1}}\sseq@normalizepolynomial@}
+\def\sseq@normalizepolynomial@@sup^#1{\def\sseq@curpower{#1}\sseq@normalizepolynomial@}
+\def\sseq@normalizepolynomial@@group#1{\sseq@normalizepolynomial@@addvariable\def\sseq@curbase{{#1}}\sseq@normalizepolynomial@}
+\def\sseq@normalizepolynomial@@plusminus#1{\sseq@normalizepolynomial@@addvariable\sseq@g@addto@macro\sseq@polynomial{#1}\sseq@normalizepolynomial@}
+\def\sseq@normalizepolynomial@@done\sseq@nil{\sseq@normalizepolynomial@@addvariable\ifx\sseq@polynomial\pgfutil@empty\def\sseq@polynomial{1}\fi}
+
+\def\sseq@normalizepolynomial@@addvariable{%
+    \ifnum\sseq@curpower=0\relax\else
+        \sseq@x@addto@macro\sseq@polynomial{\sseq@curbase\ifx\sseq@curpower\pgfutil@empty\else\unless\ifnum\sseq@curpower=1^{\sseq@curpower}\fi\fi}%
+    \fi
+    \def\sseq@curbase{}%
+    \def\sseq@curpower{1}%
+}
+
+
+
+
 %%%%%%                                            %%%%%%
 %%                                                    %%
 %%            \sseqnewgroup and \sseqnewcommand       %%
@@ -192,15 +245,15 @@
 \long\def\sseqnewgroup@@#1#2[#3]#4{%
     \sseqnewcmd#1#2(\sseq@macrox,\sseq@macroy)[#3]{%
         \bgroup
-        \def\sseq@newgroup@temp{}
+        \def\sseq@newgroup@temp{}%
         \sseq@tempiffalse
         \ifx\sseq@nil\options\sseq@nil\else\sseq@tempiftrue\fi
         \sseq@tempcount=\numexpr\sseq@macrox\relax
         \sseq@tempcountb=\numexpr\sseq@macroy\relax
         \ifnum\sseq@tempcount=0\relax\else\sseq@tempiftrue\fi
         \ifnum\sseq@tempcountb=0\relax\else\sseq@tempiftrue\fi
-        \ifsseq@tempif\sseq@eval{\@nx\begin{scope}[xshift=\the\sseq@tempcount,yshift=\the\sseq@tempcountb,\unexpanded{\options}]}\def\sseq@newgroup@temp{\end{scope}}\fi
-            #4% This % is necessary for some reason.
+        \ifsseq@tempif\sseq@eval{\@nx\begin{scope}[xshift=\the\sseq@tempcount,yshift=\the\sseq@tempcountb,\unexpanded{\options}]}\def\sseq@newgroup@temp{\end{scope}}\fi%
+            {}#4% This is set up to make sure no space problems occur with \patchcmd
         \sseq@newgroup@temp
         \egroup
     }%
@@ -210,7 +263,7 @@
 \def\sseqnewcmd@#1{%
     \@ifundefined{\sseq@macroname #1}{}{%
         \sseq@error{%
-            A command named \string#1\sseq@macroname\ already exists. If you want to overwrite an existing command, say
+            A command named \string#1\space already exists. If you want to overwrite an existing command, say
             '\string\sseqnewcmd*\string#1...' or '\string\sseqnewgroup*\string#1...' as appropriate%
         }{}%
     }%
@@ -244,12 +297,7 @@
             \aftergroup}%
         \egroup
 %
-        \bgroup % Now we need to replace those fake \ppn placeholders with real pounds. Because of lowercase, real pounds are *'s.
-        % \patchcmd uses \etb@ifscanable to check whether it can patch the command
-        % Essentially, \edef\temp{\scantokens{body of macro}} should be equivalent to \macro
-        % We don't care about this, and something goes wrong with whitespace some of the time
-        % So this next line just prevents \patchcmd from checking for this.
-        \def\etb@ifscanable##1{\@firstoftwo}%
+        \bgroup % Now we need to replace those fake \ppn placeholders with real pounds. Because of \lowercase, real pounds are *'s.
         \@xp\sseq@patchrepeat\helperb{\options}{*1}%
         \@xp\sseq@patchrepeat\helperb{#2}{*2}%
         \@xp\sseq@patchrepeat\helperb{#3}{*3}%
@@ -351,10 +399,11 @@
 
 %%%% add to macro commands
 \def\sseq@d@addto@macro#1#2{\@xp\def\@xp#1\@xp{#1#2}}
-\def\sseq@e@addto@macro#1#2{\begingroup\pgfutil@toks@\@xp{#1}\sseq@eval{\pgfutil@toks@{\the\pgfutil@toks@#2}}\@xp\endgroup\@xp\def\@xp#1\@xp{\the\pgfutil@toks@}} % let #2 be expanded
+\def\sseq@e@addto@macro#1#2{\edef#1{\unexpanded\@xp{#1}#2}} % let #2 be expanded
+\def\sseq@eo@addto@macro#1#2{\edef#1{\unexpanded\@xp{#1}\unexpanded\@xp{#2}}} % let #2 be expanded once
 \def\sseq@g@addto@macro#1#2{\@xp\gdef\@xp#1\@xp{#1#2}}
-\def\sseq@x@addto@macro#1#2{\begingroup\pgfutil@toks@\@xp{#1}\xdef#1{\the\pgfutil@toks@#2}\endgroup} % let #2 be expanded
-\def\sseq@xprotected@addto@macro#1#2{\begingroup\pgfutil@toks@\@xp{#1}\protected@xdef#1{\the\pgfutil@toks@#2}\endgroup}
+\def\sseq@x@addto@macro#1#2{\xdef#1{\unexpanded\@xp{#1}#2}} % let #2 be expanded
+\def\sseq@xprotected@addto@macro#1#2{\protected@xdef#1{\unexpanded\@xp{#1}#2}}
 
 %%%% Saved paths, temporary saved paths, background saved paths
 % \sseq@savedpaths@whatever is redefined to be \sseq@savedpaths@whatever@standard or \sseq@savedpaths@whatever@temporary depending on context
@@ -915,7 +964,7 @@
     \pgfkeysifdefined{#1/\pgfkeyscurrentname/.@cmd}{
         \pgfkeysgetvalue{#1/\pgfkeyscurrentname/.@cmd}{\pgfkeys@code}%
         \sseq@eval{\@nx\sseq@keys@addtooptions@checkalso{\unexpanded\@xptwo{\@xp\pgfkeys@code\pgfkeyscurrentvalue\pgfeov}}}
-        \sseq@sneak\sseq@savedoptioncode
+        \sseq@smuggle@macro\sseq@savedoptioncode
         \egroup
         \def\next{\@xp\@firstoftwo\sseq@gobble@to@nil}
     }{
@@ -1052,7 +1101,6 @@
 %    shift/.sseq @ second pass code={\pgfkeysalso{xshift=\sseq@shift@getx#1}\pgfkeysalso{yshift=\sseq@shift@gety#1}}
 }
 
-%\def\test#1{\def\temp{#1}\show\temp}
 
 \pgfqkeys{/sseqpages/label}{
     rotate/.code={
@@ -1104,6 +1152,22 @@
         \tikz@quote@parser{#1}
         \endgroup
     },
+    /sseqpages/class/label position/.sseq @ second pass code={
+        \bgroup
+            \def\sseq@savedoptioncode{}
+            \sseq@addstylecodetooptions{/tikz}{#1}
+            \sseq@eo@addto@macro\sseq@classlabelpositionhook{\sseq@savedoptioncode}
+            \sseq@smuggle@macro\sseq@classlabelpositionhook
+        \egroup
+    },
+    /sseqpages/scope/label position/.sseq @ second pass code={
+        \bgroup
+            \def\sseq@savedoptioncode{}
+            \sseq@addstylecodetooptions{/tikz}{#1}
+            \sseq@eo@addto@macro\sseq@classlabelpositionhook{\sseq@savedoptioncode}
+            \sseq@smuggle@macro\sseq@classlabelpositionhook
+        \egroup
+    },
     /sseqpages/handle quote/.code={
         \begingroup % group gets ended by handleedgequotes
         \let\tikz@quotes@as\sseq@handleedgequotes
@@ -1113,6 +1177,7 @@
 \def\sseq@classnodetext{}
 \def\sseq@classnodetextoptions{}
 \def\sseq@classlabelnodes{}
+\def\sseq@classlabelpositionhook{}
 \def\sseq@handleclassquotes#1#2{% We use this via \let\tikz@quotes@as\sseq@handleclassquotes
     /utils/exec={% so it's called inside \pgfkeysalso{stuff}. Need to surround with /utils/exec={} to get out.
         \begingroup\pgfscope
@@ -1133,6 +1198,7 @@
                             \let\@nx\tikz@transform\relax % The next line was set up to fix the classlabelstyle glitch
                             \the\sseq@labelstyle\@nx\the\sseq@labelstyle@page\the\sseq@classlabelstyle\@nx\the\sseq@classlabelstyle@page
                             \sseq@theouterclasslabelstyle\unexpanded\@xp{\sseq@savedoptioncode}
+                            \@nx\sseq@classlabelpositionhook
                          %   \@nx\iftikz@fullytransformed\@nx
                          %      \@nx\tikz@fullytransformedtrue
                          %   \else
@@ -1149,6 +1215,7 @@
                             \let\@nx\tikz@transform\relax % The next line was set up to fix the classlabelstyle glitch
                             \the\sseq@labelstyle\@nx\the\sseq@labelstyle@page\the\sseq@classlabelstyle\@nx\the\sseq@classlabelstyle@page
                             \sseq@theouterclasslabelstyle\unexpanded\@xp{\sseq@savedoptioncode}
+                            \@nx\sseq@classlabelpositionhook
                          %   \@nx\iftikz@fullytransformed\@nx
                          %      \@nx\tikz@fullytransformedtrue
                          %   \else
@@ -1258,8 +1325,24 @@
 }
 
 \pgfqkeys{/sseqpages/class}{
-    name/.code={\sseq@error{You can't use the 'name' option with the '\@nx\class' command. You should use 'alias' instead}{}}
+    name/.code={\sseq@error{You can't use the 'name' option with the '\@nx\class' command. You should use 'alias' instead}{}},
+    page/.code={\sseq@getnumrange\sseq@class@page{#1}},
+    generation/.code={\sseq@getnumrange\sseq@gen{#1}}
+    % page is only for \classoptions. \class tests if \sseq@class@page is set and throw an error if so.
 }
+
+\pgfqkeys{/sseqpages/struct line}{
+    page/.code={\sseq@getnumrange\sseq@structline@page{#1}}
+}
+
+\def\sseq@getnumrange#1#2{
+    \pgfutil@in@{--}{#2}\ifpgfutil@in@
+        \sseq@getnumrange@range#1#2\sseq@nil
+    \else
+        \edef#1{\the\numexpr#2}
+    \fi
+}
+\def\sseq@getnumrange@range#1#2--#3\sseq@nil{\edef#1{\the\numexpr#2}\@xp\edef\csname\sseq@macroname#1max\endcsname{\the\numexpr#3}}
 
 %% Needs tikz
 % Force \class or \d to fall back to using tikz to render their output
@@ -1359,6 +1442,10 @@
         }
     }%
 }
+
+%% Add key code to \sseq@savedoptioncode
+% #1 -- a list of directories to search
+% #2 -- keys
 % This is a faster way of doing:
 %\def\sseq@temp{#1}
 %\pgfqkeys{/sseqpages/alwaysunknown}{#2}
@@ -2430,7 +2517,7 @@
 \def\sseq@isalive{\sseq@isaliveprotect\sseq@isalive@}
 \def\sseq@isalive@{\sseq@isalive@error}
 
-\def\sseq@isalive@error{\sseq@error{You can't use \@nx\isalive\sseq@macroname\ outside of a page constraint for a tikz primitive}}
+\def\sseq@isalive@error{\sseq@error{You can't use \@nx\isalive\space outside of a page constraint for a tikz primitive}}
 \def\sseq@isalive@active#1{%
     \@xp\ifx\@xp$\@gobble#1$%
         \@xp\sseq@isalive@parens\@xp#1%
@@ -2508,6 +2595,7 @@
     \gdef\sseq@classnodetextoptions{}
     \gdef\sseq@classlabelnodes{}
     \sseq@processoptions{class}{#1}% Outputs result into \sseq@savedoptioncode
+    \@ifundefined{sseq@temp@page}{}{\sseq@error{You can only use the \@nx\page option with \@nx\classoptions, not with \string\class}}
 %
     \sseq@tempx=\numexpr#2\relax
     \advance\sseq@tempx\sseq@x\relax
@@ -2551,24 +2639,10 @@
     \endgroup
 }
 
-\def\sseq@classoptions{\begingroup\@ifnextchar[{\sseq@classoptions@}{\sseq@error{There is no reason to use \string\sseq@classoptions without giving options}{}}}%]
-\def\sseq@classoptions@[#1]{\sseq@eatspacesthen{\sseq@classoptions@@[#1]}}
-\def\sseq@classoptions@@[#1](#2){
-    \@ifnextchar[{\sseq@classoptions@@@var[#1](#2)}{\sseq@classoptions@@@[#1](#2)}
-}
+\def\sseq@classoptions{\begingroup\@ifnextchar[{\sseq@classoptions@}{\sseq@error{There is no reason to use \@nx\classoptions without giving options}{}}}%]
+\def\sseq@classoptions@[#1]{\sseq@eatspacesthen{\sseq@classoptions@main[#1]}}
 
-\def\sseq@classoptions@@@var[#1](#2)[#3]{
-    \pgfutil@in@{--}{#3}
-    \ifpgfutil@in@
-        \sseq@classoptions@@@var@range#3\sseq@nil
-    \else
-        \edef\sseq@class@page{\the\numexpr#3}
-    \fi
-    \sseq@classoptions@@@[#1](#2)
-}
-\def\sseq@classoptions@@@var@range#1--#2\sseq@nil{\edef\sseq@class@page{\the\numexpr#1}\edef\sseq@class@pagemax{\the\numexpr#2}}
-
-\def\sseq@classoptions@@@[#1](#2){
+\def\sseq@classoptions@main[#1](#2){
     \sseq@setthiscall{\classoptions[#1](#2)}
     \gdef\sseq@classnodetext{}
     \gdef\sseq@classnodetextoptions{}
@@ -2586,23 +2660,38 @@
     \sseq@whichclass\sseq@n{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}3}{replace class command '\sseq@thiscall'}
     \edef\coord{(\the\sseq@tempx,\the\sseq@tempy,\sseq@n)}
 
-    \@ifundefined{sseq@class@page}{
-        \@ifundefined{sseq@thepage}{
-            \edef\sseq@gen{\sseq@obj{class.\coord.num}}
-        }{
-            \sseq@class@pagetogen{class.\coord}{\sseq@thepage} % stores in \sseq@gen
-        }
-        \let\sseq@genmax\sseq@gen
-    }{
-        \sseq@getgen{\sseq@class@page}
-        \@ifundefined{sseq@class@pagemax}{
+    \@ifundefined{sseq@temp@page}{
+        \@ifundefined{sseq@gen}{
+            \@ifundefined{sseq@thepage}{
+                \edef\sseq@gen{\sseq@obj{class.\coord.num}}
+            }{
+                \sseq@obj@pagetogen{class.\coord}{\sseq@thepage} % stores in \sseq@gen
+            }
             \let\sseq@genmax\sseq@gen
         }{
+            \ifnum\sseq@gen<0\relax
+                \edef\sseq@gen{\the\numexpr\sseq@obj{class.\coord.num}+\sseq@gen+1}
+            \fi
+            \@ifundefined{sseq@genmax}{\let\sseq@genmax\sseq@gen}{
+                \edef\sseq@genmax{\the\numexpr\sseq@obj{class.\coord.num}+\sseq@genmax+1}
+            }
+        }
+    }{
+        \@ifundefined{sseq@gen}{}{\sseq@error{Don't use both "page" and "generation" for the same \@nx\classoption command}}
+        \sseq@class@handlenegativepage{\sseq@class@page}
+        \sseq@class@getgen{\sseq@class@page}
+        \@ifundefined{sseq@temp@pagemax}{
+            \let\sseq@genmax\sseq@gen
+            \let\sseq@class@pagemax\sseq@class@page % ensure if "page" is defined, "pagemax" is defined too
+        }{
             \let\sseq@genmin\sseq@gen
-            \sseq@getgen{\sseq@class@pagemax}
+            \sseq@class@handlenegativepage{\sseq@class@pagemax}
+            \sseq@class@getgen{\sseq@class@pagemax}
             \let\sseq@genmax\sseq@gen
             \let\sseq@gen\sseq@genmin
         }
+        \edef\sseq@class@page{\the\numexpr\sseq@class@page-1}
+        \edef\sseq@class@pagemax{\the\numexpr\sseq@class@pagemax+1}
     }
 
     \edef\classname{class.\coord[\sseq@gen]}
@@ -2611,62 +2700,94 @@
             \sseq@error{}
         \fi
         \ifnum\sseq@thepage>\sseq@obj{\classname.page}\relax
-            \sseq@error{Generation \sseq@gen\sseq@macroname\ (index [\sseq@class@page]) of the node (#2) perished on page \sseq@obj{\classname.page} so there is no reason to add an option to it on page \sseq@thepage}{}%
+            \sseq@error{Generation \sseq@gen\space (index [\sseq@class@page]) of the node (#2) perished on page \sseq@obj{\classname.page} so there is no reason to add an option to it on page \sseq@thepage}{}%
         \fi
         \ifnum\sseq@gen>0\relax
             \ifnum\sseq@thepage>\sseq@obj{class.\coord[\the\numexpr\sseq@gen-1].page}\relax\else
-                \sseq@error{Generation \sseq@gen\sseq@macroname\ (index [\sseq@class@page]) of the node (#2) is not yet present on page \sseq@thepage\sseq@macroname\ so there is no reason to add an option to it on page \sseq@thepage}{}%
+                \sseq@error{Generation \sseq@gen\space (index [\sseq@class@page]) of the node (#2) is not yet present on page \sseq@thepage\space so there is no reason to add an option to it on page \sseq@thepage}{}%
             \fi
         \fi
     \fi
+
     \sseq@tempcount=\sseq@gen\relax
-    \advance\sseq@tempcount-1\relax
+    \advance\sseq@tempcount-1
     \loop
         \advance\sseq@tempcount1\relax
         \edef\classname{class.\coord[\the\sseq@tempcount]}
         \sseq@cleanup@obj{\classname.options}
-        \sseq@obj@xoaddto{\classname.options}{\sseq@savedoptioncode}%
+        \sseq@classoptions@setup@pagerange
+        \sseq@classoptions@obj@addto@withpagerange{\classname.options}{\sseq@savedoptioncode}
     %
         \ifx\sseq@classnodetext\pgfutil@empty\else
             \sseq@cleanup@obj{\classname.nodetext}
-            \sseq@obj@xodef{\classname.nodetext}{\sseq@classnodetext}
+            \sseq@classoptions@obj@addto@withpagerange{\classname.nodetext}{\sseq@classnodetext}
         \fi
         \ifx\sseq@classnodetextoptions\pgfutil@empty\else
             \sseq@cleanup@obj{\classname.nodetext.options}
-            \sseq@obj@xoaddto{\classname.nodetext.options}{\sseq@classnodetextoptions}
+            \sseq@classoptions@obj@addto@withpagerange{\classname.nodetext.options}{\sseq@classnodetextoptions}
         \fi
         \ifx\sseq@classlabelnodes\pgfutil@empty\else
             \sseq@cleanup@obj{\classname.labelnodes}
-            \sseq@obj@xoaddto{\classname.labelnodes}{\sseq@classlabelnodes}
+            \sseq@classoptions@obj@addto@withpagerange{\classname.labelnodes}{\sseq@classlabelnodes}
         \fi
     \ifnum\sseq@tempcount<\sseq@genmax\repeat
+
     \endgroup
 }
 
-\def\sseq@getgen#1{
-    \bgroup
-        \sseq@tempcount=\sseq@obj{class.\coord.num}\relax
-        \ifnum\sseq@tempcount>0\relax
-            \ifnum#1<0\relax
-                \@ifundefined{sseq@thepage}{
-                    \ifnum\sseq@obj{class.\coord[\the\sseq@tempcount].page}<\sseq@infinity\relax
-                        \sseq@tempcount=\sseq@obj{class.\coord[\the\sseq@tempcount].page}\relax
-                    \else
-                        \advance\sseq@tempcount-1\relax
-                        \sseq@tempcount=\sseq@obj{class.\coord[\the\sseq@tempcount].page}\relax
-                        \advance\sseq@tempcount1\relax
-                    \fi
-                }{
-                    \sseq@tempcount=\sseq@thepage\relax
-                }
-                \advance\sseq@tempcount1\relax
-                \advance\sseq@tempcount#1\relax
+\def\sseq@classoptions@setup@pagerange{%
+    \@ifundefined{sseq@temp@page}{
+        \def\sseq@classoptions@obj@addto@withpagerange@{\sseq@obj@gaddto{\sseq@tempobj}}
+    }{
+        \def\sseq@temp##1{##1}
+        \ifnum\sseq@tempcount=\sseq@gen\relax
+            \sseq@eval{\@nx\pretocmd\@nx\sseq@temp{\@nx\ifnum\@nx\sseq@thepage>\sseq@class@page\relax}{}{\@nx\sseq@error@internal{}}}
+            \apptocmd\sseq@temp{\fi}{}{\sseq@error@internal{}}
+        \fi
+        \ifnum\sseq@tempcount=\sseq@genmax\relax
+            \sseq@eval{\@nx\pretocmd\@nx\sseq@temp{\@nx\ifnum\@nx\sseq@thepage<\sseq@class@pagemax\relax}{}{\@nx\sseq@error@internal{}}}
+            \apptocmd\sseq@temp{\fi}{}{\sseq@error@internal{}}
+        \fi
+
+        \@xp\def\@xp\sseq@temp\@xp##\@xp1\@xp{\@xp{\sseq@temp{##1}}}
+        \pretocmd\sseq@temp{\sseq@obj@gaddto{\sseq@tempobj}}{}{\sseq@error@internal{}}
+        \let\sseq@classoptions@obj@addto@withpagerange@\sseq@temp
+    }
+}
+
+\def\sseq@classoptions@obj@addto@withpagerange#1#2{
+    \def\sseq@tempobj{#1}
+    \@xp\sseq@classoptions@obj@addto@withpagerange@\@xp{#2}
+}
+
+% Takes in a macro that contains a potentially negative page, sets it to the correct positive value
+\def\sseq@class@handlenegativepage#1{
+    \ifnum#1<0\relax
+        \@ifundefined{sseq@thepage}{
+            \ifnum\sseq@obj{class.\coord[\the\sseq@tempcount].page}<\sseq@infinity\relax
+                \sseq@tempcountb=\sseq@obj{class.\coord[\the\sseq@tempcount].page}\relax
+            \else
+                \advance\sseq@tempcountb-1\relax
+                \sseq@tempcountb=\sseq@obj{class.\coord[\the\sseq@tempcount].page}\relax
             \fi
-            \sseq@eval{\unexpanded{\sseq@class@pagetogen{class.\coord}}{\the\sseq@tempcount}} % stores in \sseq@gen
+            \advance\sseq@tempcountb1\relax
+        }{
+            \sseq@tempcountb=\sseq@thepage\relax
+        }
+        \advance\sseq@tempcountb1\relax
+        \advance\sseq@tempcountb#1\relax
+        \edef#1{\the\sseq@tempcountb}
+    \fi
+}
+
+\def\sseq@class@getgen#1{
+    \bgroup
+        \ifnum\sseq@obj{class.\coord.num}>0\relax
+            \sseq@eval{\unexpanded{\sseq@obj@pagetogen{class.\coord}}{#1}} % stores in \sseq@gen
         \else
             \def\sseq@gen{0}
         \fi
-        \sseq@sneak\sseq@gen
+        \sseq@smuggle@macro\sseq@gen
     \egroup
 
 }
@@ -2713,8 +2834,8 @@
 
 \def\sseq@class@draw@ifpage#1{
     \bgroup
-    \sseq@class@pagetogen{#1}{\sseq@thepage} % sets \sseq@gen
-    \ifnum\sseq@gen>-1\relax % If not, no class to print
+    \sseq@obj@pagetogen{#1}{\sseq@thepage} % sets \sseq@gen
+    \ifnum\sseq@gen>-1\relax % -1 means no class to print
         \ifnum\sseq@obj{#1[\sseq@gen].page}=\sseq@thepage\relax
             \sseq@thispagetrue
         \fi
@@ -2727,7 +2848,7 @@
 % #1 -- class
 % #2 -- page
 % If there is a class #1 drawn on page #2, set \sseq@gen to be the generation of that class, otherwise set \sseq@gen to be -1.
-\def\sseq@class@pagetogen#1#2{
+\def\sseq@obj@pagetogen#1#2{
     \bgroup
         \def\sseq@gen{-1}
         \sseq@tempcount=-1\relax
@@ -2739,7 +2860,7 @@
                 \sseq@tempcount=\sseq@tempcountb\relax
             \fi
         \ifnum\sseq@tempcount<\sseq@tempcountb\repeat
-        \sseq@sneak\sseq@gen
+        \sseq@smuggle@macro\sseq@gen
     \egroup
 }
 
@@ -2777,24 +2898,19 @@
 %   Errors:
     \sseq@ifundefcoord\source{%
         \sseq@error{%
-            Source \sourcename\sseq@macroname\ of differential '\sseq@thiscall' can't support
+            Source \sourcename\space of differential '\sseq@thiscall' can't support
             a differential because a class in that position never existed% TODO: make separate out of bounds index error message
         }{}%
     }{}%
     \sseq@ifundefcoord\target{%
         \sseq@error{%
-            Target \targetname\sseq@macroname\ of differential '\sseq@thiscall' can't accept
+            Target \targetname\space of differential '\sseq@thiscall' can't accept
             a differential because a class in that position never existed%
         }{}%
     }{}%
 %
-    \ifsseq@keepchanges
-        \sseq@d@setpageminrec{class.\source}{#2}{source}
-        \sseq@d@setpageminrec{class.\target}{#2}{target}
-    \else
-        \sseq@d@setpageminrectemp{class.\source}{#2}{source}
-        \sseq@d@setpageminrectemp{class.\target}{#2}{target}
-    \fi
+    \sseq@d@setpageminrec{class.\source}{#2}{source}%  automatically handles \sseq@cleanup@obj
+    \sseq@d@setpageminrec{class.\target}{#2}{target}
 %
     \ifnum\sseq@obj{partcoord.(\sourcecoord).numnodes}=1\relax\else
         \@ifundefined{sseq@arg3}{\sseq@error{%
@@ -2807,7 +2923,7 @@
         \@ifundefined{sseq@arg4}{\sseq@error{%
             There are multiple nodes at target coordinate (\targetcoord) so instead of '\sseq@thiscall' you should say
             '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(\sourcecoord,\sseq@optarg{}3,n)' where n specifies which of the
-            \sseq@obj{partcoord.(\targetcoord).numnodes}\ nodes at (\targetcoord) should be the target%
+            \sseq@obj{partcoord.(\targetcoord).numnodes} nodes at (\targetcoord) should be the target%
         }{}}{}%
     \fi
 %
@@ -2825,7 +2941,7 @@
     \ifsseq@keepchanges\else
         \@ifundefined{sseq@thepage}{}{
             \ifnum\sseq@thepage=#2\relax\else\ifnum\sseq@thepage=0\else
-                \sseq@error{Adding an option to a differential on page #2 when the current page is \sseq@thepage\sseq@macroname\ has no effect}{}%
+                \sseq@error{Adding an option to a differential on page #2 when the current page is \sseq@thepage\space has no effect}{}%
             \fi\fi
         }%
     \fi
@@ -2857,19 +2973,12 @@
 }
 
 \def\sseq@d@setpageminrec#1#2#3{% not really recursive.
-    \sseq@d@setpageclass{#1}{#2}{#3}
-    \sseq@obj@map{#1[\sseq@obj{#1.num}].dependencies}{
-        \sseq@d@setpagemin{##1}{#2}
-    }
-}
-\def\sseq@d@setpageminrectemp#1#2#3{
     \sseq@cleanup@obj{#1[\sseq@obj{#1.num}].page}
     \sseq@cleanup@obj{#1[\sseq@obj{#1.num}].deathinfo}
     \sseq@cleanup@obj{#1[\sseq@obj{#1.num}].deathinputline}
     \sseq@d@setpageclass{#1}{#2}{#3}
     \sseq@obj@map{#1[\sseq@obj{#1.num}].dependencies}{
-        \sseq@cleanup@obj{##1.page}
-        \sseq@d@setpagemin{##1}{#2}
+        \sseq@d@setpagemin{##1}{#2} % automatically handles cleanup
     }
 }
 
@@ -2884,8 +2993,8 @@
             \else
                 \sseq@eval{\sseq@temptoks{\unexpanded\@xpthree{\sseq@obj{\sseq@temp.deathinfo}}\space(\the\sseq@temptoks)}}
             \fi
-            \sseq@errornoinfo{%
-                The #3 \csname #3name\endcsname\space of differential \sseq@thiscall\space on page #2 (\sseq@errorinfo)
+            \sseq@error{%
+                The #3 \csname #3name\endcsname\space of differential \sseq@thiscall\space on page #2
                 has already been the \the\sseq@temptoks.
                 First use the shorter differential, then \string\replaceclass\csname #3name\endcsname, then the longer differential
             }
@@ -2898,8 +3007,8 @@
             \else
                 \sseq@eval{\sseq@temptoks{\unexpanded\@xpthree{\sseq@obj{\sseq@temp.deathinfo}}\space(\the\sseq@temptoks)}}
             \fi
-            \sseq@errornoinfo{%
-                The #3 \csname #3name\endcsname\space of differential \sseq@thiscall\space on page #2 (\sseq@errorinfo)
+            \sseq@error{%
+                The #3 \csname #3name\endcsname\space of differential \sseq@thiscall\space on page #2
                 has already been the \unexpanded\@xpthree{\sseq@obj{\sseq@temp.deathinfo}}.
                 Use \string\replaceclass\csname #3name\endcsname\space before \sseq@thiscall
             }
@@ -2926,6 +3035,7 @@
 
 \def\sseq@d@setpagemin#1#2{
     \ifnum\sseq@obj{#1.page}>#2\relax
+        \sseq@cleanup@obj{#1.page}
         \sseq@obj@xdef{#1.page}{#2}
     \fi
 }
@@ -2957,16 +3067,19 @@
 \def\sseq@structline{\sseq@structline@setup{structline}}%]
 \def\sseq@structlineoptions{\sseq@structline@setup{structlineoptions}}%]
 
+% #1 is telling us whether we've been called from \structline or \structlineoptions
 \def\sseq@structline@setup#1{\@ifnextchar[{\sseq@structline@setup@{#1}}{\sseq@structline@setup@{#1}[]}}
 \def\sseq@structline@setup@#1[#2]#3)#4){%((((
     \sseq@esetthiscall{\@xp\string\csname#1\endcsname\ifx\sseq@nil#2\sseq@nil\else[\unexpanded{#2}]\fi\unexpanded{#3)#4)}}
     \sseq@eval{\unexpanded{\sseq@structline@setup@@{#1}[#2]}\sseq@trimleadingspaces#3)\sseq@trimleadingspaces#4)}
 }
+% Pull off [] and (), process the options, pass the coordinates along
 \def\sseq@structline@setup@@#1[#2](#3)(#4){
     \begingroup
     \sseq@processoptions{struct line}{#2}% Outputs result into \sseq@savedoptioncode
     \sseq@eval{\@nx\sseq@structline@main{#1}{#3}{#4}}
 }
+% #1 is still "structline" or "structlineoptions", #2 and #3 are the coordiantes.
 \def\sseq@structline@main#1#2#3{
     \def\sseq@thiscmdname{structure line }% To pass error information to \sseq@whichclass%
     \def\sourcename{(#2)}
@@ -2975,12 +3088,13 @@
     \sseq@parsecoords\target{#3}
     \sseq@eval{
         \@nx\sseq@structline@main@{#1}% this % is important
-            \@xp\sseq@iffullcoord\@xp(\source){(\source)}{(\source,)}%
-            \@xp\sseq@iffullcoord\@xp(\target){(\target)}{(\target,)}
+            \@xp\sseq@iffullcoord\@xp(\source){(\source)}{(\source,)}% ensure that the coordinates have three components
+            \@xp\sseq@iffullcoord\@xp(\target){(\target)}{(\target,)}% if the only have two, insert an empty last coordinate
     }
     \endgroup
 }
 
+% #1 is still "structline" or "structlineoptions". Parse the coordinates, and store them in \source and \target
 \def\sseq@structline@main@#1(#2,#3,#4)(#5,#6,#7){
     \sseq@tempx=\sseq@x\advance\sseq@tempx#2\relax
     \sseq@tempy=\sseq@y\advance\sseq@tempy#3\relax
@@ -2990,69 +3104,148 @@
     \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}{target of structure line '\sseq@thiscall'}%
     \edef\source{(\the\sseq@tempx,\the\sseq@tempy,\sseq@na)}
     \edef\target{(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb)}
-    \def\sseq@pagemin{0}
-    \sseq@ifundefcoord\source{}{
+
+    \sseq@ifundefcoord\target{\sseq@error{Cannot add a structline with target \targetname\space because such a class does not exist}}{}
+    \sseq@ifundefcoord\source{\sseq@error{Cannot add a structline with source \sourcename\space because such a class does not exist}}{}
+    \@ifundefined{sseq@structline@page}{
+        \def\sseq@pagemin{0}
         \ifnum\sseq@obj{class.\source.num}>0\relax
             \edef\sseq@pagemin{\sseq@obj{class.\source[\the\numexpr\sseq@obj{class.\source.num}-1].page}}
         \fi
-    }
-    \sseq@ifundefcoord\target{}{
         \ifnum\sseq@obj{class.\target.num}>0\relax
             \edef\sseq@test{\sseq@obj{class.\target[\the\numexpr\sseq@obj{class.\target.num}-1].page}}
             \ifnum\sseq@test>\sseq@pagemin\relax
                 \let\sseq@pagemin\sseq@test
             \fi
         \fi
-    }
-    \edef\sseq@structlinename{structline.\source\target[\sseq@pagemin]}
+    }{\let\sseq@pagemin\sseq@structline@page}
     \csname sseq@structline@#1\endcsname
 }
 
+
 \def\sseq@structline@structline{
+    \@ifundefined{sseq@structline@pagemax}{}{\sseq@error{You cannot provide \@nx\structline with the option "page=min--max", only with "page=min"}}
+    \sseq@obj@ifundef{structline.\source\target.num}{
+        \sseq@obj@gdef{structline.\source\target.num}{0}
+        \sseq@savedpaths@addstructline{structline.\source\target}
+    }{
+        \sseq@cleanup@obj{structline.\source\target.num}
+        \sseq@obj@inc{structline.\source\target.num}
+    }
+    \edef\sseq@structlinename{structline.\source\target[\sseq@obj{structline.\source\target.num}]}
     \sseq@obj@xdef{\sseq@structlinename.page}{\sseq@infinity}
     \sseq@obj@xdef{\sseq@structlinename.pagemin}{\sseq@pagemin}
     \sseq@obj@xdef{\sseq@structlinename.source}{\source}
     \sseq@obj@xdef{\sseq@structlinename.target}{\target}
-    \sseq@obj@xdef{\sseq@structlinename.page}{\sseq@infinity}
-    \sseq@obj@adddependence{class.\source}{\sseq@structlinename}
+    \sseq@cleanup@obj{structline.\source\target.num}
+    \sseq@obj@adddependence{class.\source}{\sseq@structlinename}% If the source or target is already dead, this will set structlinename.page
     \sseq@obj@adddependence{class.\target}{\sseq@structlinename}
-    \sseq@savedpaths@addstructline{\sseq@structlinename}
+    \ifnum\sseq@pagemin<\sseq@obj{\sseq@structlinename.page}\else % If the \structline is dead before it is born, throw an error
+        \sseq@error{Structline dies before it is born. Perhaps you meant to specify a different source or target?\@gobble}
+    \fi
     \sseq@obj@xdef{\sseq@structlinename.options}{\ifsseq@needstikz\@nx\sseq@needstikztrue\fi\unexpanded\@xp{\sseq@savedoptioncode}}
 }
 
 \def\sseq@structline@structlineoptions{
-    \sseq@obj@ifundef{\sseq@structlinename.page}{
-        \sseq@error{Cannot add options to struct line \source--\target\sseq@macroname\ because such a struct line doesn't exist}{}
+    \sseq@obj@ifundef{structline.\source\target.num}{
+        \sseq@error{Cannot add options to struct line \source--\target\space because such a struct line doesn't exist}{}
     }{}
-    \sseq@cleanup@obj{\sseq@structlinename.options}
-    \ifsseq@needstikz
-        \sseq@obj@gaddto{\sseq@structlinename.options}{\sseq@needstikztrue}
-    \fi
-    \sseq@obj@xoaddto{\sseq@structlinename.options}{\sseq@savedoptioncode}
+    \@ifundefined{sseq@structline@page}{
+        \edef\sseq@gen{\sseq@obj{structline.\source\target.num}}
+        \let\sseq@genmax\sseq@gen
+    }{
+        \sseq@structline@getgen{\sseq@structline@page}
+        \@ifundefined{sseq@structline@pagemax}{
+            \let\sseq@genmax\sseq@gen
+            \let\sseq@structline@pagemax\sseq@structline@page
+        }{
+            \let\sseq@genmin\sseq@gen
+            \sseq@structline@getgen{\sseq@structline@pagemax}
+            \let\sseq@genmax\sseq@gen
+            \let\sseq@gen\sseq@genmin
+        }
+        \edef\sseq@structline@page{\the\numexpr\sseq@structline@page-1}
+        \edef\sseq@structline@pagemax{\the\numexpr\sseq@structline@pagemax+1}
+    }
+    \sseq@tempcount=\sseq@gen\relax
+    \advance\sseq@tempcount-1\relax
+    \loop
+        \advance\sseq@tempcount1\relax
+        \edef\sseq@structlinename{structline.\source\target[\the\sseq@tempcount]}
+        \sseq@cleanup@obj{\sseq@structlinename.options}
+        \ifsseq@needstikz
+            \sseq@obj@gaddto{\sseq@structlinename.options}{\sseq@needstikztrue}
+        \fi
+        \ifnum\sseq@tempcount=\sseq@gen\relax
+            \@ifundefined{sseq@structline@page}{}{
+                \edef\sseq@savedoptioncode{\@nx\ifnum\@nx\sseq@thepage>\sseq@structline@page\relax\unexpanded\@xp{\sseq@savedoptioncode}\@nx\fi}
+            }
+        \fi
+        \ifnum\sseq@tempcount=\sseq@genmax\relax
+            \@ifundefined{sseq@structline@pagemax}{}{
+                \edef\sseq@savedoptioncode{\@nx\ifnum\@nx\sseq@thepage<\sseq@structline@pagemax\relax\unexpanded\@xp{\sseq@savedoptioncode}\@nx\fi}
+            }
+        \fi
+        \sseq@obj@xoaddto{\sseq@structlinename.options}{\sseq@savedoptioncode}
+    \ifnum\sseq@tempcount<\sseq@genmax\repeat
+}
+
+\def\sseq@structline@getgen#1{
+    \bgroup
+        \sseq@tempcount=\sseq@obj{structline.\source\target.num}\relax
+        \ifnum\sseq@tempcount>0\relax
+            \ifnum#1<0\relax
+                \@ifundefined{sseq@thepage}{
+                    \ifnum\sseq@obj{structline.\source\target[\the\sseq@tempcount].page}<\sseq@infinity\relax
+                        \sseq@tempcount=\sseq@obj{structline.\source\target[\the\sseq@tempcount].page}\relax
+                    \else
+                        \advance\sseq@tempcount-1\relax
+                        \sseq@tempcount=\sseq@obj{structline.\source\target[\the\sseq@tempcount].page}\relax
+                        \advance\sseq@tempcount1\relax
+                    \fi
+                }{
+                    \sseq@tempcount=\sseq@thepage\relax
+                }
+                \advance\sseq@tempcount1\relax
+                \advance\sseq@tempcount#1\relax
+            \fi
+            \sseq@eval{\unexpanded{\sseq@obj@pagetogen{structline.\source\target}}{\the\sseq@tempcount}} % stores in \sseq@gen
+        \else
+            \def\sseq@gen{0}
+        \fi
+        \sseq@smuggle@macro\sseq@gen
+    \egroup
+
 }
 
 \def\sseq@obj@adddependence#1#2{
     \sseq@obj@ifundef{#1.num}{
-        \sseq@obj@xdef{#1[0].dependencies}{\@nx\\{#2}}
+        \sseq@obj@ifundef{#1[0].dependencies}{
+            \sseq@obj@gdef{#1[0].dependencies}{}
+        }
+        \def\sseq@temp{0}
     }{
-        \sseq@obj@xaddtolist{#1[\sseq@obj{#1.num}].dependencies}{#2}
-        \sseq@d@setpagemin{#2}{\sseq@obj{#1[\sseq@obj{#1.num}].page}}
+        \edef\sseq@temp{\sseq@obj{#1.num}}
+        \sseq@d@setpagemin{#2}{\sseq@obj{#1[\sseq@temp].page}}% automatically handles cleanup
     }
+    \sseq@cleanup@obj{#1[\sseq@temp].dependencies}
+    \sseq@obj@xaddtolist{#1[\sseq@temp].dependencies}{#2}
 }
 
 \def\sseq@structline@draw@ifpage#1{
     \bgroup
     \ifnum\sseq@thepage=0\relax
-        \sseq@structline@draw{#1}
+        \ifnum\sseq@obj{#1[0].pagemin}=0\relax
+            \sseq@structline@draw{#1[0]}
+        \fi
     \else
-        \ifnum\sseq@obj{#1.pagemin}<\sseq@thepage\relax
-            \ifnum\sseq@obj{#1.page}>\sseq@thepage\relax
-                \sseq@structline@draw{#1}
-            \else
-                \ifnum\sseq@obj{#1.page}=\sseq@thepage\relax
-                    \sseq@thispagetrue
-                    \sseq@structline@draw{#1}
-                \fi
+        \sseq@obj@pagetogen{#1}{\sseq@thepage} % sets \sseq@gen
+        \ifnum\sseq@gen<0\relax\else % negative sseq@gen means don't draw it
+            \ifnum\sseq@obj{#1[\sseq@gen].page}=\sseq@thepage\relax
+                \sseq@thispagetrue
+            \fi
+            \ifnum\sseq@obj{#1[\sseq@gen].pagemin}<\sseq@thepage\relax
+                \sseq@structline@draw{#1[\sseq@gen]}
             \fi
         \fi
     \fi
