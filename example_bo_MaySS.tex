@@ -1,0 +1,63 @@
+\documentclass{article}
+\usepackage{fullpage}
+\usepackage{sseqpages}
+
+
+
+\sseqnewgroup\tower{
+    \class(0,0)
+    \foreach\i in {1,...,11}{
+        \class(0,\i)
+        \structline(0,\i-1,-1)(0,\i,-1)
+    }
+}
+\sseqnewgroup\hvee{
+    \tower(0,0)
+    \foreach\i in {1,...,11}{
+        \class(\i,\i)
+        \structline(\i-1,\i-1,-1)(\i,\i,-1)
+    }    
+}
+
+\begin{document}
+\begin{sseqdata}[name=test,classes=fill,x range={0}{10},y range={0}{10},degree={-1}{1}, class labels={right,black}]
+\foreach\i in {0,1,2}{
+    \begin{scope}[xshift=4*\i,yshift=2*\i,tag prefix=\i.]
+    \hvee[tag=id](0,0)
+    \hvee[tag=h1h2](1,2)
+    \hvee[tag=h20](2,1)
+    \foreach\i in {1,...,10}{
+        \d1(2,\i,h20,h1h2)
+    }
+    \foreach\i in {1,...,10}{
+        \d1(2+\i,1+\i,h20,h1h2)
+    }
+    \end{scope}
+}
+
+
+\foreach\i in {0,...,7}{
+    \d2(4+\i,2+\i,1.id,0.id)  
+}
+\class(12,6)
+\d2(12,6,,1)
+
+\classoptions["h_0"](0,1)
+\classoptions["h_1"](1,1)
+\classoptions["h_{20}"](2,1)
+\classoptions["h_{20}^2"](4,2)
+\classoptions["h_{20}^3"](6,3)
+\classoptions["h_{20}^4"](8,4)
+\classoptions["h_{20}^5"](10,5)
+\end{sseqdata}
+
+\begin{sseqpage}[name=test,page=1,change this page cycles=gray]
+\end{sseqpage}
+\newpage
+\printpage[name=test,page=2]
+\newpage
+\begin{sseqpage}[name=test,page=3]
+\classoptions["h_1^2"](2,2)
+\classoptions["h_{20}^2h_0"](4,3,2)
+\end{sseqpage}
+\end{document}

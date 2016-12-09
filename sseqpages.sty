@@ -10,10 +10,9 @@
 % manual
 %
 %
-% fix \structlineoptions
 % User interface to control arrow head for edges that go off page (option to turn ellipses off)
 % Make shift={coord} work
-% Fix shifts
+% Fix shifts (what does this mean again? coordinate shifts of some sort?)
 %
 % improve axes options? allow axis to be centered on coordinate or centered between coordinates
 % Make sure user can't \sseqset{keep changes} inside environment
@@ -180,7 +179,7 @@
 \def\sseq@errorifpt@#1.#2\sseq@nil#3{\ifx\sseq@nil#2\sseq@nil\else\sseq@error{#3}\fi}
 
 
-%%% Monomials
+%%% Monomials TODO: use this or delete it?
 \def\sseq@normalizepolynomial#1{\def\sseq@polynomial{}\def\sseq@curbase{}\def\sseq@curpower{1}\sseq@normalizepolynomial@#1\sseq@nil}
 \def\sseq@normalizepolynomial@{\futurelet\sseq@lettoken\sseq@normalizepolynomial@@}
 \def\sseq@normalizepolynomial@@{
@@ -656,6 +655,16 @@
 % #2,#3,#4 -- x,y,n
 % #5 -- calling command (for error messages)
 \def\sseq@whichclass#1#2#3#4#5{
+    \edef\sseq@test{\romannumeral\numexpr0#4}
+    \ifx\sseq@test\pgfutil@empty\else
+        \edef\sseq@test{\romannumeral\numexpr-0#4}
+    \fi
+    \ifx\sseq@test\pgfutil@empty\else
+        \ifcsname sseq@class@#2,#3@\sseq@class@tagprefix #4\endcsname\else
+            \sseq@error{Tag '#4' provided for #5 but no such tag exists in position (#2,#3)}
+        \fi
+    \fi
+
     \sseq@eval{\unexpanded{\sseq@whichclassex{\def#1}}{#2}{#3}{#4}{#5}}
     \bgroup
         \sseq@tempcount=\numexpr 1#1\relax % This line evaluates any error messages in #1, but if #1 is just a number vacuums it up.
@@ -669,18 +678,24 @@
     \ifx$#4$% If no index is provided, just use 1 TODO: Maybe we should use -1?
         #1{1}%
     \else
-        \ifnum#4<\numexpr0\relax% Negative case -- why this command exists
-            \sseq@obj@ifundef{partcoord.(#2,#3).numnodes}{%
-                #1{\sseq@error{negative index #4 provided for #5 but no classes yet exist in #5 position (#2,#3).
-                   Negative indices count from the most recent class in the given position; in particular, there must be at least one existing class}{}}
-            }{%
-               \@xp\sseq@whichclass@helper\@xp{\the\numexpr\sseq@obj{partcoord.(#2,#3).numnodes} + #4 + 1\relax}{#1}{#2}{#3}{#4}{#5}%
-            }%
+        \ifcsname sseq@class@#2,#3@\sseq@class@tagprefix #4\endcsname % If #4 is a prefix
+            \@xp\@xp\@xp\sseq@whichclass@swapapply\@xp\@xp\@xp{\csname sseq@class@#2,#3@\sseq@class@tagprefix #4\endcsname}{#1} % Use that
         \else
-            #1{#4}%
+            \ifnum#4<\numexpr0\relax% Negative case -- why this command exists
+                \sseq@obj@ifundef{partcoord.(#2,#3).numnodes}{%
+                    #1{\sseq@error{negative index #4 provided for #5 but no classes yet exist in (#2,#3).
+                       Negative indices count from the most recent class in the given position; in particular, there must be at least one existing class}{}}
+                }{%
+                   \@xp\sseq@whichclass@helper\@xp{\the\numexpr\sseq@obj{partcoord.(#2,#3).numnodes} + #4 + 1\relax}{#1}{#2}{#3}{#4}{#5}%
+                }%
+            \else
+                #1{#4}%
+            \fi
         \fi
     \fi
 }
+
+\def\sseq@whichclass@swapapply#1#2{#2{#1}}
 
 % #1 -- calculated index
 % #2 -- the callback
@@ -729,10 +744,10 @@
 % (#1) -- a comma separated list of up to four arguments. Blank or off-the-end entries are considered to be absent.
 % The value of the #1th argument is stored in \csname sseq@arg#1\endcsname.
 % This command is primarily to set up the weird syntax of \d, but it gets used in some other places because it already existed.
-\def\sseq@parsecommas(#1){\let\\\sseq@pc@stdslsl\sseq@commacount0\relax\sseq@parsecommas@{}#1,,,,,\sseq@nil}
+\def\sseq@parsecommas(#1){\let\\\sseq@pc@slsl\sseq@commacount0\relax\sseq@parsecommas@{}#1,,,,,\sseq@nil}
 \def\sseq@parsecommas@#1#2,{%
     \advance\sseq@commacount1\relax
-    \ifnum\sseq@commacount<4 % This causes an error without a space I think?
+    \ifnum\sseq@commacount<4\relax
         \def\next{\sseq@parsecommas@{#1\\{#2}}}%
     \else %
         \def\next{\sseq@parsecommas@@{#1\\{#2}}}%
@@ -742,13 +757,26 @@
 \def\sseq@parsecommas@@#1#2\sseq@nil{%
     \sseq@commacount=0\relax #1%
 }
-\def\sseq@pc@stdslsl#1{% This is the callback that we map over the texlist of arguments at the end of \sseq@parsecommas
+\def\sseq@pc@slsl#1{% This is the callback that we map over the texlist of arguments at the end of \sseq@parsecommas
     \advance\sseq@commacount1\relax
-    \ifx&#1& % This without a space before the % breaks????
+    \ifx&#1&% This without a space before the % breaks????
         \@xp\let\csname sseq@arg\the\sseq@commacount\endcsname\relax %
     \else %
-        \@xp\edef\csname sseq@arg\the\sseq@commacount\endcsname{\the\numexpr#1\relax}%}%
-        \@xpthree\sseq@errorifpt\@xptwo{\csname sseq@arg\the\sseq@commacount\endcsname}{TODO: what is this error?}
+        \def\next{%
+            \@xp\edef\csname sseq@arg\the\sseq@commacount\endcsname{\the\numexpr#1}%
+            \@xpthree\sseq@errorifpt\@xptwo{\csname sseq@arg\the\sseq@commacount\endcsname}{Coordinates provided to \@nx\d must be integers}%
+        }
+        \ifnum\sseq@commacount>2\relax % The last two optional arguments are allowed to be tags
+            \edef\sseq@test{\romannumeral-\the\numexpr0#1}
+            \ifx\sseq@test\pgfutil@empty\else
+                \edef\sseq@test{\romannumeral\the\numexpr0#1}
+            \fi
+            \ifx\sseq@test\pgfutil@empty\else % if neither of the tests are empty, #1 wasn't a numeric expression
+                \let\next\relax
+                \@xp\def\csname sseq@arg\the\sseq@commacount\endcsname{#1}% So we don't use \numexpr on it.
+            \fi
+        \fi
+        \next
     \fi %
 }
 
@@ -1324,11 +1352,19 @@
     background/.sseq @ first pass code={\sseq@errortikzprimsonly{background}}
 }
 
+\def\sseq@class@tag{}
+\def\sseq@class@tagprefix{}
+\def\sseq@currenttag{\sseq@class@tag}% for the user ??
+\pgfqkeys{/sseqpages/scope}{
+    tag/.code={\sseq@d@addto@macro\sseq@class@tag{#1}},
+    tag prefix/.code={\sseq@d@addto@macro\sseq@class@tagprefix{#1}}
+}
+
 \pgfqkeys{/sseqpages/class}{
     name/.code={\sseq@error{You can't use the 'name' option with the '\@nx\class' command. You should use 'alias' instead}{}},
-    page/.code={\sseq@getnumrange\sseq@class@page{#1}},
-    generation/.code={\sseq@getnumrange\sseq@gen{#1}}
-    % page is only for \classoptions. \class tests if \sseq@class@page is set and throw an error if so.
+    page/.code={\sseq@getnumrange\sseq@class@page{#1}},% page & gen are only for \classoptions.
+    generation/.code={\sseq@getnumrange\sseq@gen{#1}}, % \class tests if \sseq@class@page is set and throw an error if so.
+    tag/.code={\sseq@d@addto@macro\sseq@class@tag{#1}}
 }
 
 \pgfqkeys{/sseqpages/struct line}{
@@ -2622,6 +2658,9 @@
     \sseq@obj@xdef{partcoord.(\partialcoord).numnodespp}{\the\sseq@tempcount}
     \edef\coord{(\the\sseq@tempx,\the\sseq@tempy,\nodenum)}%
     \def\classname{class.\coord[0]}
+    \ifx\sseq@class@tag\pgfutil@empty\else
+        \@xp\xdef\csname sseq@class@\partialcoord @\sseq@class@tagprefix\sseq@class@tag\endcsname{\nodenum}
+    \fi
 %
     \sseq@obj@gdef{class.\coord.num}{0}% For \replaceclass
     \sseq@obj@new{\classname}
