@@ -95,7 +95,6 @@
 \newtoks\sseq@thislabelstyle
 
 \newcount\sseq@anonsseqcount
-\newcount\sseq@commacount
 \newcount\sseq@context@depth
 \newcount\sseq@context@tempcount
 \newcount\sseq@x
@@ -118,22 +117,40 @@
 \let\@nx\noexpand
 \def\@xptwo{\@xp\@xp\@xp}
 \def\@xpthree{\@xp\@xp\@xp\@xp\@xp\@xp\@xp}
-
 \def\sseq@nil{\sseq@thisshouldnthappen@nil unique expansion} % This expansion text should be unique so that \ifx\sseq@nil\othercommand is false.
 \def\sseq@infinity{10000} % Larger than any coordinate anyone will ever use.
-
 \def\sseq@macroname{\@xp\@gobble\string}
 \def\sseq@gobble@to@nil#1\sseq@nil{}
-\def\sseq@getfirstchar#1#2\sseq@nil{#1} % used in parsecoords and shift/checkshift transform
-\def\sseq@id#1{#1} % Just removes braces, "identity," used with parsecommas
 
-\def\sseq@ifhop#1#2\fi{\fi#1}
+\def\sseq@getfirstchar#1#2\sseq@nil{#1} % used in shift/checkshift transform
 \def\sseq@smuggle@macro#1#2\egroup{\@xp\egroup\@xp\def\@xp#1\@xp{#1}}
+
+% For expandable macros
+\def\sseq@ifhop#1#2\fi{\fi#1}
+\def\sseq@swapapply#1#2{#2#1}
+\def\sseq@ifint#1{%
+    \sseq@ifempty{#1}{%
+        \@secondoftwo
+    }{% We can't do 0*(#1) because if #1 is not a number, this will be an error:
+        \@xp\sseq@ifempty\@xp{\romannumeral\numexpr0*#1\relax}{% If the expression is of the form a+stuff, then it will be just evaluated to stuff.
+            \@firstoftwo % but either stuff or -stuff will be negative, so we're fine. I'm not sure why but 0\y stops expanding, so the * is important
+        }{%
+            \@xp\sseq@ifempty\@xp{\romannumeral-\numexpr0*#1\relax}{
+                \@firstoftwo
+            }{%
+                \@secondoftwo
+            }%
+        }%
+    }%
+}
 
 \def\sseq@eval#1{\bgroup\edef\sseq@temp{#1}\@xp\egroup\sseq@temp}% I got this from sseq.sty
 \def\sseq@protectedeval#1{\bgroup\protected@edef\sseq@temp{#1}\@xp\egroup\sseq@temp}
 \def\sseq@eval@show#1{\bgroup\edef\sseq@temp{#1}\show\sseq@temp\@xp\egroup\sseq@temp}
 \def\sseq@profilenew#1#2{\pgfprofilenew{#1}\pretocmd#2{\pgfprofilestart{#1}}{}{\error}\apptocmd#2{\pgfprofileend{#1}}{}{\error}}
+
+\def\sseq@removeparens{\@xp\sseq@removeparens@}
+\def\sseq@removeparens@(#1){#1}
 
 % Stolen from trimspaces.sty
 \bgroup
@@ -143,6 +160,14 @@
 }
 \long\gdef\sseq@trim@trim@#1 Q{\sseq@trim@trim@@#1Q}
 \long\gdef\sseq@trim@trim@@#1Q#2{#1}
+
+\gdef\sseq@ifempty#1{%
+    \ifxQ#1Q%
+        \@xp\@firstoftwo
+    \else
+        \@xp\@secondoftwo
+    \fi
+}
 \egroup
 \def\sseq@trimleadingspaces{\romannumeral-`q}
 
@@ -158,7 +183,7 @@
 \def\sseq@esetthiscall#1{\let\sseq@error@annotation\sseq@error@annotation@call\sseq@eval{\sseq@thiscalltoks{#1}}}
 
 \def\sseq@error@annotation{.^^J(\sseq@errorinfo)}
-\def\sseq@error@annotation@call{.^^J(Error occurred during call \sseq@thiscall\space \sseq@errorinfo)}
+\def\sseq@error@annotation@call{.^^J(Error occurred during call "\sseq@thiscall"\space \sseq@errorinfo)}
 
 \let\sseq@errmessage@std\errmessage
 \def\sseq@errmessage#1{\sseq@builderrorinfo\sseq@errmessage@std{#1\sseq@error@annotation}}
@@ -367,18 +392,14 @@
 \def\sseq@obj@gletobj#1#2{\global\@xp\let\csname\sseq@obj@fullname{#1}\@xp\endcsname\csname\sseq@obj@fullname{#1}\endcsname}
 \def\sseq@obj@undef#1{\@xptwo\let\sseq@obj{#1}\relax}
 \def\sseq@obj@show#1{\@xptwo\show\sseq@obj{#1}}
-\def\sseq@obj@ifundef#1#2#3{\@ifundefined{\sseq@obj@fullname{#1}}{#2}{#3}}
+\def\sseq@obj@ifundef#1{\@ifundefined{\sseq@obj@fullname{#1}}}
+\def\sseq@obj@ifdef#1#2#3{\@ifundefined{\sseq@obj@fullname{#1}}{#3}{#2}}
 \def\sseq@obj@inc#1{\bgroup\sseq@tempcount\sseq@obj{#1}\relax\advance\sseq@tempcount1\relax\sseq@obj@xdef{#1}{\the\sseq@tempcount}\egroup}
-\def\sseq@obj@gaddto#1#2{\@xptwo\sseq@g@addto@macro\sseq@obj{#1}{#2}} % TODO: either gaddto or g@addto
-\def\sseq@obj@xaddto#1#2{\@xptwo\sseq@x@addto@macro\sseq@obj{#1}{#2}}
+\def\sseq@obj@gaddto{\@xptwo\sseq@g@addto@macro\sseq@obj} % TODO: either gaddto or g@addto
+\def\sseq@obj@xaddto{\@xptwo\sseq@x@addto@macro\sseq@obj}
 \def\sseq@obj@xoaddto#1{\@xp\sseq@g@addto@macro\csname \sseq@obj@fullname{#1}\@xp\endcsname\@xp}
-\def\sseq@obj@gaddtolist#1#2{\@xptwo\sseq@g@addto@macro\sseq@obj{#1}{\\{#2}}}
-\def\sseq@obj@xaddtolist#1#2{\@xptwo\sseq@x@addto@macro\sseq@obj{#1}{\@nx\\{#2}}}
 \def\sseq@obj@map#1#2{\def\\##1{#2}\sseq@obj{#1}}
 
-\def\sseq@obj@new#1{
-    \sseq@obj@xdef{#1.page}{\sseq@infinity}
-}
 
 \def\sseq@obj@ifchanged#1#2#3{\sseq@obj@ifundef{#1.changed}{#3}{#2}}
 \def\sseq@obj@changedtrue#1{\sseq@obj@gdef{#1.changed}{}}
@@ -636,13 +657,71 @@
 % Only works for full coordinates. Used for error checking in \replaceclass and \d.
 \def\sseq@ifundefcoord{\@xp\sseq@ifundefcoord@}
 \def\sseq@ifundefcoord@(#1){%
-    \sseq@obj@ifundef{class.(#1).num}
+    \sseq@obj@ifundef{class.(#1).num}%
 }
 
 \def\sseq@ifdead#1{\ifnum\sseq@obj{class.#1[\sseq@obj{class.#1.num}].page}<\sseq@infinity\relax \@xp\@firstoftwo\else\@xp\@secondoftwo\fi}
 \def\sseq@getdeathpage#1{\sseq@obj{class.#1[\sseq@obj{class.#1.num}].page}}
 
-%% \sseq@whichclass -- Find out which class an index indicates
+
+%%%%%%%%
+%%
+%% Coordinate Parsers
+%%
+%%%%%%%%
+
+% These do all of the work of taking a coordinate of the form (x,y), (x,y,n), or (x,y,tag) and turning them
+% into the internal representation needed for the rest of the package.
+% This comes in two parts:
+%   \sseq@parsecoord@maincoord -- separates a coordinate into {x,y}{n or tag}, numerically evaluates x and y, and adds in the values of \sseq@x and \sseq@y
+%   \sseq@parsecoord@index -- decides which class {n or tag} represents
+%
+% There are three interface commands:
+%    \sseq@parsecoord   -- for most things
+%    \sseq@cparsecoord  -- for \class (but not for \replaceclass or \classoptions). Doesn't use \sseq@parsecoord@index at all.
+%    \sseq@dparsecoord  -- for \d and \doptions
+%    \sseq@parsecoordex -- for \isalive: the body of a page constraint needs to be \edef'd so we need a completely expandable version
+%
+% In order to handle errors that come up in \sseq@parsecoordex, there is also the command \sseq@parsecoordex@reporterror that needs to be called on the macro where
+% the result of \sseq@parsecoordex is stored. It's also important that the error can't be wrapped in braces (possible TODO: fix that with \scantokens).
+
+
+
+%% Expandable parsing macro for dealing with the coordinate
+% #1 -- callback which takes two arguments:
+%    ##1 -- "x,y" evaluated and updated to reflect value of \sseq@x and \sseq@y
+%    ##2 -- whatever came after the semicolon, if anything
+% #2 -- a coordinate of the form {x,y} or {x,y;stuff}
+% #3 -- for error messages
+\def\sseq@parsecoord@maincoord#1#2#3{%
+    \sseq@parsecoord@maincoord@ifcomma{#2}{
+        \sseq@parsecoord@maincoord@{#1}#2,\sseq@nil{#3}
+    }{
+        #1{\sseq@error{Invalid coordinate\sseq@ifempty{#3}{}{provided to #3}}}{}{}
+    }
+}
+
+% Throw a graceful error on bad input like (0.1)
+\def\sseq@parsecoord@maincoord@ifcomma#1{\sseq@parsecoord@maincoord@ifcomma@#1,\sseq@nil}
+\def\sseq@parsecoord@maincoord@ifcomma@#1,#2\sseq@nil{\sseq@ifempty{#2}{\@secondoftwo}{\@firstoftwo}}
+
+\def\sseq@parsecoord@maincoord@#1#2,#3,#4\sseq@nil#5{%
+    \sseq@ifint{#2}{%
+        \sseq@ifint{#3}{%
+            \sseq@ifempty{#4}{%
+                \@xp\sseq@swapapply\@xp{\@xp{\the\numexpr\sseq@x+(#2)\@xp\relax\@xp,\the\numexpr\sseq@y+(#3)\relax}{}}{#1}{#5}%
+            }{%
+                \@xp\sseq@swapapply\@xp{\@xp{\the\numexpr\sseq@x+(#2)\@xp\relax\@xp,\the\numexpr\sseq@y+(#3)\@xp\relax\@xp}\@xp{\sseq@parsecoord@eatcomma#4\sseq@nil}}{#1}{#5}%
+            }%
+        }{#1{\sseq@error{Invalid y coordinate\sseq@ifempty{#5}{}{provided to #5}}}{}{}}%
+    }{#1{\sseq@error{Invalid x coordinate\sseq@ifempty{#5}{}{provided to #5}}}{}{}}%
+}
+
+\def\sseq@parsecoord@eatcomma#1,\sseq@nil{#1}
+
+
+
+%% \sseq@parsecoord@index -- Find out which class an index indicates
 % if the index is positive, just return it (don't check whether it is within bounds!!)
 % if the index is negative, return (number of nodes at (x,y)) - index + 1
 % if index is empty, return 1 (should it be -1?)
@@ -652,145 +731,186 @@
 % Calling commands that do want it to be in bounds (\d and \isalive) are responsible for checking themselves.
 %
 % #1 -- output variable
-% #2,#3,#4 -- x,y,n
-% #5 -- calling command (for error messages)
-\def\sseq@whichclass#1#2#3#4#5{
-    \edef\sseq@test{\romannumeral\numexpr0#4}
-    \ifx\sseq@test\pgfutil@empty\else
-        \edef\sseq@test{\romannumeral\numexpr-0#4}
-    \fi
-    \ifx\sseq@test\pgfutil@empty\else
-        \ifcsname sseq@class@#2,#3@\sseq@class@tagprefix #4\endcsname\else
-            \sseq@error{Tag '#4' provided for #5 but no such tag exists in position (#2,#3)}
-        \fi
-    \fi
-
-    \sseq@eval{\unexpanded{\sseq@whichclassex{\def#1}}{#2}{#3}{#4}{#5}}
-    \bgroup
-        \sseq@tempcount=\numexpr 1#1\relax % This line evaluates any error messages in #1, but if #1 is just a number vacuums it up.
-    \egroup
+% #2 -- x,y
+% #3 -- index or tag
+% #4 -- description for error messages
+\def\sseq@parsecoord@index#1#2#3#4{
+    \sseq@eval{\unexpanded{\sseq@parsecoord@indexex{\def#1}}{#2}{#3}{#4}}
+    \sseq@parsecoord@reporterror{#1}
 }
 
-% #1 -- callback
-% (#2,#3,#4) -- (x,y,n)
-% #5 -- error message
-\def\sseq@whichclassex#1#2#3#4#5{%
-    \ifx$#4$% If no index is provided, just use 1 TODO: Maybe we should use -1?
-        #1{1}%
-    \else
-        \ifcsname sseq@class@#2,#3@\sseq@class@tagprefix #4\endcsname % If #4 is a prefix
-            \@xp\@xp\@xp\sseq@whichclass@swapapply\@xp\@xp\@xp{\csname sseq@class@#2,#3@\sseq@class@tagprefix #4\endcsname}{#1} % Use that
-        \else
-            \ifnum#4<\numexpr0\relax% Negative case -- why this command exists
-                \sseq@obj@ifundef{partcoord.(#2,#3).numnodes}{%
-                    #1{\sseq@error{negative index #4 provided for #5 but no classes yet exist in (#2,#3).
-                       Negative indices count from the most recent class in the given position; in particular, there must be at least one existing class}{}}
-                }{%
-                   \@xp\sseq@whichclass@helper\@xp{\the\numexpr\sseq@obj{partcoord.(#2,#3).numnodes} + #4 + 1\relax}{#1}{#2}{#3}{#4}{#5}%
-                }%
-            \else
-                #1{#4}%
-            \fi
-        \fi
-    \fi
+% #1 -- callback which takes one argument --  the final coordinate in parentheses.
+% #2 -- x,y
+% #3 -- n
+% #4 -- description for error messages
+\def\sseq@parsecoord@indexex#1#2#3#4{%
+    \sseq@ifempty{#3}{% If no index is provided, just use 1 TODO: Maybe we should use -1?
+        #1{(#2,1)}%
+    }{%
+        \sseq@obj@ifdef{class.#2.tag.\sseq@class@tagprefix#3}{% If #3 is a tag
+            \@xp\@xp\@xp\sseq@parsecoord@index@swapapply\@xp\@xp\@xp{\csname\sseq@obj@fullname{class.#2.tag.\sseq@class@tagprefix#3}\endcsname}{#1}{#2}% Use that
+        }{%
+            \sseq@ifint{#3}{
+                \ifnum#3<\numexpr0\relax% Negative case -- why this command exists
+                    \sseq@obj@ifundef{partcoord.(#2).numnodes}{%
+                        #1{\sseq@error{negative index #3 provided \sseq@ifempty{#4}{}{for #4 }but no classes yet exist in (#2).
+                           Negative indices count from the most recent class in the given position; in particular, there must be at least one existing class}{}}
+                    }{%
+                       \@xp\sseq@parsecoord@index@helper\@xp{\the\numexpr\sseq@obj{partcoord.(#2).numnodes} + #3 + 1\relax}{#1}{#2}{#3}{#4}%
+                    }%
+                \else
+                    #1{(#2,#3)}%
+                \fi
+            }{
+                #1{\sseq@error{Tag '#3' provided \sseq@ifempty{#4}{}{for #4 }but no such tag exists in position (#2)}}%
+            }
+        }%
+    }%
 }
+\def\sseq@parsecoord@index@swapapply#1#2#3{#2{(#3,#1)}}
 
-\def\sseq@whichclass@swapapply#1#2{#2{#1}}
 
 % #1 -- calculated index
 % #2 -- the callback
 % #3,#4,#5 -- x,y,n
 % #6 -- the error message
-\def\sseq@whichclass@helper#1#2#3#4#5#6{%
+\def\sseq@parsecoord@index@helper#1#2#3#4#5{%
     \ifnum#1<1\space%
-        #2{\sseq@error{index #5 provided for the #6 is out of bounds -- only \sseq@obj{partcoord.(#3,#4).numnodes} classes exist at position (#3,#4)}}
+        #2{\sseq@error{index #4 provided for the #5 is out of bounds -- only \sseq@obj{partcoord.(#3).numnodes} classes exist at position (#3)}}%
     \else
-        #2{#1}%
+        #2{(#3,#1)}%
     \fi
 }
 
-
-%% Parsers
-% These are very internal commands. They work. I should probably never touch or look at them again.
-
-%% \sseq@parsecoords:
-% #1 -- output command
-% #2 -- coordinate of the form "(x,y)" or "{x,y}" or "(x,y,n)" or "{x,y,n}"
-% Defines #1 to be #2 after applying \pgfmathparse to x and y, and then replacing numbers of the form n.0 with n for n an integer
-\def\sseq@parsecoords#1{\sseq@parsecoordsex{\def#1}}
-\def\sseq@parsecoordsex#1#2{\sseq@parsecoords@ifpar#2\sseq@nil{#1}}
-\def\sseq@parsecoords@ifpar#1{%
-    \ifx(#1%
-        \@xp\sseq@parsecoords@par\@xp#1%
-    \else
-        \@xp\sseq@parsecoords@nopar\@xp#1%
-    \fi
+% #1 -- callback
+% #2 -- coordinate
+% #3 -- the error message
+\def\sseq@parsecoordex#1{\sseq@parsecoord@maincoord{\sseq@parsecoordex@callback{#1}}}
+\def\sseq@parsecoordex@callback#1#2#3#4{%
+    \sseq@parsecoord@callback@iferror{#2}{%
+        #1{#2}%
+    }{%
+        \sseq@parsecoord@indexex{#1}{#2}{#3}{#4}%
+    }%
 }
-\def\sseq@parsecoords@par(#1)\sseq@nil#2{\sseq@parsecoords@{#2}{#1}}
-\def\sseq@parsecoords@nopar#1\sseq@nil#2{\sseq@parsecoords@{#2}{#1}}
-\def\sseq@parsecoords@#1#2{\sseq@parsecoords@@{#1}{}#2,\sseq@nil,}
-\def\sseq@parsecoords@@#1#2#3,{%
-    \ifx\sseq@nil#3%
-        \@xp\sseq@parsecoords@done\@xp{\@gobble#2}{#1}%
-    \else
-        \sseq@ifhop{\@xp\sseq@parsecoords@@@\@xp{\the\numexpr#3\relax}{#1}{#2}}%
-    \fi
-}
-\def\sseq@parsecoords@@@#1#2#3{\sseq@parsecoords@@{#2}{#3,#1}}
-\def\sseq@parsecoords@done#1#2{#2{#1}}
 
-
-%% \sseq@parsecommas:
-% (#1) -- a comma separated list of up to four arguments. Blank or off-the-end entries are considered to be absent.
-% The value of the #1th argument is stored in \csname sseq@arg#1\endcsname.
-% This command is primarily to set up the weird syntax of \d, but it gets used in some other places because it already existed.
-\def\sseq@parsecommas(#1){\let\\\sseq@pc@slsl\sseq@commacount0\relax\sseq@parsecommas@{}#1,,,,,\sseq@nil}
-\def\sseq@parsecommas@#1#2,{%
-    \advance\sseq@commacount1\relax
-    \ifnum\sseq@commacount<4\relax
-        \def\next{\sseq@parsecommas@{#1\\{#2}}}%
-    \else %
-        \def\next{\sseq@parsecommas@@{#1\\{#2}}}%
-    \fi  %
-    \next%
-}
-\def\sseq@parsecommas@@#1#2\sseq@nil{%
-    \sseq@commacount=0\relax #1%
-}
-\def\sseq@pc@slsl#1{% This is the callback that we map over the texlist of arguments at the end of \sseq@parsecommas
-    \advance\sseq@commacount1\relax
-    \ifx&#1&% This without a space before the % breaks????
-        \@xp\let\csname sseq@arg\the\sseq@commacount\endcsname\relax %
-    \else %
-        \def\next{%
-            \@xp\edef\csname sseq@arg\the\sseq@commacount\endcsname{\the\numexpr#1}%
-            \@xpthree\sseq@errorifpt\@xptwo{\csname sseq@arg\the\sseq@commacount\endcsname}{Coordinates provided to \@nx\d must be integers}%
+% #1 -- callback
+% #2 -- coordinate
+% #3 -- the error message
+\def\sseq@parsecoord#1{\sseq@parsecoord@maincoord{\sseq@parsecoord@callback{#1}}}
+% #1 -- command to define
+% #2 -- (x,y)
+% #3 -- which class
+% #4 -- the error message
+\def\sseq@parsecoord@callback#1#2#3#4{%
+    \sseq@parsecoord@callback@iferror{#2}{#2}{
+        \@xp\def\csname \sseq@macroname#1@partial\endcsname{#2}%
+        \sseq@ifempty{#3}{%
+            \def#1{(#2,1)}%
+            \@xp\def\csname \sseq@macroname#1name\endcsname{(#2)}%
+        }{
+            \sseq@parsecoord@index{#1}{#2}{#3}{#4}%
+            \@xp\def\csname \sseq@macroname#1name\endcsname{(#2,#3)}%
         }
-        \ifnum\sseq@commacount>2\relax % The last two optional arguments are allowed to be tags
-            \edef\sseq@test{\romannumeral-\the\numexpr0#1}
-            \ifx\sseq@test\pgfutil@empty\else
-                \edef\sseq@test{\romannumeral\the\numexpr0#1}
-            \fi
-            \ifx\sseq@test\pgfutil@empty\else % if neither of the tests are empty, #1 wasn't a numeric expression
-                \let\next\relax
-                \@xp\def\csname sseq@arg\the\sseq@commacount\endcsname{#1}% So we don't use \numexpr on it.
-            \fi
-        \fi
-        \next
-    \fi %
+    }
 }
 
-% These are for accessing the output of \sseq@parsecommas
-% #1 -- callback to apply to the argument if it is present
-% #2 -- default value if argument is absent. Gets #3 = the name of the command this argument for, #4 = the argument number.
-%       if we don't want to throw an error, this argument should generally end in \@gobbletwo
-% #3 -- the name of the command
-% #4 -- the number of the argument
-\def\sseq@optarggen#1#2#3#4{\@xp\ifx\csname sseq@arg#4\endcsname\relax #2{#3}{#4}\else  #1{\csname sseq@arg#4\endcsname}\fi}
-\def\sseq@optargc{\sseq@optarggen{,\sseq@id}{\@gobbletwo}{}}
-\def\sseq@optarg#1{\sseq@optarggen{\sseq@id}{#1\@gobbletwo}{}}
-\def\sseq@arg@checkpresent#1#2{\@ifundefined{sseq@arg#2}{\sseq@error{Comma separated value argument number #2 to the command \@nx#1 is missing}{Argument #2 is mandatory, please include it}{}}}
-\def\sseq@arg{\sseq@optarggen{\sseq@id}{\sseq@thiscanthappen}{}}
+% #1 -- coordinate
+\def\sseq@cparsecoord#1{%
+    \sseq@parsecoord@maincoord{\sseq@cparsecoord@callback}{#1}{}%
+}
+
+% #2 should be empty, #3 is error message
+\def\sseq@cparsecoord@callback#1#2#3{%
+    \sseq@ifempty{#2}{}{\sseq@error{Too many coordinates}}
+    \sseq@parsecoord@callback@iferror{#1}{#1}{%
+        \def\partialcoord{#1}
+        \sseq@cparsecoord@callback@#1\sseq@nil%
+    }%
+}
+\def\sseq@cparsecoord@callback@#1,#2\sseq@nil{%
+    \def\xcoord{#1}%
+    \def\ycoord{#2}%
+}
+
+
+% #1 -- page
+% #2 -- coordinate
+\def\sseq@dparsecoord#1#2{%
+    \sseq@parsecoord@maincoord{\sseq@dparsecoord@callback{#1}}{#2}{}%
+}
+
+% #1 -- page
+% #2 -- (x,y)
+% #3 -- whichclass for source and target
+% #4 -- error message
+\def\sseq@dparsecoord@callback#1#2#3#4{%
+    \edef\xindex{\sseq@dparsecoord@getxindex{#3}}%
+    \edef\yindex{\sseq@dparsecoord@getyindex{#3}}%
+    \sseq@eval{\@nx\sseq@parsecoord@callback\@nx\source\unexpanded{{#2}}{\xindex}{source of differential '\sseq@thiscall'}}%
+    \sseq@eval{\@nx\sseq@parsecoord@callback\@nx\target{\sseq@differential@gettarget{#1}{#2}}{\yindex}{target of differential '\sseq@thiscall'}}%
+    \ifx\xindex\pgfutil@empty
+        \ifx\yindex\pgfutil@empty
+            \edef\source@exampleindex{\source@partial,n}%
+        \else
+            \edef\source@exampleindex{\source@partial,n,\sseq@dparsecoord@getyindex{#3}}%
+        \fi
+    \fi
+    \ifx\yindex\pgfutil@empty
+        \edef\target@exampleindex{\source@partial,\sseq@dparsecoord@getxindex{#3},}%
+    \fi
+    \let\sourcecoord\source@partial
+    \let\targetcoord\target@partial
+}
+
+\def\sseq@differential@gettarget#1#2{\sseq@differential@gettarget@{#1}#2\sseq@nil}
+\def\sseq@differential@gettarget@#1#2,#3\sseq@nil{\the\numexpr#2+\sseq@targetx{#1}\relax,\the\numexpr#3+\sseq@targety{#1}\relax}
+
+
+% Takes a comma separated list that can be empty, have one element, or two elements, returns first element (or empty if list is empty).
+\def\sseq@dparsecoord@getxindex#1{\sseq@dparsecoord@getxindex@#1,\sseq@nil}
+\def\sseq@dparsecoord@getxindex@#1,#2\sseq@nil{#1}
+% Takes a comma separated list that can be empty, have one element, or two elements, returns second element (or empty if less than two elements).
+\def\sseq@dparsecoord@getyindex#1{\sseq@dparsecoord@getyindex@#1,\sseq@nil}
+\def\sseq@dparsecoord@getyindex@#1,#2\sseq@nil{%
+    \sseq@ifempty{#2}{}{%
+        \sseq@dparsecoord@getyindex@removecomma#2\sseq@nil%
+    }%
+}
+\def\sseq@dparsecoord@getyindex@removecomma#1,\sseq@nil{#1}
+
+
+%
+% errors
+%
+
+% When the error hasn't been inside an \edef
+\def\sseq@parsecoord@reporterror#1{
+    \@xp\sseq@parsecoord@reporterror@#1\sseq@nil
+}
+
+\def\sseq@parsecoord@reporterror@#1{%
+    \ifx\sseq@error#1%
+        \@xp\sseq@error
+    \else
+        \@xp\sseq@gobble@to@nil
+    \fi
+}
+
+% When the error has been inside an \edef
+\edef\sseq@parsecoordex@reporterror#1{
+    \@nx\@xp\@nx\sseq@parsecoordex@reporterror@#1\@xp\@nx\csname sseq@error \endcsname{}\@nx\sseq@nil
+}
+\@xp\def\@xp\sseq@parsecoordex@reporterror@\@xp#\@xp1\csname sseq@error \endcsname#2#3\sseq@nil{\ifx\sseq@nil#3\sseq@nil\else\sseq@error{#2}\fi}
+
+\def\sseq@parsecoord@callback@iferror#1{\sseq@parsecoord@callback@iferror@#1.\sseq@nil}
+\def\sseq@parsecoord@callback@iferror@#1#2\sseq@nil{%
+    \ifx\sseq@error#1%
+        \@xp\@firstoftwo
+    \else
+        \@xp\@secondoftwo
+    \fi
+}
 
 
 %%%%%%                %%%%%%
@@ -2450,7 +2570,7 @@
         \sseq@ifhop{\sseq@eval{\@nx\sseq@tikzprims@handleoptions{\unexpanded{#1#2}[/utils/exec={\unexpanded\@xp{\sseq@savedoptioncode}}]}}}
     \fi
 }
-\def\sseq@pgfmathparse@rescan#1{\catcode`\&=12\relax\scantokens{\pgfmathparse{#1}}}
+\def\sseq@pgfmathparse@rescan#1{\makeatletter\catcode`\&=12\relax\scantokens{\pgfmathparse{#1}}}
 
 %%% Coordinate parser, copied from tikz.code.tex and modified I think?
 \def\sseq@tikzprimitives@coords#1{\def\sseq@temp{}\sseq@tikzprimitives@coords@#1(\sseq@nil)}
@@ -2489,15 +2609,27 @@
     \protected@edef\sseq@temp@i{#2}
     \edef\sseq@temp@ii{#2}
     \ifx\sseq@temp@i\sseq@temp@ii
-        \sseq@iffullcoord(#2){\sseq@tikzprimitive@getcoord#2\sseq@nil}{\sseq@tikzprimitive@getcoord#2,\sseq@nil}
-        \sseq@obj@ifundef{partcoord.(\sseq@tempx,\sseq@tempy).numnodes}{}{
-            \def\next##1##2{\sseq@tikzprimitives@coords@}
-            \sseq@whichclass\sseq@n\sseq@tempx\sseq@tempy\sseq@tempn{coordinate (#2) of tikz primitive}
-            \sseq@x@addto@macro\sseq@temp{\unexpanded{#1}(sseq{\sseq@tempx,\sseq@tempy,\sseq@n}\sseq@tempanchor)}
+        \sseq@tikzprimitives@checkintcoords{#2}{
+            \sseq@parsecoord\coord{#2}{TODO: what am I}
+            \sseq@obj@ifundef{partcoord.(\coord@partial).numnodes}{}{
+                \def\next##1##2{\sseq@tikzprimitives@coords@}
+                \sseq@x@addto@macro\sseq@temp{\unexpanded{#1}(sseq{\sseq@removeparens\coord})}%\sseq@tempanchor % TODO: Fix anchors
+            }
         }
     \fi
     \next{#1}{#2}
 }
+
+\def\sseq@tikzprimitives@checkintcoords#1{\sseq@tikzprimitives@checkintcoords@#1,\sseq@nil}
+
+\def\sseq@tikzprimitives@checkintcoords@#1,#2,#3\sseq@nil{%
+    \sseq@ifint{#1}{%
+        \sseq@ifint{#2}{%
+            \@firstofone
+        }{\@gobble}%
+    }{\@gobble}%
+}
+
 \let\sseq@tikzprimitives@coords@maybeclass@save\sseq@tikzprimitives@coords@maybeclass
 
 \def\sseq@tikzprimitives@coords@notaclass#1#2{\sseq@xprotected@addto@macro\sseq@temp{\unexpanded{#1}(#2)}\sseq@tikzprimitives@coords@}
@@ -2536,14 +2668,9 @@
     \fi
     \def\sseq@isaliveprotect\sseq@isalive@{\protect\isalive}
     \edef\sseq@error@annotation{\unexpanded{.^^J(In page constraint "#1")}\unexpanded\@xp{\sseq@error@annotation}}
-    \sseq@pageconstraint@checkerror
+    \sseq@parsecoordex@reporterror{\sseq@pageconstraint}
     \egroup
 }
-
-\edef\sseq@pageconstraint@checkerror{
-    \unexpanded{\@xp\sseq@pageconstraint@checkerror@\sseq@pageconstraint}\@xp\@nx\csname sseq@error \endcsname{}\@nx\sseq@nil
-}
-\@xp\def\@xp\sseq@pageconstraint@checkerror@\@xp#\@xp1\csname sseq@error \endcsname#2#3\sseq@nil{\ifx\sseq@nil#3\sseq@nil\else\sseq@error{#2}\fi}
 
 
 % This protect variant allows us to delay evaluation of \isalive, just so that we can
@@ -2567,25 +2694,20 @@
         &&\@xp\sseq@isalive@list\@xp#2%
     \fi
 }
-\def\sseq@isalive@parens(#1){\sseq@parsecoordsex\sseq@isalive@parens@{#1}}
-\def\sseq@isalive@parens@#1{\sseq@isalive@parens@@#1,,\sseq@nil}
-\def\sseq@isalive@parens@@#1,#2,#3,#4\sseq@nil{%
-    \sseq@obj@ifundef{partcoord.(#1,#2).numnodes}{%
-        \sseq@error{No class yet exists in position (#1,#2), so you can't check whether it is alive or not}%
-    }{%
-        \sseq@whichclassex{\sseq@isalive@parens@@@{#1}{#2}}{#1}{#2}{#3}{page constraint \protect\isalive(#1,#2,#3)}%
-    }%
+\def\sseq@isalive@parens(#1){\sseq@parsecoordex\sseq@isalive@parens@{#1}{}}
+\def\sseq@isalive@parens@#1{\sseq@isalive@parens@@#1}
+\def\sseq@isalive@parens@@#1{
+    \ifx\sseq@error#1\else
+        \@xp\sseq@isalive@parens@@@
+    \fi#1%
 }
-\def\sseq@isalive@parens@@@#1#2#3{%
-    \ifnum1=\numexpr 1#3\relax % If there wasn't an error in \sseq@whichclassex, then #3 is a number which gets appended to 1 and the check fails.
-        #3 % #3 is an error, report it (obviously it is just stored here, \sseq@pageconstraint@checkerror will deal with it).
-    \else
-        \sseq@obj@ifundef{class.(#1,#2,#3).num}{%
-            \sseq@error{Fewer than #3 classes exist in position (#1,#2) so you can't check whether (#1,#2,#3) is alive}%
-        }{%
-            \@nx\sseq@isalive@final{#1}{#2}{#3}{\sseq@obj{class.(#1,#2,#3).num}}%
-        }%
-    \fi
+
+\def\sseq@isalive@parens@@@(#1,#2,#3){%
+    \sseq@obj@ifundef{class.(#1,#2,#3).num}{%
+        \sseq@error{Fewer than #3 classes exist in position (#1,#2) so you can't check whether (#1,#2,#3) is alive}%
+    }{%
+        \@nx\sseq@isalive@final{#1}{#2}{#3}{\sseq@obj{class.(#1,#2,#3).num}}%
+    }%
 }
 \def\sseq@isalive@final#1#2#3#4{
     \ifnum\sseq@obj{class.(#1,#2,#3)[#4].page}<\sseq@thepage\space
@@ -2624,24 +2746,21 @@
 
 \def\sseq@class{\@ifnextchar[{\sseq@class@}{\sseq@class@[]}}%}
 \def\sseq@class@[#1]{\sseq@eatspacesthen{\sseq@class@@[#1]}}
-\def\sseq@class@@[#1](#2,#3){
+\def\sseq@class@@[#1](#2){
     \begingroup
-    \sseq@esetthiscall{\string\class\ifx\sseq@nil#1\sseq@nil\else[\unexpanded{#1}]\fi\unexpanded{(#2,#3)}}
+    \sseq@esetthiscall{\string\class\ifx\sseq@nil#1\sseq@nil\else[\unexpanded{#1}]\fi\unexpanded{(#2)}}
     \gdef\sseq@classnodetext{}
     \gdef\sseq@classnodetextoptions{}
     \gdef\sseq@classlabelnodes{}
     \sseq@processoptions{class}{#1}% Outputs result into \sseq@savedoptioncode
-    \@ifundefined{sseq@temp@page}{}{\sseq@error{You can only use the \@nx\page option with \@nx\classoptions, not with \string\class}}
+    \@ifundefined{sseq@temp@page}{}{\sseq@error{You can only use the "page" option with \@nx\classoptions, not with \string\class}}
+    \@ifundefined{sseq@temp@gen}{}{\sseq@error{You can only use the "gen" option with \@nx\classoptions, not with \string\class}}
 %
-    \sseq@tempx=\numexpr#2\relax
-    \advance\sseq@tempx\sseq@x\relax
-    \sseq@tempy=\numexpr#3\relax
-    \advance\sseq@tempy\sseq@y\relax
-    \edef\partialcoord{\the\sseq@tempx,\the\sseq@tempy}
-    \sseq@xminmax{\the\sseq@tempx}{\the\sseq@tempy}
-    \sseq@yminmax{\the\sseq@tempx}{\the\sseq@tempy}
-    \sseq@tempcount=\sseq@obj@ifundef{partcoord.(\partialcoord).numnodespp}{1}{\sseq@obj{partcoord.(\partialcoord).numnodespp}}
-    \edef\nodenum{\the\sseq@tempcount}
+    \sseq@cparsecoord{#2}{}
+
+    \sseq@xminmax{\xcoord}{\ycoord}
+    \sseq@yminmax{\xcoord}{\ycoord}
+    \edef\nodenum{\sseq@obj@ifundef{partcoord.(\partialcoord).numnodespp}{1}{\sseq@obj{partcoord.(\partialcoord).numnodespp}}}
     \ifsseq@hasname
         \ifsseq@keepchanges\else
             \ifnum\sseq@tempcount=1\relax
@@ -2653,30 +2772,36 @@
         \fi
     \fi
 %
-    \sseq@obj@xdef{partcoord.(\partialcoord).numnodes}{\the\sseq@tempcount}
-    \advance\sseq@tempcount1\relax
-    \sseq@obj@xdef{partcoord.(\partialcoord).numnodespp}{\the\sseq@tempcount}
-    \edef\coord{(\the\sseq@tempx,\the\sseq@tempy,\nodenum)}%
-    \def\classname{class.\coord[0]}
+    \sseq@obj@xdef{partcoord.(\partialcoord).numnodes}{\nodenum}
+    \sseq@obj@xdef{partcoord.(\partialcoord).numnodespp}{\the\numexpr\nodenum+1}
+    \edef\coord{(\xcoord,\ycoord,\nodenum)}%
+    \edef\classname{class.\coord[0]}
     \ifx\sseq@class@tag\pgfutil@empty\else
-        \@xp\xdef\csname sseq@class@\partialcoord @\sseq@class@tagprefix\sseq@class@tag\endcsname{\nodenum}
+        \sseq@obj@ifundef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{%
+            \sseq@obj@xdef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{\nodenum}%
+        }{%
+            \sseq@error{Tag already defined TODO improve this error}%
+        }
     \fi
 %
     \sseq@obj@gdef{class.\coord.num}{0}% For \replaceclass
-    \sseq@obj@new{\classname}
+    \sseq@obj@xdef{\classname.page}{\sseq@infinity}
     \sseq@obj@xodef{\classname.options}{\sseq@savedoptioncode}
     \sseq@obj@xodef{\classname.nodetext}{\sseq@classnodetext}
     \sseq@obj@xodef{\classname.nodetext.options}{\sseq@classnodetextoptions}
     \sseq@obj@xodef{\classname.labelnodes}{\sseq@classlabelnodes}
-    \sseq@obj@xdef{class.\coord.x}{\the\sseq@tempx}
-    \sseq@obj@xdef{class.\coord.y}{\the\sseq@tempy}
-    \sseq@obj@ifundef{\classname.dependencies}{\sseq@obj@gdef{\classname.dependencies}{}}{}
+    \sseq@obj@xdef{class.\coord.x}{\xcoord}
+    \sseq@obj@xdef{class.\coord.y}{\ycoord}
+    \sseq@obj@gdef{\classname.dependencies}{}
     \sseq@obj@xdef{\classname.needstikz}{\ifsseq@needstikz\@nx\sseq@needstikztrue\fi}
 %
     \sseq@savedpaths@addclass{class.\coord}
     \sseq@obj@gdef{class.\coord.style}{}
     \endgroup
 }
+
+
+
 
 \def\sseq@classoptions{\begingroup\@ifnextchar[{\sseq@classoptions@}{\sseq@error{There is no reason to use \@nx\classoptions without giving options}{}}}%]
 \def\sseq@classoptions@[#1]{\sseq@eatspacesthen{\sseq@classoptions@main[#1]}}
@@ -2688,16 +2813,7 @@
     \gdef\sseq@classlabelnodes{}
     \sseq@processoptions{class}{#1}% Outputs result into \sseq@savedoptioncode
 %
-    \sseq@parsecommas(#2)
-    \sseq@arg@checkpresent\replaceclass1
-    \sseq@arg@checkpresent\replaceclass2
-    \sseq@tempx=\sseq@x
-    \advance\sseq@tempx\sseq@arg1\relax
-    \sseq@tempy=\sseq@y
-    \advance\sseq@tempy\sseq@arg2\relax
-    \sseq@obj@ifundef{partcoord.(\the\sseq@tempx,\the\sseq@tempy).numnodes}{\sseq@error{No class in the specified position exists}{}}{}
-    \sseq@whichclass\sseq@n{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}3}{replace class command '\sseq@thiscall'}
-    \edef\coord{(\the\sseq@tempx,\the\sseq@tempy,\sseq@n)}
+    \sseq@parsecoord\coord{#2}{}
 
     \@ifundefined{sseq@temp@page}{
         \@ifundefined{sseq@gen}{
@@ -2840,27 +2956,15 @@
     \gdef\sseq@classnodetextoptions{}
     \gdef\sseq@classlabelnodes{}
     \sseq@processoptions{class}{#1}% Outputs result into \sseq@savedoptioncode
-    \sseq@parsecommas(#2)
-    \sseq@replaceclass@@@{#1}
-}
+    \sseq@parsecoord\coord{#2}{}
 
-\def\sseq@replaceclass@@@#1{%
-    \sseq@arg@checkpresent\replaceclass1%
-    \sseq@arg@checkpresent\replaceclass2%
-    \sseq@tempx=\sseq@x
-    \advance\sseq@tempx\sseq@arg1\relax
-    \sseq@tempy=\sseq@y
-    \advance\sseq@tempy\sseq@arg2\relax
-    \sseq@whichclass\sseq@n{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}3}{replace class command '\sseq@thiscall'}
-    \edef\coord{(\sseq@arg1,\sseq@arg2,\sseq@n)}%
-    \edef\coordname{(\sseq@arg1,\sseq@arg2\sseq@optargc3)}%
     \sseq@ifundefcoord\coord{\sseq@error{There never was a class at \coordname\space so I cannot replace it}{}}{}
     \sseq@ifdead\coord{}{\sseq@error{I cannot replace the class at \coordname\space because it seems to be alive and well}{}}
     \sseq@cleanup@obj{class.\coord.num}
     \sseq@obj@inc{class.\coord.num}
     \edef\classname{class.\coord[\sseq@obj{class.\coord.num}]}
 %
-    \sseq@obj@new{\classname}
+    \sseq@obj@xdef{\classname.page}{\sseq@infinity}
     \sseq@obj@xodef{\classname.options}{\sseq@savedoptioncode}
     \sseq@obj@xodef{\classname.nodetext}{\sseq@classnodetext}
     \sseq@obj@xodef{\classname.nodetext.options}{\sseq@classnodetextoptions}
@@ -2907,13 +3011,13 @@
 %%% \d and \doptions
 %%%
 
-\bgroup\lccode`@=`\#\lccode`Y=`Y\lccode`S=`S \lowercase{\egroup
+\bgroup\lccode`*=`\#\lccode`Y=`Y\lccode`S=`S \lowercase{\egroup
     \def\sseq@d@error@nodegree#1){%(
         \sseq@setthiscall\@xp{\string\d#1)}
         \sseq@error{
             You must specify the degree of your spectral sequence if you want to use the differential command \string\d.
-            Specify the degree by providing 'degree={f(@1)}{g(@1)}' as an option to '\string\begin{sseqdata}',
-            where f(@1) and g(@1) are formulas for the x and y degree of the @1th page differential%
+            Specify the degree by providing 'degree={f(*1)}{g(*1)}' as an option to '\string\begin{sseqdata}',
+            where f(*1) and g(*1) are formulas for the x and y degree of the *1th page differential%
         }
     }
 }
@@ -2924,8 +3028,12 @@
     \begingroup
     \sseq@processoptions{differential}{#2}% Outputs result into \sseq@savedoptioncode
     \sseq@esetthiscall{\@xp\string\csname#1\endcsname\ifx\sseq@nil#2\sseq@nil\else[\unexpanded{#2}]\fi\unexpanded{#3(#4)}}
-    \sseq@tempcount=#3\relax % this is a convenient way to get rid of spaces because #3 has to be a number
-    \@xp\sseq@dsetupsourceandtarget\@xp{\the\sseq@tempcount}{#4}
+    \sseq@ifint{#3}{
+        \sseq@tempcount=#3\relax % this is a convenient way to get rid of spaces because #3 has to be a number
+    }{
+        \sseq@error{Invalid page "#3"}
+    }
+    \@xp\sseq@dparsecoord\@xp{\the\sseq@tempcount}{#4}
     \sseq@eval{\unexpanded{\csname sseq@d@#1\endcsname{#2}}{\the\sseq@tempcount}}{#4}%
     \endgroup
 }
@@ -2952,18 +3060,18 @@
     \sseq@d@setpageminrec{class.\target}{#2}{target}
 %
     \ifnum\sseq@obj{partcoord.(\sourcecoord).numnodes}=1\relax\else
-        \@ifundefined{sseq@arg3}{\sseq@error{%
+        \@ifundefined{source@exampleindex}{}{\sseq@error{%
             There are multiple nodes at source coordinate (\sourcecoord) so instead of '\sseq@thiscall' you should say
-            '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(\sourcecoord,n\sseq@optargc4)' where n specifies which of the
+            '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2\source@exampleindex' where n specifies which of the
             \sseq@obj{partcoord.(\sourcecoord).numnodes} nodes at (\sourcecoord) should be the source%
-        }{}}{}%
+        }{}}%
     \fi
     \ifnum\sseq@obj{partcoord.(\targetcoord).numnodes}=1\relax\else
-        \@ifundefined{sseq@arg4}{\sseq@error{%
+        \@ifundefined{target@exampleindex}{}{\sseq@error{%
             There are multiple nodes at target coordinate (\targetcoord) so instead of '\sseq@thiscall' you should say
-            '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2(\sourcecoord,\sseq@optarg{}3,n)' where n specifies which of the
+            '\string\d\ifx\sseq@nil#1\sseq@nil \else[#1]\fi#2\target@exampleindex' where n specifies which of the
             \sseq@obj{partcoord.(\targetcoord).numnodes} nodes at (\targetcoord) should be the target%
-        }{}}{}%
+        }}{}%
     \fi
 %
     \sseq@obj@gdef{d.#2\source\target.page}{#2}
@@ -2990,26 +3098,6 @@
 }
 
 % Some helper macros:
-\def\sseq@dsetupsourceandtarget#1#2{
-    \sseq@parsecommas(#2)
-    \sseq@arg@checkpresent\d1
-    \sseq@arg@checkpresent\d2
-    \sseq@tempx=\sseq@x
-    \advance\sseq@tempx\sseq@arg1\relax
-    \sseq@tempy=\sseq@y
-    \advance\sseq@tempy\sseq@arg2\relax
-    \sseq@whichclass\tempn{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}3}{source of differential '\sseq@thiscall'}
-    \edef\sourcecoord{\the\sseq@tempx,\the\sseq@tempy}
-    \edef\sourcename{(\sourcecoord\sseq@optargc3)}
-    \edef\source{(\sourcecoord,\tempn)}
-%
-    \sseq@tempx=\numexpr\the\sseq@tempx+\sseq@targetx{#1}\relax
-    \sseq@tempy=\numexpr\the\sseq@tempy+\sseq@targety{#1}\relax
-    \sseq@whichclass\tempn{\the\sseq@tempx}{\the\sseq@tempy}{\sseq@optarg{}4}{target of differential '\sseq@thiscall'}
-    \edef\targetcoord{\the\sseq@tempx,\the\sseq@tempy}
-    \edef\targetname{(\targetcoord\sseq@optargc4)}
-    \edef\target{(\targetcoord,\tempn)}
-}
 
 \def\sseq@d@setpageminrec#1#2#3{% not really recursive.
     \sseq@cleanup@obj{#1[\sseq@obj{#1.num}].page}
@@ -3109,43 +3197,18 @@
 % #1 is telling us whether we've been called from \structline or \structlineoptions
 \def\sseq@structline@setup#1{\@ifnextchar[{\sseq@structline@setup@{#1}}{\sseq@structline@setup@{#1}[]}}
 \def\sseq@structline@setup@#1[#2]#3)#4){%((((
+    \begingroup
     \sseq@esetthiscall{\@xp\string\csname#1\endcsname\ifx\sseq@nil#2\sseq@nil\else[\unexpanded{#2}]\fi\unexpanded{#3)#4)}}
-    \sseq@eval{\unexpanded{\sseq@structline@setup@@{#1}[#2]}\sseq@trimleadingspaces#3)\sseq@trimleadingspaces#4)}
+    \sseq@eval{\unexpanded{\sseq@structline@main{#1}[#2]}\sseq@trimleadingspaces#3)\sseq@trimleadingspaces#4)}
 }
 % Pull off [] and (), process the options, pass the coordinates along
-\def\sseq@structline@setup@@#1[#2](#3)(#4){
-    \begingroup
+\def\sseq@structline@main#1[#2](#3)(#4){
     \sseq@processoptions{struct line}{#2}% Outputs result into \sseq@savedoptioncode
-    \sseq@eval{\@nx\sseq@structline@main{#1}{#3}{#4}}
-}
-% #1 is still "structline" or "structlineoptions", #2 and #3 are the coordiantes.
-\def\sseq@structline@main#1#2#3{
-    \def\sseq@thiscmdname{structure line }% To pass error information to \sseq@whichclass%
-    \def\sourcename{(#2)}
-    \def\targetname{(#3)}
-    \sseq@parsecoords\source{#2}
-    \sseq@parsecoords\target{#3}
-    \sseq@eval{
-        \@nx\sseq@structline@main@{#1}% this % is important
-            \@xp\sseq@iffullcoord\@xp(\source){(\source)}{(\source,)}% ensure that the coordinates have three components
-            \@xp\sseq@iffullcoord\@xp(\target){(\target)}{(\target,)}% if the only have two, insert an empty last coordinate
-    }
-    \endgroup
-}
+    \sseq@parsecoord\source{#3}{source of structure line}
+    \sseq@parsecoord\target{#4}{target of structure line}
 
-% #1 is still "structline" or "structlineoptions". Parse the coordinates, and store them in \source and \target
-\def\sseq@structline@main@#1(#2,#3,#4)(#5,#6,#7){
-    \sseq@tempx=\sseq@x\advance\sseq@tempx#2\relax
-    \sseq@tempy=\sseq@y\advance\sseq@tempy#3\relax
-    \sseq@tempxb=\sseq@x\advance\sseq@tempxb#5\relax
-    \sseq@tempyb=\sseq@y\advance\sseq@tempyb#6\relax
-    \sseq@whichclass\sseq@na{\the\sseq@tempx}{\the\sseq@tempy}{#4}{source of structure line '\sseq@thiscall'}%
-    \sseq@whichclass\sseq@nb{\the\sseq@tempxb}{\the\sseq@tempyb}{#7}{target of structure line '\sseq@thiscall'}%
-    \edef\source{(\the\sseq@tempx,\the\sseq@tempy,\sseq@na)}
-    \edef\target{(\the\sseq@tempxb,\the\sseq@tempyb,\sseq@nb)}
-
-    \sseq@ifundefcoord\target{\sseq@error{Cannot add a structline with target \targetname\space because such a class does not exist}}{}
     \sseq@ifundefcoord\source{\sseq@error{Cannot add a structline with source \sourcename\space because such a class does not exist}}{}
+    \sseq@ifundefcoord\target{\sseq@error{Cannot add a structline with target \targetname\space because such a class does not exist}}{}
     \@ifundefined{sseq@structline@page}{
         \def\sseq@pagemin{0}
         \ifnum\sseq@obj{class.\source.num}>0\relax
@@ -3158,7 +3221,10 @@
             \fi
         \fi
     }{\let\sseq@pagemin\sseq@structline@page}
+
     \csname sseq@structline@#1\endcsname
+
+    \endgroup
 }
 
 
@@ -3177,8 +3243,8 @@
     \sseq@obj@xdef{\sseq@structlinename.source}{\source}
     \sseq@obj@xdef{\sseq@structlinename.target}{\target}
     \sseq@cleanup@obj{structline.\source\target.num}
-    \sseq@obj@adddependence{class.\source}{\sseq@structlinename}% If the source or target is already dead, this will set structlinename.page
-    \sseq@obj@adddependence{class.\target}{\sseq@structlinename}
+    \sseq@class@adddependence{class.\source}{\sseq@structlinename}% If the source or target is already dead, this will set structlinename.page
+    \sseq@class@adddependence{class.\target}{\sseq@structlinename}
     \ifnum\sseq@pagemin<\sseq@obj{\sseq@structlinename.page}\else % If the \structline is dead before it is born, throw an error
         \sseq@error{Structline dies before it is born. Perhaps you meant to specify a different source or target?\@gobble}
     \fi
@@ -3257,18 +3323,11 @@
 
 }
 
-\def\sseq@obj@adddependence#1#2{
-    \sseq@obj@ifundef{#1.num}{
-        \sseq@obj@ifundef{#1[0].dependencies}{
-            \sseq@obj@gdef{#1[0].dependencies}{}
-        }
-        \def\sseq@temp{0}
-    }{
-        \edef\sseq@temp{\sseq@obj{#1.num}}
-        \sseq@d@setpagemin{#2}{\sseq@obj{#1[\sseq@temp].page}}% automatically handles cleanup
-    }
+\def\sseq@class@adddependence#1#2{
+    \edef\sseq@temp{\sseq@obj{#1.num}}
+    \sseq@d@setpagemin{#2}{\sseq@obj{#1[\sseq@temp].page}}% automatically handles cleanup
     \sseq@cleanup@obj{#1[\sseq@temp].dependencies}
-    \sseq@obj@xaddtolist{#1[\sseq@temp].dependencies}{#2}
+    \sseq@obj@xaddto{#1[\sseq@temp].dependencies}{\@nx\\{#2}}
 }
 
 \def\sseq@structline@draw@ifpage#1{
