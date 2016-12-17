@@ -9,6 +9,8 @@
 % TODO:
 % manual
 %
+% Repeated tags error
+% names
 %
 % User interface to control arrow head for edges that go off page (option to turn ellipses off)
 % Make shift={coord} work
@@ -121,6 +123,10 @@
 \def\sseq@infinity{10000} % Larger than any coordinate anyone will ever use.
 \def\sseq@macroname{\@xp\@gobble\string}
 \def\sseq@gobble@to@nil#1\sseq@nil{}
+
+\def\sseq@callas#1{\def\sseq@callcmd{#1}}
+\def\sseq@call#1{\bgroup\@xp\let\sseq@callcmd#1\@xptwo\egroup\sseq@callcmd}
+%\def\sseq@call#1{#1}
 
 \def\sseq@getfirstchar#1#2\sseq@nil{#1} % used in shift/checkshift transform
 \def\sseq@smuggle@macro#1#2\egroup{\@xp\egroup\@xp\def\@xp#1\@xp{#1}}
@@ -2556,6 +2562,83 @@
     \endgroup
 }
 
+\def\sseq@defer@tikzcommand#1{%
+    \begingroup
+    \let\sseq@isaliveprotect\sseq@isaliveprotect@protect
+    \sseq@callas{#1}%
+    \gdef\sseq@temp{#1}%
+    \sseq@defer@tikzcommand@
+}
+
+\def\sseq@defer@tikzcommand@{%
+    \futurelet\test\sseq@defer@tikzcommand@@
+}
+
+\def\sseq@defer@tikzcommand@@{%
+    \ifx\test;
+        \let\next\sseq@defer@tikzcommand@finish
+    \else
+        \ifx\test[%
+            \let\next\sseq@defer@tikzcommand@option
+        \else
+            \ifx\test(%
+                \let\next\sseq@defer@tikzcommand@coord
+            \else
+                \@xp\ifx\space\test
+                    \let\next\sseq@defer@tikzcommand@space
+                \else
+                    \ifx\test\bgroup
+                        \let\next\sseq@defer@tikzcommand@group
+                    \else
+                        \let\next\sseq@defer@tikzcommand@other
+                    \fi
+                \fi
+            \fi
+        \fi
+    \fi
+    \sseq@call{\next}%
+}
+
+
+\def\sseq@defer@tikzcommand@option[#1]{%
+    \sseq@processoptions{tikz primitives}{#1}%
+    \sseq@x@addto@macro\sseq@temp{[/utils/exec={\unexpanded\@xp{\sseq@savedoptioncode}}]}%
+    \sseq@defer@tikzcommand@
+}
+
+\def\sseq@defer@tikzcommand@coord(#1){%
+    \sseq@tikzprimitives@coord(#1)%
+    \sseq@defer@tikzcommand@
+}
+
+\def\sseq@defer@tikzcommand@group#1{%
+    \sseq@g@addto@macro\sseq@temp{{#1}}%
+    \sseq@defer@tikzcommand@
+}
+
+\def\sseq@defer@tikzcommand@other#1{%
+    \sseq@g@addto@macro\sseq@temp{#1}%
+    \sseq@defer@tikzcommand@
+}
+
+\@xp\def\@xp\sseq@defer@tikzcommand@space\space{%
+    \sseq@g@addto@macro\sseq@temp{ }%
+    \sseq@defer@tikzcommand@
+}
+
+\def\sseq@defer@tikzcommand@finish;{
+    \sseq@g@addto@macro\sseq@temp{;}
+    \ifx\sseq@pageconstraint\sseq@pageconstraint@true
+        \sseq@savedpaths@xadd{\unexpanded\@xp{\sseq@temp}}%
+    \else
+        \sseq@savedpaths@xadd{%
+            \@nx\sseq@tikzcommand@conditionaldraw{\unexpanded\@xp{\sseq@temp}}{\unexpanded\@xp{\sseq@pageconstraint}}
+        }%
+    \fi
+    \endgroup
+}
+
+
 \def\sseq@tikzcommand@conditionaldraw#1#2{%
     \sseq@pgfmathparse@rescan{#2}%
     \ifnum\pgfmathresult>0\relax #1 \fi
@@ -2573,75 +2656,64 @@
 \def\sseq@pgfmathparse@rescan#1{\makeatletter\catcode`\&=12\relax\scantokens{\pgfmathparse{#1}}}
 
 %%% Coordinate parser, copied from tikz.code.tex and modified I think?
-\def\sseq@tikzprimitives@coords#1{\def\sseq@temp{}\sseq@tikzprimitives@coords@#1(\sseq@nil)}
-\def\sseq@tikzprimitives@coords@#1(#2){
-    \ifx\sseq@nil#2
-        \let\next\@gobbletwo
-        \sseq@g@addto@macro\sseq@temp{#1}
-    \else
-        \let\next\sseq@tikzprimitives@coords@notaclass
-        \ifsseq@tikzprims@integershift
-            \pgfutil@in@${#2}
-            \ifpgfutil@in@
-                \let\next\sseq@tikzprimitives@coords@handlemath
-            \else
-                \pgfutil@in@:{#2}
+\def\sseq@tikzprimitives@coord(#1){
+    \let\next\sseq@tikzprimitives@coords@notaclass
+    \ifsseq@tikzprims@integershift
+        \pgfutil@in@${#1}
+        \ifpgfutil@in@
+            \let\next\sseq@tikzprimitives@coords@handlemath
+        \else
+            \pgfutil@in@:{#1}
+            \ifpgfutil@in@\else
+                \pgfutil@in@{intersection}{#1}
                 \ifpgfutil@in@\else
-                    \pgfutil@in@{intersection}{#2}
+                    \pgfutil@in@|{#1}%
                     \ifpgfutil@in@\else
-                        \pgfutil@in@|{#2}%
-                        \ifpgfutil@in@\else
-                            \pgfutil@in@,{#2}
-                            \ifpgfutil@in@
-                                \let\next\sseq@tikzprimitives@coords@maybeclass
-                            \fi
+                        \pgfutil@in@,{#1}
+                        \ifpgfutil@in@
+                            \let\next\sseq@tikzprimitives@coords@maybeclass
                         \fi
                     \fi
                 \fi
             \fi
         \fi
     \fi
-    \next{#1}{#2}
+    \next{#1}
 }
 
-\def\sseq@tikzprimitives@coords@maybeclass#1#2{
-    \let\next\sseq@tikzprimitives@coords@notaclass
-    \protected@edef\sseq@temp@i{#2}
-    \edef\sseq@temp@ii{#2}
+\def\sseq@tikzprimitives@coords@maybeclass#1{
+    \protected@edef\sseq@temp@i{#1}
+    \edef\sseq@temp@ii{#1}
     \ifx\sseq@temp@i\sseq@temp@ii
-        \sseq@tikzprimitives@checkintcoords{#2}{
-            \sseq@parsecoord\coord{#2}{TODO: what am I}
-            \sseq@obj@ifundef{partcoord.(\coord@partial).numnodes}{}{
-                \def\next##1##2{\sseq@tikzprimitives@coords@}
-                \sseq@x@addto@macro\sseq@temp{\unexpanded{#1}(sseq{\sseq@removeparens\coord})}%\sseq@tempanchor % TODO: Fix anchors
+        \sseq@tikzprimitives@ifintcoords{#1}{
+            \sseq@parsecoord\coord{#1}{TODO: what am I}
+            \sseq@obj@ifundef{partcoord.(\coord@partial).numnodes}{\sseq@tikzprimitives@coords@notaclass{#1}}{
+                \sseq@x@addto@macro\sseq@temp{(sseq{\sseq@removeparens\coord})}%\sseq@tempanchor % TODO: Fix anchors
             }
-        }
+        }{\sseq@tikzprimitives@coords@notaclass{#1}}
+    \else
+        \sseq@tikzprimitives@coords@notaclass{#1}
     \fi
-    \next{#1}{#2}
 }
+\let\sseq@tikzprimitives@coords@maybeclass@save\sseq@tikzprimitives@coords@maybeclass
+\def\sseq@tikzprimitives@coords@notaclass#1{\sseq@xprotected@addto@macro\sseq@temp{(#1)}}
 
-\def\sseq@tikzprimitives@checkintcoords#1{\sseq@tikzprimitives@checkintcoords@#1,\sseq@nil}
+\def\sseq@tikzprimitives@ifintcoords#1{\sseq@tikzprimitives@ifintcoords@#1,\sseq@nil}
 
-\def\sseq@tikzprimitives@checkintcoords@#1,#2,#3\sseq@nil{%
+\def\sseq@tikzprimitives@ifintcoords@#1,#2,#3\sseq@nil{%
     \sseq@ifint{#1}{%
         \sseq@ifint{#2}{%
-            \@firstofone
-        }{\@gobble}%
-    }{\@gobble}%
+            \@firstoftwo
+        }{\@secondoftwo}%
+    }{\@secondoftwo}%
 }
 
-\let\sseq@tikzprimitives@coords@maybeclass@save\sseq@tikzprimitives@coords@maybeclass
 
-\def\sseq@tikzprimitives@coords@notaclass#1#2{\sseq@xprotected@addto@macro\sseq@temp{\unexpanded{#1}(#2)}\sseq@tikzprimitives@coords@}
-\def\sseq@tikzprimitives@coords@handlemath#1#2{\sseq@tikzprimitives@coords@handlemath@{#1}(#2)}
+
+
+\def\sseq@tikzprimitives@coords@handlemath#1{\sseq@tikzprimitives@coords@handlemath@(#1)}
 \def\sseq@tikzprimitives@coords@handlemath@#1$#2$){\sseq@g@addto@macro\sseq@temp{#1$#2$)}}
-\def\sseq@tikzprimitive@getcoord#1,#2,#3\sseq@nil{
-    \pgfmathparse{\sseq@x+#1}
-    \sseq@ifpgfmathresultisint{\edef\sseq@tempx{\@xp\sseq@uptopt\pgfmathresult\sseq@nil}}{\def\sseq@tempx{nope}}% this nope is actually fine...
-    \pgfmathparse{\sseq@y+#2}
-    \sseq@ifpgfmathresultisint{\edef\sseq@tempy{\@xp\sseq@uptopt\pgfmathresult\sseq@nil}}{\def\sseq@tempy{nope}}
-    \sseq@tikzprimitive@getcoord@anchor#3.\sseq@nil
-}
+
 \def\sseq@tikzprimitive@getcoord@anchor#1.#2\sseq@nil{
     \def\sseq@tempn{#1}
     \ifx\sseq@nil#2\sseq@nil
@@ -2709,17 +2781,17 @@
         \@nx\sseq@isalive@final{#1}{#2}{#3}{\sseq@obj{class.(#1,#2,#3).num}}%
     }%
 }
-\def\sseq@isalive@final#1#2#3#4{
+\def\sseq@isalive@final#1#2#3#4{%
     \ifnum\sseq@obj{class.(#1,#2,#3)[#4].page}<\sseq@thepage\space
-        0
+        0%
     \else
         \ifnum#4=0\space
-            1
+            1%
         \else
             \ifnum\sseq@obj{class.(#1,#2,#3)[\the\numexpr #4-1\relax].page}=\sseq@thepage\space
-                0
+                0%
             \else
-                1
+                1%
             \fi
         \fi
     \fi
@@ -2729,9 +2801,9 @@
 %%% Scope
 \def\sseq@scope{\@ifnextchar[{\sseq@scope@}{\sseq@scope@[]}}%]
 \def\sseq@scope@[#1]{%
-    \sseq@scope@savedpaths@add{\begin{scope}}
+    \sseq@scope@savedpaths@add{\begin{scope}}%
     \sseq@processoptions{scope}{#1}% outputs into \sseq@savedoptioncode
-    \@xp\sseq@scope@savedpaths@add\@xp{\sseq@savedoptioncode\tikz@options}
+    \@xp\sseq@scope@savedpaths@add\@xp{\sseq@savedoptioncode\tikz@options}%
 }
 \def\sseq@endscope{\sseq@scope@savedpaths@add{\end{scope}}}
 
@@ -2744,78 +2816,85 @@
 
 %%% \class, \classoptions, \replaceclass
 
-\def\sseq@class{\@ifnextchar[{\sseq@class@}{\sseq@class@[]}}%}
-\def\sseq@class@[#1]{\sseq@eatspacesthen{\sseq@class@@[#1]}}
-\def\sseq@class@@[#1](#2){
+\def\sseq@class{%
     \begingroup
-    \sseq@esetthiscall{\string\class\ifx\sseq@nil#1\sseq@nil\else[\unexpanded{#1}]\fi\unexpanded{(#2)}}
-    \gdef\sseq@classnodetext{}
-    \gdef\sseq@classnodetextoptions{}
-    \gdef\sseq@classlabelnodes{}
+    \sseq@callas{\class}%
+    \@ifnextchar[{\sseq@call{\sseq@class@}}{\sseq@call{\sseq@class@@}[]}%
+}%}
+\def\sseq@class@[#1]{\sseq@eatspacesthen{\sseq@call{\sseq@class@@}[#1]}}
+\def\sseq@class@@[#1](#2){%
+    \sseq@esetthiscall{\string\class\ifx\sseq@nil#1\sseq@nil\else[\unexpanded{#1}]\fi\unexpanded{(#2)}}%
+    \gdef\sseq@classnodetext{}%
+    \gdef\sseq@classnodetextoptions{}%
+    \gdef\sseq@classlabelnodes{}%
     \sseq@processoptions{class}{#1}% Outputs result into \sseq@savedoptioncode
-    \@ifundefined{sseq@temp@page}{}{\sseq@error{You can only use the "page" option with \@nx\classoptions, not with \string\class}}
-    \@ifundefined{sseq@temp@gen}{}{\sseq@error{You can only use the "gen" option with \@nx\classoptions, not with \string\class}}
+    \@ifundefined{sseq@temp@page}{}{\sseq@error{You can only use the "page" option with \@nx\classoptions, not with \string\class}}%
+    \@ifundefined{sseq@temp@gen}{}{\sseq@error{You can only use the "gen" option with \@nx\classoptions, not with \string\class}}%
 %
-    \sseq@cparsecoord{#2}{}
+    \sseq@cparsecoord{#2}{}%
 
-    \sseq@xminmax{\xcoord}{\ycoord}
-    \sseq@yminmax{\xcoord}{\ycoord}
-    \edef\nodenum{\sseq@obj@ifundef{partcoord.(\partialcoord).numnodespp}{1}{\sseq@obj{partcoord.(\partialcoord).numnodespp}}}
+    \sseq@xminmax{\xcoord}{\ycoord}%
+    \sseq@yminmax{\xcoord}{\ycoord}%
+    \edef\nodenum{\sseq@obj@ifundef{partcoord.(\partialcoord).numnodespp}{1}{\sseq@obj{partcoord.(\partialcoord).numnodespp}}}%
     \ifsseq@hasname
         \ifsseq@keepchanges\else
             \ifnum\sseq@tempcount=1\relax
-                \sseq@obj@gdef{partcoord.(\partialcoord).numnodes}{0}
-                \sseq@obj@gdef{partcoord.(\partialcoord).numnodespp}{1}
+                \sseq@obj@gdef{partcoord.(\partialcoord).numnodes}{0}%
+                \sseq@obj@gdef{partcoord.(\partialcoord).numnodespp}{1}%
             \fi
-            \sseq@cleanup@obj{partcoord.(\partialcoord).numnodes}
-            \sseq@cleanup@obj{partcoord.(\partialcoord).numnodespp}
+            \sseq@cleanup@obj{partcoord.(\partialcoord).numnodes}%
+            \sseq@cleanup@obj{partcoord.(\partialcoord).numnodespp}%
         \fi
     \fi
 %
-    \sseq@obj@xdef{partcoord.(\partialcoord).numnodes}{\nodenum}
-    \sseq@obj@xdef{partcoord.(\partialcoord).numnodespp}{\the\numexpr\nodenum+1}
+    \sseq@obj@xdef{partcoord.(\partialcoord).numnodes}{\nodenum}%
+    \sseq@obj@xdef{partcoord.(\partialcoord).numnodespp}{\the\numexpr\nodenum+1}%
     \edef\coord{(\xcoord,\ycoord,\nodenum)}%
-    \edef\classname{class.\coord[0]}
+    \edef\classname{class.\coord[0]}%
     \ifx\sseq@class@tag\pgfutil@empty\else
         \sseq@obj@ifundef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{%
             \sseq@obj@xdef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{\nodenum}%
         }{%
             \sseq@error{Tag already defined TODO improve this error}%
-        }
+        }%
     \fi
 %
     \sseq@obj@gdef{class.\coord.num}{0}% For \replaceclass
-    \sseq@obj@xdef{\classname.page}{\sseq@infinity}
-    \sseq@obj@xodef{\classname.options}{\sseq@savedoptioncode}
-    \sseq@obj@xodef{\classname.nodetext}{\sseq@classnodetext}
-    \sseq@obj@xodef{\classname.nodetext.options}{\sseq@classnodetextoptions}
-    \sseq@obj@xodef{\classname.labelnodes}{\sseq@classlabelnodes}
-    \sseq@obj@xdef{class.\coord.x}{\xcoord}
-    \sseq@obj@xdef{class.\coord.y}{\ycoord}
-    \sseq@obj@gdef{\classname.dependencies}{}
-    \sseq@obj@xdef{\classname.needstikz}{\ifsseq@needstikz\@nx\sseq@needstikztrue\fi}
+    \sseq@obj@xdef{\classname.page}{\sseq@infinity}%
+    \sseq@obj@xodef{\classname.options}{\sseq@savedoptioncode}%
+    \sseq@obj@xodef{\classname.nodetext}{\sseq@classnodetext}%
+    \sseq@obj@xodef{\classname.nodetext.options}{\sseq@classnodetextoptions}%
+    \sseq@obj@xodef{\classname.labelnodes}{\sseq@classlabelnodes}%
+    \sseq@obj@xdef{class.\coord.x}{\xcoord}%
+    \sseq@obj@xdef{class.\coord.y}{\ycoord}%
+    \sseq@obj@gdef{\classname.dependencies}{}%
+    \sseq@obj@xdef{\classname.needstikz}{\ifsseq@needstikz\@nx\sseq@needstikztrue\fi}%
 %
-    \sseq@savedpaths@addclass{class.\coord}
-    \sseq@obj@gdef{class.\coord.style}{}
+    \sseq@savedpaths@addclass{class.\coord}%
+    \sseq@obj@gdef{class.\coord.style}{}%
     \endgroup
 }
 
 
 
 
-\def\sseq@classoptions{\begingroup\@ifnextchar[{\sseq@classoptions@}{\sseq@error{There is no reason to use \@nx\classoptions without giving options}{}}}%]
-\def\sseq@classoptions@[#1]{\sseq@eatspacesthen{\sseq@classoptions@main[#1]}}
+\def\sseq@classoptions{
+    \begingroup
+    \sseq@callas{\classoptions}
+    \@ifnextchar[{\sseq@call{\sseq@classoptions@}}{\sseq@error{There is no reason to use \@nx\classoptions without giving options}{}}
+}%]
+\def\sseq@classoptions@[#1]{\sseq@eatspacesthen{\sseq@call{\sseq@classoptions@main}[#1]}}
 
-\def\sseq@classoptions@main[#1](#2){
-    \sseq@setthiscall{\classoptions[#1](#2)}
-    \gdef\sseq@classnodetext{}
-    \gdef\sseq@classnodetextoptions{}
-    \gdef\sseq@classlabelnodes{}
+\def\sseq@classoptions@main[#1](#2){%
+    \sseq@setthiscall{\classoptions[#1](#2)}%
+    \gdef\sseq@classnodetext{}%
+    \gdef\sseq@classnodetextoptions{}%
+    \gdef\sseq@classlabelnodes{}%
     \sseq@processoptions{class}{#1}% Outputs result into \sseq@savedoptioncode
 %
-    \sseq@parsecoord\coord{#2}{}
+    \sseq@parsecoord\coord{#2}{}%
 
-    \@ifundefined{sseq@temp@page}{
+    \@ifundefined{sseq@temp@page}{%
         \@ifundefined{sseq@gen}{
             \@ifundefined{sseq@thepage}{
                 \edef\sseq@gen{\sseq@obj{class.\coord.num}}
@@ -2947,10 +3026,13 @@
 
 }
 
-\def\sseq@replaceclass{\@ifnextchar[{\sseq@replaceclass@}{\sseq@replaceclass@[]}}%}
-\def\sseq@replaceclass@[#1]{\sseq@eatspacesthen{\sseq@replaceclass@@[#1]}}
-\def\sseq@replaceclass@@[#1](#2){%
+\def\sseq@replaceclass{%
     \begingroup
+    \sseq@callas{\replaceclass}
+    \@ifnextchar[{\sseq@call{\sseq@replaceclass@}}{\sseq@call{\sseq@replaceclass@@}[]}%]
+}
+\def\sseq@replaceclass@[#1]{\sseq@eatspacesthen{\sseq@call{\sseq@replaceclass@@}[#1]}}
+\def\sseq@replaceclass@@[#1](#2){%
     \sseq@setthiscall{\replaceclass[#1](#2)}
     \gdef\sseq@classnodetext{}
     \gdef\sseq@classnodetextoptions{}
@@ -3021,11 +3103,18 @@
         }
     }
 }
-\def\sseq@d{\pgfutil@ifnextchar[{\sseq@d@{d}}{\sseq@d@{d}[]}} %}
-\def\sseq@doptions{\pgfutil@ifnextchar[{\sseq@d@{doptions}}{\sseq@error{It's pointless to use '\string\doptions' without giving any options}}} %}
+\def\sseq@d{
+    \begingroup
+    \sseq@callas{\d}
+    \pgfutil@ifnextchar[{\sseq@call{\sseq@d@}{d}}{\sseq@call{\sseq@d@}{d}[]}%]
+}
+\def\sseq@doptions{
+    \begingroup
+    \sseq@callas{\doptions}
+    \pgfutil@ifnextchar[{\sseq@call{\sseq@d@}{doptions}}{\sseq@error{It's pointless to use '\string\doptions' without giving any options}}%]
+}
 
 \def\sseq@d@#1[#2]#3(#4){%
-    \begingroup
     \sseq@processoptions{differential}{#2}% Outputs result into \sseq@savedoptioncode
     \sseq@esetthiscall{\@xp\string\csname#1\endcsname\ifx\sseq@nil#2\sseq@nil\else[\unexpanded{#2}]\fi\unexpanded{#3(#4)}}
     \sseq@ifint{#3}{
@@ -3191,15 +3280,14 @@
 %%% \structline and \structlineoptions
 %%%
 
-\def\sseq@structline{\sseq@structline@setup{structline}}%]
-\def\sseq@structlineoptions{\sseq@structline@setup{structlineoptions}}%]
+\def\sseq@structline{\begingroup\sseq@callas{\structline}\sseq@structline@setup{structline}}%]
+\def\sseq@structlineoptions{\begingroup\sseq@callas{\structlineoptions}\sseq@structline@setup{structlineoptions}}%]
 
 % #1 is telling us whether we've been called from \structline or \structlineoptions
-\def\sseq@structline@setup#1{\@ifnextchar[{\sseq@structline@setup@{#1}}{\sseq@structline@setup@{#1}[]}}
+\def\sseq@structline@setup#1{\@ifnextchar[{\sseq@call{\sseq@structline@setup@}{#1}}{\sseq@call{\sseq@structline@setup@}{#1}[]}}
 \def\sseq@structline@setup@#1[#2]#3)#4){%((((
-    \begingroup
     \sseq@esetthiscall{\@xp\string\csname#1\endcsname\ifx\sseq@nil#2\sseq@nil\else[\unexpanded{#2}]\fi\unexpanded{#3)#4)}}
-    \sseq@eval{\unexpanded{\sseq@structline@main{#1}[#2]}\sseq@trimleadingspaces#3)\sseq@trimleadingspaces#4)}
+    \sseq@eval{\unexpanded{\sseq@call{\sseq@structline@main}{#1}[#2]}\sseq@trimleadingspaces#3)\sseq@trimleadingspaces#4)}
 }
 % Pull off [] and (), process the options, pass the coordinates along
 \def\sseq@structline@main#1[#2](#3)(#4){
