@@ -9,7 +9,6 @@
 % TODO:
 % manual
 %
-% Repeated tags error
 % names
 %
 % User interface to control arrow head for edges that go off page (option to turn ellipses off)
@@ -19,11 +18,9 @@
 % improve axes options? allow axis to be centered on coordinate or centered between coordinates
 % Make sure user can't \sseqset{keep changes} inside environment
 %
-% Improve errors
 % Check \sseqset used inside environments
-% Check "change classes" mechanism
 %
-% Make naming of commands more consistent
+% Check "change classes" mechanism
 % Figure out whether e.g., "change classes" could have a better name
 
 \NeedsTeXFormat{LaTeX2e}
@@ -112,7 +109,6 @@
 
 \newdimen\sseq@gridstrokethickness
 \sseq@gridstrokethickness=.1pt
-
 
 % Ensure \@xp and \@nx have the correct values in case that amsmath isn't loaded
 \let\@xp\expandafter
@@ -1480,6 +1476,8 @@
 
 \def\sseq@class@tag{}
 \def\sseq@class@tagprefix{}
+\def\sseq@class@name{}
+\def\sseq@namehandler{\@xp\sseq@normalizepolynomial\@xp{\sseq@class@name}\let\sseq@class@name\sseq@polynomial}
 \def\sseq@currenttag{\sseq@class@tag}% for the user ??
 \pgfqkeys{/sseqpages/scope}{
     tag/.code={\sseq@d@addto@macro\sseq@class@tag{#1}},
@@ -1487,7 +1485,8 @@
 }
 
 \pgfqkeys{/sseqpages/class}{
-    name/.code={\sseq@error{You can't use the 'name' option with the '\@nx\class' command. You should use 'alias' instead}{}},
+    name/.code={\def\sseq@class@name{#1}},
+    show name/.code={\def\sseq@class@showname{#1}},
     page/.code={\sseq@getnumrange\sseq@class@page{#1}},% page & gen are only for \classoptions.
     generation/.code={\sseq@getnumrange\sseq@gen{#1}}, % \class tests if \sseq@class@page is set and throw an error if so.
     tag/.code={\sseq@d@addto@macro\sseq@class@tag{#1}}
@@ -2849,14 +2848,33 @@
 %
     \sseq@obj@xdef{partcoord.(\partialcoord).numnodes}{\nodenum}%
     \sseq@obj@xdef{partcoord.(\partialcoord).numnodespp}{\the\numexpr\nodenum+1}%
-    \edef\coord{(\xcoord,\ycoord,\nodenum)}%
+    \edef\coordnopar{\xcoord,\ycoord,\nodenum}
+    \edef\coord{(\coordnopar)}%
     \edef\classname{class.\coord[0]}%
+
     \ifx\sseq@class@tag\pgfutil@empty\else
         \sseq@obj@ifundef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{%
+            \ifsseq@keepchanges\else
+                \sseq@obj@cleanup{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}
+            \fi
             \sseq@obj@xdef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{\nodenum}%
-        }{%
-            \sseq@error{Tag already defined TODO improve this error}%
-        }%
+        }{\sseq@error{A class with tag '\sseq@class@tagprefix\sseq@class@tag' already defined in position \sseq@partialcoord}}
+    \fi
+
+    \ifx\sseq@class@name\pgfutil@empty\else
+        \sseq@obj@ifundef{class.namedclass.\sseq@class@name}{
+            \ifsseq@keepchanges\else
+                \sseq@obj@cleanup{class.\classname.name}
+                \sseq@obj@cleanup{class.namedclass.\sseq@class@name}
+            \fi
+            \sseq@namehandler
+            \sseq@obj@xdef{class.\classname.name}{\sseq@class@name}
+            \sseq@obj@xdef{class.namedclass.\sseq@class@name}{\coordnopar}
+        }{\sseq@error{A class with name '\sseq@class@name' is already defined}}
+    \fi
+
+    \ifcsname sseq@class@showname\endcsname
+        \sseq@eval{\@nx\sseq@handleclassquotes{\sseq@obj{class.\classname.name}}{\sseq@class@showname}}
     \fi
 %
     \sseq@obj@gdef{class.\coord.num}{0}% For \replaceclass
@@ -2893,6 +2911,33 @@
     \sseq@processoptions{class}{#1}% Outputs result into \sseq@savedoptioncode
 %
     \sseq@parsecoord\coord{#2}{}%
+    \let\partialcoord\coord@partial
+
+    \ifx\sseq@class@tag\pgfutil@empty\else
+        \sseq@obj@ifundef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{%
+            \ifsseq@keepchanges\else
+                \sseq@obj@cleanup{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}
+            \fi
+            \sseq@obj@xdef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{\nodenum}%
+        }{\sseq@error{A class with tag '\sseq@class@tagprefix\sseq@class@tag' already defined in position \sseq@partialcoord}}
+    \fi
+    \ifx\sseq@class@name\pgfutil@empty\else
+        \sseq@obj@ifundef{class.namedclass.\sseq@class@name}{
+            \sseq@obj@ifundef{class.\classname.name}{
+                \ifsseq@keepchanges\else
+                    \sseq@obj@cleanup{class.\classname.name}
+                    \sseq@obj@cleanup{class.namedclass.\sseq@class@name}
+                \fi
+                \sseq@namehandler
+                \sseq@obj@xdef{class.\classname.name}{\sseq@class@name}
+                \sseq@obj@xdef{class.namedclass.\sseq@class@name}{\coordnopar}
+            }{\sseq@error{The class at \coord\space already is named \sseq@obj{class.\classname.name}}}
+        }{\sseq@error{A class with name '\sseq@class@name' is already defined}}
+    \fi
+
+    \ifcsname sseq@class@showname\endcsname
+        \sseq@eval{\@nx\sseq@handleclassquotes{\sseq@obj{class.\classname.name}}{\sseq@class@showname}}
+    \fi
 
     \@ifundefined{sseq@temp@page}{%
         \@ifundefined{sseq@gen}{
@@ -2944,7 +2989,7 @@
     \fi
 
     \sseq@tempcount=\sseq@gen\relax
-    \advance\sseq@tempcount-1
+    \advance\sseq@tempcount-1\relax
     \loop
         \advance\sseq@tempcount1\relax
         \edef\classname{class.\coord[\the\sseq@tempcount]}
@@ -3039,11 +3084,45 @@
     \gdef\sseq@classlabelnodes{}
     \sseq@processoptions{class}{#1}% Outputs result into \sseq@savedoptioncode
     \sseq@parsecoord\coord{#2}{}
+    \let\partialcoord\coord@partial
+
+    \ifx\sseq@class@tag\pgfutil@empty\else
+        \sseq@obj@ifundef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{%
+            \ifsseq@keepchanges\else
+                \sseq@obj@cleanup{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}
+            \fi
+            \sseq@obj@xdef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{\nodenum}%
+        }{\sseq@error{A class with tag '\sseq@class@tagprefix\sseq@class@tag' already defined in position \sseq@partialcoord}}
+    \fi
+    \ifx\sseq@class@name\pgfutil@empty\else
+        \sseq@obj@ifundef{class.namedclass.\sseq@class@name}{
+            \ifsseq@keepchanges\else
+                \sseq@obj@cleanup{class.\classname.name}
+                \sseq@obj@cleanup{class.namedclass.\sseq@class@name}
+            \fi
+            \sseq@namehandler
+            \sseq@obj@xdef{class.\classname.name}{\sseq@class@name}
+            \sseq@obj@xdef{class.namedclass.\sseq@class@name}{\coordnopar}
+        }{\sseq@error{A class with name '\sseq@class@name' is already defined}}
+    \fi
+
+    \ifcsname sseq@class@showname\endcsname
+        \sseq@eval{\@nx\sseq@handleclassquotes{\sseq@obj{class.\classname.name}}{\sseq@class@showname}}
+    \fi
 
     \sseq@ifundefcoord\coord{\sseq@error{There never was a class at \coordname\space so I cannot replace it}{}}{}
     \sseq@ifdead\coord{}{\sseq@error{I cannot replace the class at \coordname\space because it seems to be alive and well}{}}
     \sseq@cleanup@obj{class.\coord.num}
     \sseq@obj@inc{class.\coord.num}
+
+    \let\partialcoord\coord@partial
+    \ifx\sseq@class@tag\pgfutil@empty\else
+        \sseq@obj@ifundef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{%
+            \sseq@obj@xdef{class.\partialcoord.tag.\sseq@class@tagprefix\sseq@class@tag}{\nodenum}%
+        }{%
+            \sseq@error{Tag already defined}% TODO improve this error?
+        }%
+    \fi
     \edef\classname{class.\coord[\sseq@obj{class.\coord.num}]}
 %
     \sseq@obj@xdef{\classname.page}{\sseq@infinity}
