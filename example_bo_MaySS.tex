@@ -16,7 +16,7 @@
     \foreach\i in {1,...,11}{
         \class(\i,\i)
         \structline(\i-1,\i-1,-1)(\i,\i,-1)
-    }    
+    }
 }
 
 \begin{document}
@@ -26,18 +26,18 @@
     \hvee[tag=id](0,0)
     \hvee[tag=h1h2](1,2)
     \hvee[tag=h20](2,1)
-    \foreach\i in {1,...,10}{
-        \d1(2,\i,h20,h1h2)
+    \foreach\j in {1,...,10}{
+        \d1(2,\j,h20,h1h2)
     }
-    \foreach\i in {1,...,10}{
-        \d1(2+\i,1+\i,h20,h1h2)
+    \foreach\j in {1,...,10}{
+        \d1(2+\j,1+\j,h20,h1h2)
     }
     \end{scope}
 }
 
 
 \foreach\i in {0,...,7}{
-    \d2(4+\i,2+\i,1.id,0.id)  
+    \d2(4+\i,2+\i,1.id,0.id)
 }
 \class(12,6)
 \d2(12,6,,1)
