@@ -4,14 +4,36 @@
 \usepackage{amssymb}
 \usepackage{verbatim}
 \usepackage[documentation]{tcolorbox}
+\usepackage{hyperref}
+\hypersetup{%
+        colorlinks=true,
+        linkcolor=blue,
+        filecolor=blue,
+        urlcolor=blue,
+        citecolor=blue,
+        pdfborder=0 0 0,
+}
+%\usepackage{makeidx}
+%\makeindex
 
-\newcommand\Tikz{Ti\textit kZ}
+\makeatletter          % !!!!
+\input{pgfmanual.code} % This must be exectuted when catcode of @ is letter
+\makeatother           % !!!!
+
+\usepackage{calc} %
+\include{pgfmanual-en-macros} % This must be executed when catcode of @ is other
+
+\makeatletter
+
 \parskip=10pt
 \parindent=0pt
 \MakeShortVerb{\|}
-\makeatletter
+
 \def\sectionstring{\textbackslash\@xp\@gobble\string}
+
+%\def
 \makeatother
+
 
 \begin{document}
 \section{Introduction}
@@ -21,7 +43,7 @@
 
 \section{\sectionstring\printpage\ and the sseqpage environment}
 
-\begin{docCommand}{mycommand}{\marg{arg1}\marg{arg2}}
-This is how you use my command.
-\end{docCommand}
+\begin{command}{\d[\meta{options}]\meta{page}\meta{coordinate}}
+This is how you use 
+\end{command}
 \end{document} 
