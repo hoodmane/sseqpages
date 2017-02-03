@@ -13,7 +13,7 @@
 %
 % User interface to control arrow head for edges that go off page (option to turn ellipses off)
 % Make shift={coord} work
-% Fix shifts (what does this mean again? coordinate shifts of some sort?)
+% Fix shifts (what does this mean again? label shifts of some sort?)
 %
 % improve axes options? allow axis to be centered on coordinate or centered between coordinates
 % Make sure user can't \sseqset{keep changes} inside environment
@@ -216,23 +216,23 @@
         \def\next{\csname sseq@ifintexpr@@\sseq@ifintexpr@state @done\endcsname\sseq@nil}%
     \else
         \sseq@ifdigit{#1}%
-            {\@xp\let\@xp\next\csname sseq@ifintexpr@@\sseq@ifintexpr@state @digit\endcsname}%
+            {\sseq@ifintexpr@next{digit}}%
             {%
                 \ifx#1+%
-                    \@xp\let\@xp\next\csname sseq@ifintexpr@@\sseq@ifintexpr@state @+-\endcsname
+                    \sseq@ifintexpr@next{+-}
                 \else
                     \ifx#1-%
-                        \@xp\let\@xp\next\csname sseq@ifintexpr@@\sseq@ifintexpr@state @+-\endcsname
+                        \sseq@ifintexpr@next{+-}
                     \else
                         \ifx#1*%
-                            \@xp\let\@xp\next\csname sseq@ifintexpr@@\sseq@ifintexpr@state @*/\endcsname
+                            \sseq@ifintexpr@next{*/}
                         \else
                             \ifx#1/%
-                                \@xp\let\@xp\next\csname sseq@ifintexpr@@\sseq@ifintexpr@state @*/\endcsname
+                                \sseq@ifintexpr@next{*/}
                             \else
                                 \pgfutil@ifundefined{sseq@ifintexpr@@\sseq@ifintexpr@state @#1}%
                                     {\let\next\sseq@ifintexpr@false}%
-                                    {\@xp\let\@xp\next\csname sseq@ifintexpr@@\sseq@ifintexpr@state @#1\endcsname}%
+                                    {\sseq@ifintexpr@next{#1}}%
                             \fi
                         \fi
                     \fi
@@ -246,6 +246,7 @@
 \def\sseq@ifintexpr@false#1\sseq@nil{\let\next\@secondoftwo}
 
 \def\sseq@makeifint#1#2#3{\@xp\def\csname sseq@ifintexpr@@#1@#2\endcsname{#3}}
+\def\sseq@ifintexpr@next#1{\@xp\let\@xp\next\csname sseq@ifintexpr@@\sseq@ifintexpr@state @#1\endcsname}
 
 \sseq@makeifint{needsint}{done}{\sseq@ifintexpr@false}
 \sseq@makeifint{needsint}{digit}{\sseq@ifintexpr@{int}}
@@ -260,7 +261,14 @@
 \sseq@makeifint{int}{*/}{\sseq@ifintexpr@{needsint}}
 \sseq@makeifint{int}{+-}{\sseq@ifintexpr@{needsint}}
 \sseq@makeifint{int}{(}{\sseq@ifintexpr@false}
-\sseq@makeifint{int}{)}{\advance\sseq@tempcount-1\relax\sseq@ifintexpr@{nointallowed}}
+\sseq@makeifint{int}{)}{
+    \advance\sseq@tempcount-1\relax
+    \ifnum\sseq@tempcount<0\relax
+        \@xp\@xp\@xp\sseq@ifintexpr@false\@xp\@gobble
+    \else
+        \@xp\sseq@ifintexpr@
+    \fi{nointallowed}
+}
 \sseq@makeifint{int}{ }{\sseq@ifintexpr@{nointallowed}}
 
 \sseq@makeifint{nointallowed}{done}{\sseq@ifintexpr@true}
@@ -268,7 +276,14 @@
 \sseq@makeifint{nointallowed}{*/}{\sseq@ifintexpr@{needsint}}
 \sseq@makeifint{nointallowed}{+-}{\sseq@ifintexpr@{needsint}}
 \sseq@makeifint{nointallowed}{(}{\sseq@ifintexpr@false}
-\sseq@makeifint{nointallowed}{)}{\advance\sseq@tempcount-1\relax\sseq@ifintexpr@{nointallowed}}
+\sseq@makeifint{nointallowed}{)}{
+    \advance\sseq@tempcount-1\relax
+    \ifnum\sseq@tempcount<0\relax
+        \@xp\@xp\@xp\sseq@ifintexpr@false\@xp\@gobble
+    \else
+        \@xp\sseq@ifintexpr@
+    \fi{nointallowed}
+}
 \sseq@makeifint{nointallowed}{ }{\sseq@ifintexpr@{nointallowed}}
 
 
@@ -332,6 +347,7 @@
 \cs_new_protected:Npn\sseq@NewDocumentCommandAs#1#2#3#4{
     \group_begin:
     \cs_set_eq:cN { tempsave_ \cs_to_str:N #2 } #2 % Store the original value of #2
+    \cs_set_eq:cc { tempsave_ \cs_to_str:N #2 \c_space_tl code } { \cs_to_str:N #2 \c_space_tl code } % Store the original value of #2
     \DeclareDocumentCommand#2{#3}{\group_end: #4}
     \cs_new:Npx #1{
         \group_begin:
@@ -342,7 +358,8 @@
     }
     \cs_gset_eq:cN { \cs_to_str:N #1 \c_space_tl inner } #2
     \cs_gset_eq:cc{ \cs_to_str:N #1 \c_space_tl code } { \cs_to_str:N #2 \c_space_tl code }
-    \cs_gset_eq:Nc#2{tempsave_\cs_to_str:N#2}
+    \cs_gset_eq:Nc #2 { tempsave_ \cs_to_str:N #2 }
+    \cs_gset_eq:cc { \cs_to_str:N #2 \c_space_tl code } { tempsave_ \cs_to_str:N #2 \c_space_tl code }
     \group_end:
 }
 \ExplSyntaxOff
