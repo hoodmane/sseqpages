@@ -798,6 +798,7 @@
 \def\sseq@parsecoord@maincoord#1#2{%
     \pgfutil@in@,{#1}
     \ifpgfutil@in@
+        \def\sseq@errortype{#2}
         \sseq@parsecoord@maincoord@#1,\sseq@nil{#2}
     \else
         \sseq@error{Invalid coordinate\sseq@ifempty{#2}{}{ provided to #2}}
@@ -860,7 +861,7 @@
                     \edef\sseq@index{\the\numexpr\sseq@rawindex}
                 \fi
             }{
-                \sseq@error{Tag '\sseq@rawindex' provided \sseq@ifempty{\sseq@errortype}{}{for \sseq@errortype\space} is not a valid integer expression but no such tag exists in position (\sseq@xycoord)}%
+                \sseq@error{Tag '\sseq@rawindex' provided \ifx\sseq@errortype\pgfutil@empty\else for \sseq@errortype\space\fi is not a valid integer expression but no such tag exists in position (\sseq@xycoord)}%
             }
         }
     \fi
@@ -2963,7 +2964,6 @@ copy}}
     \sseq@obj@gdef{class.\coord.style}{}%
     \endgroup
 }
-
 \sseq@NewDocumentCommand\classoptions{or()}{%
     \begingroup
     \IfNoValueT{#1}{\sseq@error{There is no reason to use \@nx\classoptions without giving options}{}}
@@ -2975,6 +2975,11 @@ copy}}
 %
     \sseq@parsecoord\coord{#2}{}%
     \let\partialcoord\coord@partial
+    \sseq@ifundefcoord\coord{%
+        \sseq@error{%
+            Cannot add options to a class \coordname\space because a class in position (\coord@partial) never existed% TODO: make separate out of bounds index error message
+        }{}%
+    }{}
     \ifx\sseq@class@tag\pgfutil@empty\else
         \sseq@obj@ifundef{partcoord.(\partialcoord).tag.\sseq@class@tagprefix\sseq@class@tag}{%
             \ifsseq@keepchanges\else
@@ -3127,7 +3132,6 @@ copy}}
         \sseq@smuggle@macro\sseq@gen
     \egroup
 }
-
 \sseq@NewDocumentCommand\replaceclass{or()}{%
     \begingroup
     \sseq@esetthiscall{\string\replaceclass\IfNoValueF{#1}{[\unexpanded{#1}]}\unexpanded{(#2)}}
@@ -3233,13 +3237,11 @@ copy}}
     \sseq@d@{#1}{#2}(%
 }
 \sseq@NewDocumentCommandAs\sseq@d@\d{mmr()}{\sseq@d@@{d}{#1}{#2}{#3}}
-
 \sseq@NewDocumentCommand\doptions{ou{(}}{%
     \IfNoValueT{#1}{\sseq@error{It's pointless to use '\string\doptions' without giving any options}}
     \sseq@doptions@{#1}{#2}(%
 }
 \sseq@NewDocumentCommandAs\sseq@doptions@\doptions{mmr()}{\sseq@d@@{doptions}{#1}{#2}{#3}}
-
 \def\sseq@d@@#1#2#3#4{%
     \begingroup
     \IfNoValueF{#2}{
@@ -3375,15 +3377,12 @@ copy}}
     \sseq@esetthiscall{\string\structline\IfNoValueF{#1}{\unexpanded{[#1]}}\unexpanded{(#2)(#3)}}%
     \sseq@structline@main{structline}{#1}{#2}{#3}%
 }
-
-
 \sseq@NewDocumentCommand\structlineoptions{or()r()}{%
     \begingroup
     \IfNoValueT{#1}{\sseq@error{It's pointless to use '\string\structlineoptions' without giving any options}}
     \sseq@esetthiscall{\string\structlineoptions\IfNoValueF{#1}{\unexpanded{[#1]}}\unexpanded{(#2)(#3)}}%
     \sseq@structline@main{structlineoptions}{#1}{#2}{#3}%
 }
-
 \def\sseq@structline@main#1#2#3#4{%
     \IfNoValueF{#2}{%
         \sseq@processoptions{struct line}{#2}% Outputs result into \sseq@savedoptioncode

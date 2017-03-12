@@ -3,7 +3,9 @@
 \usepackage{sseqpages}
 % 9.8 sec
 
+
 \begin{document}
+
 \begin{sseqdata}[
     x range={0}{50},
     y range={0}{20},
@@ -122,9 +124,8 @@
     \class(18,1)
     \class(19,-1)
     \structline(10,-1,-1)(10,0,-1)
-    %\structline(13,0,-1)(13,1,-1)
-    \structline(13,-1,-1)(13,0,-1)
     \structline(13,0,-1)(13,1,-1)
+    \structline(13,-1,-1)(13,0,-1)
     \structline(16,0,-1)(16,1,-1)
     \structline(16,-1,-2)(16,0,-1)
     \structline(16,-1,-1)(16,0,-1)
@@ -150,7 +151,6 @@
 \class(8,3)\class(9,4)
 \structline(8,3)(9,4)
 \towergroupa(8,4) % 80
-
 
 \foreach \n in {2,3,4}{
     \towergroupb(8*\n,4*\n) % 120
@@ -200,12 +200,10 @@
 \d4(48,9)
 \d3(49,9,,2)
 \d3(50,13)
-\class[opacity=0](50,10)
 \class(50,10)
 \d4(50,10,1)
-\d[opacity=0]4(50,10,2)
-\d4(50,10,3)
-\replaceclass(50,10,2)
+\d4(50,10,2)
+\replaceclass[offset={(0,0)}](50,10)
 \class(51,12)
 \d4(51,12)
 \class(52,17)
@@ -216,6 +214,7 @@
     \d4(31+2*\n,8+\n)
 }
 \end{sseqdata}
+
 \printpage[name=tmfass,page=0]
 
 \printpage[name=tmfass,page=2]
@@ -257,4 +256,4 @@
 \draw[bend right=20] (48,15,1) to (49,17);
 \structline[black](50,10,2)(51,11)
 \end{sseqpage}
-\end{document} 
+\end{document}
