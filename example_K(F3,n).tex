@@ -1,0 +1,400 @@
+\documentclass{article}
+\usepackage[margin=0.2in,top=0.4in,landscape]{geometry}
+\usepackage{sseqpages}
+\usepackage{amssymb}
+\def\Z{\mathbb{Z}}
+\begin{document}
+\sseqnewclasspattern{vertical}{
+    (0,0);
+    (0,-0.2)(0,0.2);
+    (0,-0.4)(0,0)(0,0.4)
+}
+\begin{sseqdata}[name=K(Z/3;2),cohomological Serre grading,classes={draw=none},xscale=2.2,yscale=1.5,right clip padding=20pt, x range={0}{8},x axis gap=20pt,
+class placement transform ={scale=1.2}, class pattern=vertical %xlabel={},ylabel={}
+]
+\begin{scope}[background,page constraint = {\page>0}    ]
+\node at (0.5*\xmax + 0.5*\xmin,\ymax + 1) { \textup{Page \page}};
+
+\node[rotate=90] at (-1,0.5*\ymax + 0.5*\ymin) {H^*(K(\Z/3,1),\Z/3)};
+\node at (0.5*\xmax + 0.5*\xmin, \ymin-2) {H^*(K(\Z/3,2),\Z/3)};
+\end{scope}
+
+
+\class["1"](0,0)
+\class["\alpha"](0,1)
+\class["x"](0,2)
+\class["\alpha x"](0,3)
+\class["x^2"](0,4)
+\class["\alpha x^2"](0,5)
+\class["x^3"](0,6)
+
+\class["\iota_2"](2,0)
+\class["\alpha\iota_2"](2,1)
+\class["x\iota_2"](2,2)
+\class["\alpha x\iota_2"](2,3)
+\class["x^2\iota_2"](2,4)
+\class["\alpha x^2\iota_2"](2,5)
+\class["x^3\iota_2"](2,6)
+
+\class["\beta\iota_2"](3,0)
+\class["\alpha\beta\iota_2"](3,1)
+\class["x\beta\iota_2"](3,2)
+\class["\alpha x\beta\iota_2"](3,3)
+\class["x^2\beta\iota_2"](3,4)
+\class["\alpha x^2"](3,5)
+\class["x^3\beta\iota_2"](3,6)
+
+
+\class["\iota_2^2"](4,0)
+\class["\alpha\iota_2^2"](4,1)
+\class["x\iota_2^2"](4,2)
+\class["\alpha x\iota_2^2"](4,3)
+\class["x^2\iota_2^2"](4,4)
+\class["\alpha x^2\iota_2^2"](4,5)
+\class["x^3\iota_2^2"](4,6)
+
+
+
+\class["\iota_2\beta\iota_2"](5,0)
+\class["\alpha\iota_2\beta\iota_2"](5,1)
+\class["x\iota_2\beta\iota_2"](5,2)
+\class["\alpha x\iota_2\beta\iota_2"](5,3)
+\class["x^2\iota_2\beta\iota_2"](5,4)
+\class["\alpha x^2\iota_2\beta\iota_2"](5,5)
+\class["x^3\iota_2\beta\iota_2"](5,6)
+
+
+\class["\iota_2^3"](6,0)
+\class["\alpha\iota_2^3"](6,1)
+\class["x\iota_2^3"](6,2)
+\class["\alpha x\iota_2^3"](6,3)
+\class["x^2\iota_2^3"](6,4)
+\class["\alpha x^2\iota_2^3"](6,5)
+\class["x^3\iota_2^3"](6,6)
+
+
+\class["\iota_2^2\beta\iota_2"](7,0)
+\class["\alpha a"](7,1)
+\class["xa"](7,2)
+\class["\alpha xa"](7,3)
+\class["x^2a"](7,4)
+\class["\alpha x^2a"](7,5)
+\class["x^3a"](7,6)
+
+\class["P^1\beta\iota_2"](7,0)
+\class["\alpha  b"](7,1)
+\class["x b"](7,2)
+\class["\alpha x b"](7,3)
+\class["x^2 b"](7,4)
+\class["\alpha x^2 b"](7,5)
+\class["x^3 b"](7,6)
+
+\class["\iota_2^4"](8,0)
+\class["\alpha c"](8,1)
+\class["x c"](8,2)
+\class["\alpha x c"](8,3)
+\class["x^2 c"](8,4)
+\class["\alpha x^2 c"](8,5)
+\class["x^3 c"](8,6)
+
+\class["\beta P^1\beta\iota_2"](8,0)
+\class["\alpha d"](8,1)
+\class["x d"](8,2)
+\class["\alpha x d"](8,3)
+\class["x^2 d"](8,4)
+\class["\alpha x^2 d"](8,5)
+\class["x^3 d"](8,6)
+
+\class(9,0)\class(9,0)
+\class(9,1)
+\class(9,2)
+\class(9,3)
+\class(9,4)
+\class(9,5)
+
+\class(10,0)\class(10,0)\class(10,0)
+\class(10,2)\class(10,2)
+\class(10,4)\class(10,4)
+
+\class(11,0)\class(11,0)
+\class(11,2)
+
+\class(12,0)
+\class(13,0)
+\class(14,0)
+\class(15,0)
+%\class["(\beta\iota_2)^2"](6,0)
+
+
+\d2(0,1) %d2(a)=i
+\d3(0,2) %d3(x) = b(i)
+\d2(0,3) % d2(ax) = ix
+\d3(0,4) % d2(x^2) = xb(i)
+\d2(0,5) % d2(ax^2) = ix^2
+%\d7
+
+
+\d2(2,1) % d2(ai) = i^2
+\d2(2,3) % d2(axi) = xi^2
+\d2(2,5) % d2(ax^2i)=x^2i^2)
+
+\d2(3,1) % d2(abi)=ib(i)
+\d2(3,3)
+\d2(3,5)
+
+\d2(4,1) % d2(ai^2)=i^3
+\d2(4,3)
+\d2(4,5)
+
+\d2(5,1,,1) %d2(ai_2bi_2) = i_2^2 bi_2
+\d2(5,3,,1)
+\d2(5,5,,1)
+
+\d2(6,1,,1) %d2(ai_2^3) = i_2^4
+\d2(6,3,,1)
+\d2(6,5,,1)
+
+\d2(7,1,1)  % d2(ai_2^2bi_2) = i_2^3 bi_2
+\d2(7,3,1)
+\d2(7,5,1)
+
+\d2(7,1,2) % d2(aP^1bi_2) = i_2 P^1bi_2
+\d2(7,3,2)
+\d2(7,5,2)
+
+\d3(7,2,2) % d3(x P^1bi_2) = bi_2 P^1bi_2
+\d3(7,4,2)
+
+\d2(8,1,1,2) % d2(a i_2^4) = i_2^5
+\d2(8,3,1,2)
+\d2(8,5,1,2)
+
+\d2(8,1,2,2) % d2(a bP^1bi_2) = i_2 bP^1bi_2
+\d2(8,3,2,2)
+\d2(8,5,2,2)
+
+\d3(8,2,2) % d3(x bP^1bi_2) = bi_2 bP^1bi_2
+\d3(8,4,2)
+
+
+\d5(3,4,,2) % d5(x^2i_2) = bP^1bi_2 -- Kudo differential
+
+\d7(0,6,,2) % d7(x^3) = P^1bi_2
+\d7(2,6,,2)
+\d7(3,6,,3)
+\d7(4,6,,2)
+\d7(5,6)
+\d7(6,6)
+\d7(7,6,1)
+\d7(7,6,2)
+\d7(8,6,1)
+\d7(8,6,2)
+
+
+\end{sseqdata}
+
+\printpage[name=K(Z/3;2),page=2]
+\newpage
+\printpage[name=K(Z/3;2),page=3]
+\newpage
+\printpage[name=K(Z/3;2),page=5]
+\newpage
+\printpage[name=K(Z/3;2),page=6]
+\newpage
+\printpage[name=K(Z/3;2),page=7]
+\newpage
+
+\begin{sseqpage}[name=K(Z/3;2), page=0, no differentials, y range={-1}{0}, y axis extend end = 40pt, x axis gap =50pt,y axis gap=30pt, yscale = 1.5, no y axis labels]
+\begin{scope}[background]
+\node[anchor=west] at (-2,0) { H^*(K(\Z/3,2),\Z/3)};
+\node[anchor=west] at (-2,-1) { H^*(K(\Z/3,2),\Z)};
+\end{scope}
+
+\draw[->]  (2,0) to[bend left=30, "\beta^1"] (3,0);
+\draw[->]  (4,0) to[bend left=30, "\beta^1"] (5,0);
+\draw[->]  (6,0) to[bend right=30, "\beta^2"'] (7,0,1);
+\draw[->]  (7,0,2) to[bend left=30, "\beta^2"] (8,0,2);
+\draw[->]  (8,0,1) to[bend right=30, "\beta^1"'] (9,0);
+
+\class["\Z\{1\}"](0,-1)
+\class["\Z/3\{\beta\iota_3\}"](2,-1)
+\class["\Z/3\{\beta\iota_2^2\}"](5,-1)
+\class["\Z/9\{\beta\iota_2^3\}"](7,-1)
+\class["\Z/3\{\beta P^1\iota_2\}"](8,-1)
+\end{sseqpage}
+
+\newpage
+\begin{sseqdata}[name=K(Z/3;3),cohomological Serre grading,classes={draw=none},xscale=2.2,yscale=1.7,y axis gap=40pt,x axis gap=30pt, x range={0}{9},
+class pattern = vertical, class placement transform = {scale=1.6}
+]
+
+\begin{scope}[background,page constraint = {\page>0}    ]
+\node at (0.5*\xmax + 0.5*\xmin,\ymax + 1) { \textup{Page \page}};
+
+\node[rotate=90] at (-1.3,0.5*\ymax + 0.5*\ymin) {H^*(K(\Z/3,2),\Z/3)};
+\node at (0.5*\xmax + 0.5*\xmin, \ymin-2) {K(\Z/3,3)};
+\end{scope}
+
+\class["1"](0,0)
+\class["\iota_2"](0,2)
+\class["\beta\iota_2"](0,3)
+\class["\iota_2^2"](0,4)
+\class["\iota_2\beta\iota_2"](0,5)
+\class["\iota_2^3"](0,6)
+\class["P^1\beta\iota_2"](0,7)
+\class["\iota_2^2\beta\iota_2"](0,7)
+\class["\beta P^1\beta\iota_2"](0,8)
+\class["\iota_2^4"](0,8)
+
+\class["\iota_3"](3,0)
+\class["\iota_2\iota_3"](3,2)
+\class["\beta\iota_2\iota_3"](3,3)
+\class["\iota_2^2\iota_3"](3,4)
+\class["\iota_2\beta\iota_2\iota_3"](3,5)
+\class["\iota_2^3\iota_3"](3,6)
+
+\class["\beta\iota_3"](4,0)
+\class["\iota_2\beta\iota_3"](4,2)
+\class["\beta\iota_2\beta\iota_3"](4,3)
+
+
+\class["P^1\iota_3"](7,0)
+\class["\iota_3\beta\iota_3"](7,0)
+\class["\beta P^1\iota_3"](8,0)
+\class["(\beta\iota_3)^2"](8,0)
+\class["P^1\beta\iota_3"](8,0)
+\class["\beta P^1\beta\iota_3"](9,0)
+
+
+\d3(0,2)
+\d4(0,3)
+\d3(0,4)
+\d3(0,5)
+\d7(0,6,,1)
+\d3(0,7,2)
+\d8(0,7,1,3)
+\d3(0,8,2)
+\d9(0,8,1)
+\d5(3,4,,1)
+
+\d3(4,2,,2)
+\d4(4,3,,2)
+\end{sseqdata}
+
+\printpage[name=K(Z/3;3),page=3]
+\newpage
+\printpage[name=K(Z/3;3),page=4]
+\newpage
+\printpage[name=K(Z/3;3),page=5]
+\newpage
+\printpage[name=K(Z/3;3),page=7]
+\newpage
+\printpage[name=K(Z/3;3),page=9]
+\newpage
+
+\begin{sseqpage}[name=K(Z/3;3), page=0, no differentials, y range={-1}{0}, y axis extend end = 40pt, x axis extend end=40pt, x axis gap =50pt, yscale = 1.5, no y axis labels]
+\begin{scope}[background]
+\node[anchor=west] at (-2.2,0) { H^*(K(\Z/3,3),\Z/3)};
+\node[anchor=west] at (-2.2,-1) { H^*(K(\Z/3,3),\Z)};
+\end{scope}
+
+\draw[->]  (3,0) to[bend left=30, "\beta^1"] (4,0);
+\draw[->]  (7,0,1) to[bend right=30, "\beta^1"'] (8,0,1);
+\draw[->] (7,0,2) to[bend left=30, "\beta^1"] (8,0,2);
+\draw[->] (8,0,3) to[bend left=30, "\beta^1"] (9,0);
+
+\class["\Z\{1\}"](0,-1)
+\class["\Z/3\{\beta\iota_3\}"](4,-1)
+\class["\Z/3\{\beta P^1\iota_3\}"](8,-1)
+\class["\Z/3\{\beta(\iota_3\beta\iota_3)\}"](8,-1)
+\class["\Z/3\{\beta P^1\beta\iota_3\}"](9,-1)
+\end{sseqpage}
+
+
+
+\begin{sseqdata}[name=K(Z/3;4),cohomological Serre grading,classes={draw=none},xscale=2,yscale=1.5,y axis gap=20pt,x axis gap=30pt, x range={0}{10},
+class pattern = vertical, class placement transform = {scale=1.6}
+]
+
+\begin{scope}[background,page constraint = {\page>0}    ]
+\node at (0.5*\xmax + 0.5*\xmin,\ymax + 1) { \textup{Page \page}};
+
+\node[rotate=90] at (-1.2,0.5*\ymax + 0.5*\ymin) {H^*(K(\Z/3,3),\Z/3)};
+\node at (0.5*\xmax + 0.5*\xmin, \ymin-2) {K(\Z/3,4)};
+\end{scope}
+
+\class["1"](0,0)
+\class["\iota_3"](0,3)
+\class["\beta\iota_3"](0,4)
+\class["P^1\iota_3"](0,7)
+\class["\beta P^1\iota_3"](0,8)
+\class["\iota_3\beta\iota_3"](0,7)
+\class["(\beta\iota_3)^2"](0,8)
+\class["P^1\beta\iota_3"](0,8)
+\class["\beta P^1\beta\iota_3"](0,9)
+
+
+\class["\iota_4"](4,0)
+\class["\iota_3\iota_4"](4,3)
+\class["\beta\iota_3\iota_4"](4,4)
+
+\class["\beta\iota_4"](5,0)
+\class["\iota_3\beta\iota_4"](5,3)
+\class["\beta\iota_3\beta\iota_4"](5,4)
+
+\class["\iota_4^2"](8,0)
+\class["P^1\iota_4"](8,0)
+
+\class["\iota_4 \beta\iota_4"](9,0)
+\class["P^1\beta\iota_4"](9,0)
+\class["\beta P^1\iota_4"](9,0)
+
+\class["\beta P^1\beta\iota_4"](10,0)
+
+\d4(0,3) % d4(i_3) = i_4
+\d4(0,7,2)
+\d4(4,3,,1)
+\d4(5,3,,1)
+
+\d5(0,4)
+
+\d8(0,7,1,2)
+
+\d9(0,8,1,2)
+\d5(0,8,2)
+\d9(0,8,3,3)
+\d10(0,9)
+
+%\d
+\end{sseqdata}
+
+\printpage[name=K(Z/3;4),page=4]
+\newpage
+\printpage[name=K(Z/3;4),page=5]
+\newpage
+\printpage[name=K(Z/3;4),page=8]
+\newpage
+\printpage[name=K(Z/3;4),page=9]
+\newpage
+\printpage[name=K(Z/3;4),page=10]
+\newpage
+
+\begin{sseqpage}[name=K(Z/3;4), page=0, no differentials, y range={-1}{0}, y axis extend end = 40pt, x axis extend end=40pt, x axis gap =50pt, yscale = 1.5, no y axis labels]
+\begin{scope}[background]
+\node[anchor=west] at (-2.2,0) { H^*(K(\Z/3,4),\Z/3)};
+\node[anchor=west] at (-2.2,-1) { H^*(K(\Z/3,4),\Z)};
+\end{scope}
+
+\draw[->] (4,0)   to[bend left=30,  "\beta"] (5,0);
+\draw[->] (8,0,1) to[bend right=30, "\beta"] (9,0,1);
+\draw[->] (8,0,2) to[bend left=30,  "\beta"]   (9,0,3);
+\draw[->] (9,0,2) to[  "\beta"] (10,0);
+
+\class["\Z\{1\}"](0,-1)
+\class["\Z/3\{\beta\iota_4\}"](5,-1)
+\class["\Z/3\{\beta P^1\iota_4\}"](9,-1)
+\class["\Z/3\{\beta(\iota_4^2)\}"](9,-1)
+\class["\Z/3\{\beta P^1\beta\iota_4\}"](10,-1)
+\end{sseqpage}
+
+\end{document} 

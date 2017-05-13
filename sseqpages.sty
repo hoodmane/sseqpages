@@ -594,6 +594,8 @@
 %%                                                    %%
 %%%%%%                                            %%%%%%
 
+% All this complicated foreach patching only currently gets applied to making better error messages...
+
 % Put together an error message that says which stage in the for loop caused the error
 \def\sseq@builderrorinfo@foreach{%
     \let\sseq@errorinfo\sseq@errorinfo@foreach % The starting message, which says we're in a for each loop and these are the variables involved
@@ -2709,7 +2711,7 @@ copy}}
 }
 
 \def\sseq@defer@tikzcommand@group#1{%
-    \sseq@g@addto@macro\sseq@temp{{#1}}%
+    \sseq@xprotected@addto@macro\sseq@temp{{#1}}%
     \sseq@defer@tikzcommand@
 }
 
@@ -3971,6 +3973,179 @@ copy}}
   }%
   \global\pgflinewidth=\pgfutil@tempdima%
 }
+
+\tikzset{circlen/.code={\def\circlen@n{#1}\pgfkeysalso{shape=circlen@shape}}}
+\pgfdeclareshape{circlen@shape}
+%
+% Draws a circle around the text
+%
+{
+  \savedanchor\centerpoint{%
+    \pgf@x=.5\wd\pgfnodeparttextbox%
+    \pgf@y=.5\ht\pgfnodeparttextbox%
+    \advance\pgf@y by-.5\dp\pgfnodeparttextbox%
+  }
+
+  \saveddimen\radius{%
+    %
+    % Caculate ``height radius''
+    %
+    \pgf@ya=.5\ht\pgfnodeparttextbox%
+    \advance\pgf@ya by.5\dp\pgfnodeparttextbox%
+    \pgfmathsetlength\pgf@yb{\pgfkeysvalueof{/pgf/inner ysep}}%
+    \advance\pgf@ya by\pgf@yb%
+    %
+    % Caculate ``width radius''
+    %
+    \pgf@xa=.5\wd\pgfnodeparttextbox%
+    \pgfmathsetlength\pgf@xb{\pgfkeysvalueof{/pgf/inner xsep}}%
+    \advance\pgf@xa by\pgf@xb%
+    %
+    % Calculate length of radius vector:
+    %
+    \pgf@process{\pgfpointnormalised{\pgfqpoint{\pgf@xa}{\pgf@ya}}}%
+    \ifdim\pgf@x>\pgf@y%
+        \c@pgf@counta=\pgf@x%
+        \ifnum\c@pgf@counta=0\relax%
+        \else%
+          \divide\c@pgf@counta by 255\relax%
+          \pgf@xa=16\pgf@xa\relax%
+          \divide\pgf@xa by\c@pgf@counta%
+          \pgf@xa=16\pgf@xa\relax%
+        \fi%
+      \else%
+        \c@pgf@counta=\pgf@y%
+        \ifnum\c@pgf@counta=0\relax%
+        \else%
+          \divide\c@pgf@counta by 255\relax%
+          \pgf@ya=16\pgf@ya\relax%
+          \divide\pgf@ya by\c@pgf@counta%
+          \pgf@xa=16\pgf@ya\relax%
+        \fi%
+    \fi%
+    \pgf@x=\pgf@xa%
+    %
+    % If necessary, adjust radius so that the size requirements are
+    % met:
+    %
+    \pgfmathsetlength{\pgf@xb}{\pgfkeysvalueof{/pgf/minimum width}}%
+    \pgfmathsetlength{\pgf@yb}{\pgfkeysvalueof{/pgf/minimum height}}%
+    \ifdim\pgf@x<.5\pgf@xb%
+        \pgf@x=.5\pgf@xb%
+    \fi%
+    \ifdim\pgf@x<.5\pgf@yb%
+        \pgf@x=.5\pgf@yb%
+    \fi%
+    %
+    % Now, add larger of outer sepearations.
+    %
+    \pgfmathsetlength{\pgf@xb}{\pgfkeysvalueof{/pgf/outer xsep}}%
+    \pgfmathsetlength{\pgf@yb}{\pgfkeysvalueof{/pgf/outer ysep}}%
+    \ifdim\pgf@xb<\pgf@yb%
+      \advance\pgf@x by\pgf@yb%
+    \else%
+      \advance\pgf@x by\pgf@xb%
+    \fi%
+    \pgf@xb=2pt
+    \multiply\pgf@xb\circlen@n
+    \advance\pgf@x\pgf@xb
+    \advance\pgf@x-2pt\relax
+  }
+
+  %
+  % Anchors
+  %
+  \anchor{center}{\centerpoint}
+  \anchor{mid}{\centerpoint\pgfmathsetlength\pgf@y{.5ex}}
+  \anchor{base}{\centerpoint\pgf@y=0pt}
+  \anchor{north}{\centerpoint\advance\pgf@y by\radius}
+  \anchor{south}{\centerpoint\advance\pgf@y by-\radius}
+  \anchor{west}{\centerpoint\advance\pgf@x by-\radius}
+  \anchor{east}{\centerpoint\advance\pgf@x by\radius}
+  \anchor{mid west}{\centerpoint\advance\pgf@x by-\radius\pgfmathsetlength\pgf@y{.5ex}}
+  \anchor{mid east}{\centerpoint\advance\pgf@x by\radius\pgfmathsetlength\pgf@y{.5ex}}
+  \anchor{base west}{\centerpoint\advance\pgf@x by-\radius\pgf@y=0pt}
+  \anchor{base east}{\centerpoint\advance\pgf@x by\radius\pgf@y=0pt}
+  \anchor{north west}{
+    \centerpoint
+    \pgf@xa=\radius
+    \advance\pgf@x by-0.707107\pgf@xa
+    \advance\pgf@y by0.707107\pgf@xa
+  }
+  \anchor{south west}{
+    \centerpoint
+    \pgf@xa=\radius
+    \advance\pgf@x by-0.707107\pgf@xa
+    \advance\pgf@y by-0.707107\pgf@xa
+  }
+  \anchor{north east}{
+    \centerpoint
+    \pgf@xa=\radius
+    \advance\pgf@x by0.707107\pgf@xa
+    \advance\pgf@y by0.707107\pgf@xa
+  }
+  \anchor{south east}{
+    \centerpoint
+    \pgf@xa=\radius
+    \advance\pgf@x by0.707107\pgf@xa
+    \advance\pgf@y by-0.707107\pgf@xa
+  }
+  \anchorborder{
+    \pgf@xa=\pgf@x%
+    \pgf@ya=\pgf@y%
+    \edef\pgf@marshal{%
+      \noexpand\pgfpointborderellipse
+      {\noexpand\pgfqpoint{\the\pgf@xa}{\the\pgf@ya}}
+      {\noexpand\pgfqpoint{\radius}{\radius}}%
+    }%
+    \pgf@marshal%
+    \pgf@xa=\pgf@x%
+    \pgf@ya=\pgf@y%
+    \centerpoint%
+    \advance\pgf@x by\pgf@xa%
+    \advance\pgf@y by\pgf@ya%
+  }
+
+  %
+  % Background path
+  %
+  \behindbackgroundpath{
+    \pgfutil@tempdima=\radius%
+    \pgfmathsetlength{\pgf@xb}{\pgfkeysvalueof{/pgf/outer xsep}}%
+    \pgfmathsetlength{\pgf@yb}{\pgfkeysvalueof{/pgf/outer ysep}}%
+    \ifdim\pgf@xb<\pgf@yb%
+      \advance\pgfutil@tempdima by-\pgf@yb%
+    \else%
+      \advance\pgfutil@tempdima by-\pgf@xb%
+    \fi%
+    \sseq@tempcount=1\relax
+    \loop
+    \pgfpathcircle{\centerpoint}{\pgfutil@tempdima}%
+    \advance\pgfutil@tempdima-2pt\relax
+    \advance\sseq@tempcount1\relax
+    \ifnum\sseq@tempcount<\circlen@n \repeat
+    \tikz@mode
+    \sseq@eval{\noexpand\pgfusepath{
+        \iftikz@mode@draw draw,\fi
+    }}
+  }
+  \backgroundpath{%
+    \pgfutil@tempdima=\radius%
+    \pgfmathsetlength{\pgf@xb}{\pgfkeysvalueof{/pgf/outer xsep}}%
+    \pgfmathsetlength{\pgf@yb}{\pgfkeysvalueof{/pgf/outer ysep}}%
+    \ifdim\pgf@xb<\pgf@yb%
+      \advance\pgfutil@tempdima by-\pgf@yb%
+    \else%
+      \advance\pgfutil@tempdima by-\pgf@xb%
+    \fi%
+    \advance\pgfutil@tempdima2pt\relax
+    \pgfutil@tempdimb=-2pt\relax
+    \multiply\pgfutil@tempdimb\circlen@n
+    \advance\pgfutil@tempdima\pgfutil@tempdimb\relax
+    \pgfpathcircle{\centerpoint}{\pgfutil@tempdima}
+  }
+}
+
 %%%
 %%% Drawing edges
 %%%
