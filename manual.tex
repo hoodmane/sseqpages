@@ -4,6 +4,7 @@
 % \structline, \structlineoptions, \classoptions page keys, \classoptions gen key
 %
 
+
 \documentclass{ltxdoc}
 \usepackage[a4paper,left=2.25cm,right=2.25cm,top=2.5cm,bottom=2.5cm,nohead]{geometry}
 \usepackage{sseqpages}
@@ -57,9 +58,7 @@
 }{
     \end{pgfmanualentry}
 }
-
 \let\extractkey@\extractkey
-%\show\extractkey@
 \apptocmd\extractkey@{\egroup}{}{\error}
 \def\extractkey{\bgroup\@ifnextchar*{\def\decompose####1\nil{ }\relax\extractkey@\@gobble}{\extractkey@}}
 
@@ -330,7 +329,7 @@ Any code that would work in a |tikzpicture| environment will also work unchanged
 %
 \begin{sseqpage}[name=tikz example]
 \begin{scope}[blue,font=\tiny]
-\node[name path=myellipse, draw, ellipse, inner sep=4pt, scale=0.7, rotate fit=26.5,
+\node[name path=myellipse, draw, ellipse, inner sep=4pt, scale=1, rotate fit=26.5,
       fit=(start) (end)] {};
 \path[name path=myline](1.2,1.2)--(0.6,1);
 \draw[->,name intersections={of=myellipse and myline}] (1.2,1.2)--(intersection-1);
@@ -355,7 +354,7 @@ The following two keys are special to \tikzname\space primitives:
 \begin{key}{background}
 This key instructs |sseqpages| to put the current \tikzname\space primitive in the background. The way that the spectral sequence is printed is as follows:
 \begin{itemize}
-\item The axes and axes labels are printed (except when the |no axes| or |no axes labels| keys are used).
+\item The title, axes, axes ticks, and axes labels are printed (the appropriate steps are skipped when the |no title|, |no axes|, |no axes ticks|, or |no axes labels| keys are used or if no title or axes labels are provided).
 
 \item The \tikzname\space background paths are printed.
 
@@ -366,7 +365,7 @@ This key instructs |sseqpages| to put the current \tikzname\space primitive in t
 
 In particular, this means that foreground \tikzname\space paths can be clipped by the standard clipping, but background paths that are outside of the clipping expand the size of the Tikz picture:
 \begin{codeexample}[]
-\begin{sseqpage}[no axes labels]
+\begin{sseqpage}[no axes ticks]
 \class(0,0)
 \class(1,1)
 \begin{scope}[on background layer]
@@ -409,7 +408,7 @@ is equivalent to
 $$|page constraint=||{\isalive(\meta{coordinate 1}) &&|\,\cdots\,|&& \isalive(\meta{coordinate n})}|$$
 Writing
 $$|\draw[page constraint=||{\isalive(1,0)(2,2)}](1,0)--(2,2);|$$
-has the same result as |\structline(1,0)(2,2)|, except that you can't later use |\structlineoptions| on it.
+has the same result as |\structline(1,0)(2,2)|, except that you can't later use |\structlineoptions| on it. (Note that |\isalive| is currently broken. Eventually I'll fix it. If fixing it would make your life better, let me know and I will do it sooner.)
 \end{commandlist}
 \end{keylist}
 
@@ -810,11 +809,14 @@ Makes |sseqpages| draw a grid. The grid styles and a significant part of the cod
 \class(0,3)
 \class(3,3)
 \end{sseqdata}
+\vbox{
 \printpage[name=grid example,grid=chess]
 \printpage[name=grid example,grid=crossword]
 \printpage[name=grid example,grid=dots]
+\newline
 \printpage[name=grid example,grid=go]
 \printpage[name=grid example,grid=none]
+}
 \end{codeexample}
 It is possible to make your own grid style by defining the command |\sseq@grid@yourgridname| to draw a grid.
 \end{key}
@@ -882,6 +884,21 @@ An edge is an ``orphan'' if both its source and target lie off the page. By defa
 \printpage[name=orphan edges example,no orphan edges]
 \end{codeexample}
 \end{keylist}
+
+\begin{key}{run off={\meta{start arrow}}{\meta{end arrow}}, run off struct lines={\meta{start arrow}}{\meta{end arrow}},run off differentials={\meta{start arrow}}{\meta{end arrow}}}
+Change the default behavior of run off edges for either all edges, just struct lines, or just differentials respectively. Local arrowhead options override this.
+
+If an edge runs off the edge of the clipping, sseqpages automatically add an arrowhead to indicate that the edge continues. This option controls which arrow head is added if the start or end of an edge runs off the page.
+\begin{codeexample}[]
+\begin{sseqpage}[x range={0}{2},y range={0}{2},draw orphan edges,run off={>}{stealth}]
+\class(0,0)
+\class(3,0)\class(0,3)
+\structline(0,0)(3,0)
+\structline[red](0,0)(0,3)
+\structline[blue](3,0)(0,3)
+\end{sseqpage}
+\end{codeexample}
+\end{key}
 
 
 \begin{key}{class pattern=\meta{class pattern name}}
@@ -1027,15 +1044,15 @@ These options change the appearance of all cycles which support or are hit by a 
 \end{codeexample}
 \end{keylist}
 
-\begin{keylist}{edges=\marg{keys}, edge style=\marg{keys}}
+\begin{keylist}{edges, edge style}
 This style applies to both differentials and structure lines. The |differentials| and |struct lines| keys both take precedence over |edges|.
 \end{keylist}
 
-\begin{keylist}{differentials=\marg{keys}, differential style=\marg{keys}}
+\begin{keylist}{differentials, differential style, change differentials}
 
 \end{keylist}
 
-\begin{keylist}{struct lines=\marg{keys}, struct line style=\marg{keys}}
+\begin{keylist}{struct lines, struct line style}
 
 \end{keylist}
 
@@ -1044,19 +1061,19 @@ This style applies to structure lines whose source or target is hit on the curre
 \end{keylist}
 
 \begin{keylist}{labels,label style}
-
+This style applies to labels on classes, differentials, and structlines. All the more specific styles take precedence over it.
 \end{keylist}
 
-\begin{keylist}{class labels,class label style}
-
-\end{keylist}
-
-\begin{keylist}{inner class labels,inner class label style}
-
-\end{keylist}
-
-\begin{keylist}{outer class labels,outer class label style}
-
+\begin{keylist}{class labels,class label style,inner class labels,inner class label style,outer class labels,outer class label style}
+Inner class labels specifically applies to class labels that are inside the node, outer class labels specifically applies to ones outside it:
+\begin{codeexample}[]
+\begin{sseqpage}[no axes, classes={inner sep=0.1cm},
+    outer class labels={red},
+    inner class labels={orange}]
+\class["a", "b" above](0,0)
+\class["a", "c" right](1,0)
+\end{sseqpage}
+\end{codeexample}
 \end{keylist}
 
 
@@ -1105,7 +1122,7 @@ If this is false the spectral sequence won't be clipped. I'm not really sure why
 
 \end{keylist}
 
-\begin{keylist}{x clip axis padding=\meta{dimension} (initially 0.1cm), y clip axis padding=\meta{dimension} (initially 0.1cm)}
+\begin{keylist}{x axis clip padding=\meta{dimension} (initially 0.1cm), y axis clip padding=\meta{dimension} (initially 0.1cm)}
 
 \end{keylist}
 
@@ -1115,9 +1132,114 @@ If this is false the spectral sequence won't be clipped. I'm not really sure why
 \end{keylist}
 
 
+\pgfkeys{/sseqpages/tikz primitives/distance label/.style={orange,{<[width=4pt]}-}, /sseqpages/tikz primitives/description/.style={black,/tikz/align=center}}
+\begin{sseqpage}[grid=chess,
+    x range={0}{5},y range={0}{5}, math nodes=false,
+    x axis clip padding=0.15cm,y axis clip padding=0.15cm,
+    right clip padding=0.2cm,top clip padding=0.2cm, axes gap=25pt]
+\begin{scope}[background,red]
+\sseq@savedpaths@add{\pgfsetpath\sseq@theclippath\pgfusepath{draw}}
+\end{scope}
+\catcode`\|=12
+\begin{scope}[background,|-|,blue]
+% clip gap
+\draw[shift={(\sseq@xmax+0.8,-\sseq@xaxisgap)}] (0,0)--(0,\sseq@xclip@axisgap);
+\draw[shift={(-\sseq@yaxisgap,\sseq@ymax+0.8)}] (0,0)--(\sseq@yclip@axisgap,0);
+\draw[distance label,shift={(\sseq@xmax+0.8,-\sseq@xaxisgap+\sseq@xclip@axisgap/2)}] (0,0) -- (2,0)
+node[description, right] {x axis\\ clip gap};
+\draw[distance label,shift={(-\sseq@yaxisgap+\sseq@yclip@axisgap/2,\sseq@ymax+0.8)}] (0,0) .. controls (0,0.5) .. (-0.5,0.5)
+node[description, left] {y axis\\ clip gap};
+
+
+% border clip padding
+\draw[shift={(\sseq@xmax cm + \sseq@xaxis@end@extend,\sseq@ymin cm-\sseq@xaxisgap-0.3cm)}] (0,0)--(\sseq@clip@padding@right,0);
+\draw[shift={(\sseq@xmin cm -\sseq@yaxisgap-0.3cm,\sseq@ymax cm+\sseq@yaxis@end@extend)}] (0,0)--(0,\sseq@clip@padding@top);
+\draw[distance label, shift={(\sseq@xmax cm + \sseq@xaxis@end@extend+\sseq@clip@padding@right/2,\sseq@ymin cm-\sseq@xaxisgap-0.3cm)}] (0,0) .. controls (0,-0.7) ..(1.5,-0.7)
+node[description, right] {right clip\\ padding};
+\draw[distance label, shift={(\sseq@xmin cm -\sseq@yaxisgap-0.3cm,\sseq@ymax cm+\sseq@yaxis@end@extend+\sseq@clip@padding@top/2)}] (0,0) -- (-2,0)
+node[description, left] {top clip\\ padding};
+
+% extend start axis
+\draw[shift={(\sseq@xmin-\sseq@yaxisgap-0.02cm,\sseq@ymin-\sseq@xaxisgap+0.1cm)}] (0,0) -- (-\sseq@xaxis@start@extend, 0);
+\draw[shift={(\sseq@xmin-\sseq@yaxisgap+0.1cm,\sseq@ymin-\sseq@xaxisgap-0.02cm)}] (0,0) -- (0, -\sseq@yaxis@start@extend);
+\draw[distance label,shift={(\sseq@xmin-\sseq@yaxisgap-0.02cm-\sseq@xaxis@start@extend/2,\sseq@ymin-\sseq@xaxisgap+0.1cm)}] (0,0) .. controls (0,0.5) .. (-1,0.5)
+node[description, left]{x axis\\ extend start};
+\draw[distance label,shift={(\sseq@xmin-\sseq@yaxisgap+0.1cm,\sseq@ymin-\sseq@xaxisgap-0.02cm-\sseq@yaxis@start@extend/2)}] (0,0) .. controls (0.5,0) .. (0.5,-1)
+node[description, below]{y axis\\ extend start};
+
+% extend end axis
+\draw[shift={(\sseq@xmax,\sseq@ymin-\sseq@xaxisgap-0.1cm)}] (0,0)--(\sseq@xaxis@end@extend,0);
+\draw[shift={(\sseq@xmin cm-\sseq@yaxisgap-0.1cm,\sseq@ymax)}] (0,0)--(0,\sseq@yaxis@end@extend);
+\draw[distance label,shift={(\sseq@xmax cm+\sseq@xaxis@end@extend/2,\sseq@ymin-\sseq@xaxisgap-0.1cm)}] (0,0) -- (0,-1.5)
+ node[description, below] {x axis\\ extend end};
+\draw[distance label,shift={(\sseq@xmin cm- \sseq@yaxisgap-0.1cm,\sseq@ymax cm+\sseq@yaxis@end@extend/2)}] (0,0) .. controls (-2,0) .. (-2,-1)
+node[description, below] {y axis\\ extend end};
+
+
+
+% label gap
+\draw[shift={(\sseq@xmin+\sseq@xmax/2+0.2,-0.5-\sseq@xaxisgap)}] (0,0)--(0,-\sseq@xlabelgap);
+\draw[shift={(-0.5-\sseq@yaxisgap,\sseq@ymin+\sseq@ymax/2+0.2)}] (0,0)--(-\sseq@ylabelgap,0);
+\draw[distance label,shift={(\sseq@xmin+\sseq@xmax/2+0.2,-\sseq@xlabelgap/2-\sseq@xaxisgap)}] (0,0) .. controls (0.5 ,0) .. (0.5,-0.8)
+    node[below,black]{x label gap};
+\draw[distance label,shift={(-\sseq@yaxisgap -\sseq@ylabelgap/2,\sseq@ymin+\sseq@ymax/2+0.2)}] (0,0) .. controls (0, -0.3) .. (-0.5,-0.7)
+node[left,black]{y label gap};
+
+% axis gap
+\draw[shift={(\sseq@xmax cm+0.17cm,\sseq@ymin cm-\sseq@xaxisgap+0.02cm)}] (0,0) -- (0, \sseq@xaxisgap);
+\draw[shift={(\sseq@xmin cm-\sseq@yaxisgap+0.02cm,\sseq@ymax  cm+0.17cm)}] (0,0) -- (\sseq@yaxisgap,0);
+\draw[distance label,shift={(\sseq@xmax cm+0.17cm,\sseq@ymin cm-\sseq@xaxisgap/2+0.02cm)}](0,0) .. controls (2,0) ..  (2,0.5)
+node[above,description]{x axis gap};
+\draw[distance label,shift={(\sseq@xmin cm-\sseq@yaxisgap/2+0.02cm,\sseq@ymax cm+0.17cm)}](0,0)--(0,2) %.. controls (0,1) ..  (0.5,1);
+node[above,description]{y axis gap};
+\end{scope}
+
+\class(0,0)
+\class(10,10)
+\draw (0,0) -- (11,11);
+\class(5,0)
+\class(0,5)
+\end{sseqpage}
 \subsection{Axes Style}
 
-\begin{keylist}{x axis style=a (initially border), y axis style=a (initially border),axes style= (initially border)}
+\begin{keylist}{no x axis, no y axis, no axes, draw x axis, draw y axis, draw axes}
+Suppress the axis. Also suppresses axes labels. You can draw your own axes using tikz inside a |scope| environment with the |background| key.
+\end{keylist}
+
+\begin{keylist}{no x axis ticks, no y axis ticks, no x axis ticks, draw x axis ticks, draw y axis ticks, draw axes ticks}
+Suppress axes ticks (the numbers next to the axes). Only matters if axes are drawn. You can make your own labels using tikz inside a |scope| environment with the |background| key. For instance, you might want to label the axes as 0, $n$, $2n$, \ldots You can achieve this as follows:
+\begin{codeexample}[width=8cm]
+\begin{sseqpage}[no x axis ticks, x range={0}{5}]
+\begin{scope}[background]
+    \node at (0,\ymin - 1) {0};
+    \node at (1,\ymin - 1) {n};
+\foreach \n in {2,..., \xmax}{
+    \node at (\n,\ymin - 1) {\n n};
+}
+\end{scope}
+\class(0,0)
+\class(4,2)
+\end{sseqpage}
+\end{codeexample}
+\end{keylist}
+
+\begin{keylist}{x tick step=\meta{positive integer} (initially 1),y tick step=\meta{positive integer} (initially 1),tick step=\meta{positive integer} (initially 1)}
+Sets the interval between labels.
+\end{keylist}
+
+\begin{key}{rotate labels=\meta{boolean} (default true)(initially false)}
+If you use |rotate=90| but also want the labels rotated (so that the whole diagram is sideways) use this key.
+\end{key}
+\end{document}
+
+
+
+
+
+
+The following are somewhat unfinished:
+
+\begin{keylist}{x axis style= (initially border), y axis style= (initially border),axes style= (initially border)}
 
 \end{keylist}
 
@@ -1125,24 +1247,18 @@ If this is false the spectral sequence won't be clipped. I'm not really sure why
 
 \end{keylist}
 
-\begin{keylist}{no x axis, no y axis, no axes, draw x axis, draw y axis, draw axes}
-
-\end{keylist}
-
-\begin{keylist}{no x axis labels, no y axis labels, no axes labels, draw x axis labels, draw y axis labels, draw axes labels}
-
-\end{keylist}
-
-\begin{keylist}{x label step= (initially 1),y label step= (initially 1),label step= (initially 1)}
-
-\end{keylist}
-
-\begin{key}{rotate labels=\meta{boolean} (default true)(initially false)}
-
-\end{key}
-\end{document}
 
 
+
+
+
+
+
+
+
+
+
+% Thank god this shit isn't needed anymore...
 
 \begin{command}{\addtocontext\marg{code}}
 This command evaluates \meta{code} now, but also stores it and evaluates it at the same point when drawing the spectral sequence.
