@@ -2688,6 +2688,16 @@ copy}}
     %this page struct line style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thestructlinestyle\the\sseq@scope@toks}}
 }
 
+\pgfqkeys{/sseqpages/fit}{
+    class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\the\sseq@scope@toks}},
+    permanent cycle style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thepermanentcyclestyle\the\sseq@scope@toks}},
+    transient cycle style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thetransientcyclestyle\the\sseq@scope@toks}},
+    this page class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thetransientcyclestyle\sseq@thethispagecyclestyle\the\sseq@scope@toks}},
+    differential style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thedifferentialstyle\the\sseq@scope@toks}},
+    struct line style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thestructlinestyle\the\sseq@scope@toks}},
+    %this page struct line style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thestructlinestyle\the\sseq@scope@toks}}
+}
+
 \pgfqkeys{/sseqpages/scope}{
     page constraint/.code={
         \sseq@updatepageconstraint{#1}{&&}
