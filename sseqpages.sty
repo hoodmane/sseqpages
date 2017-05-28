@@ -363,17 +363,17 @@
 
 \ExplSyntaxOn
 
-%%% \sseq@NewDocumentCommand
+%%% \sseq@DeclareDocumentCommand
 %
-% \sseq@NewDocumentCommand\somecommand is shorthand for \sseq@NewDocumentCommandAs\sseq@somecommand\somecommand
+% \sseq@DeclareDocumentCommand\somecommand is shorthand for \sseq@DeclareDocumentCommandAs\sseq@somecommand\somecommand
 %
 % so the result is that it defines \sseq@somecommand intended to be \let to \somecommand later.
 
-\cs_new_protected:Npn\sseq@NewDocumentCommand#1{%
-    \exp_args:Nc \sseq@NewDocumentCommandAs { sseq@ \cs_to_str:N #1 }#1
+\cs_new_protected:Npn\sseq@DeclareDocumentCommand#1{%
+    \exp_args:Nc \sseq@DeclareDocumentCommandAs { sseq@ \cs_to_str:N #1 }#1
 }
 
-%%% \sseq@NewDocumentCommandAS
+%%% \sseq@DeclareDocumentCommandAS
 %
 % #1 - the command to define
 % #2 - the command to use in argument parsing errors
@@ -382,7 +382,7 @@
 %
 % See my stack exchange question: https://tex.stackexchange.com/questions/350596/control-error-messages-made-by-commands-defined-with-newdocumentcommand
 
-\cs_new_protected:Npn\sseq@NewDocumentCommandAs#1#2#3#4{
+\cs_new_protected:Npn\sseq@DeclareDocumentCommandAs#1#2#3#4{
     \group_begin:
     \cs_set_eq:cN { tempsave_ \cs_to_str:N #2 } #2 % Store the original value of #2
     \cs_set_eq:cc { tempsave_ \cs_to_str:N #2 \c_space_tl code } { \cs_to_str:N #2 \c_space_tl code } % Store the original value of #2
@@ -400,14 +400,11 @@
     \cs_gset_eq:cc { \cs_to_str:N #2 \c_space_tl code } { tempsave_ \cs_to_str:N #2 \c_space_tl code }
     \group_end:
 }
-\ExplSyntaxOff
 
 
 %%% Commands to help the user define "groups" of commands to be reused
-\def\sseqnewgroup{\@ifnextchar*{\sseqnewgroup@}{\sseqnewgroup@{}}}
-\def\sseqnewgroup@#1#2{\@ifnextchar[{\sseqnewgroup@@{#1}#2}{\sseqnewgroup@@{#1}#2[0]}}%]
-\long\def\sseqnewgroup@@#1#2[#3]#4{%
-    \sseqnewcmd#1#2(\sseq@macrox,\sseq@macroy)[#3]{%
+\NewDocumentCommand\sseqnewgroup{smO{0}m}{
+    \exp_last_unbraced:Nf\sseqnewcmd\IfBooleanT{#1}{*}\@nx#2(\sseq@macrox,\sseq@macroy)[#3]{%
         \bgroup
         \def\sseq@newgroup@temp{}%
         \sseq@tempiffalse
@@ -422,59 +419,91 @@
         \egroup
     }%
 }
+\ExplSyntaxOff
 
-\def\sseqnewcmd{\@ifnextchar*{\@xp\sseqnewcmd@@\@gobble}{\sseqnewcmd@}}
-\def\sseqnewcmd@#1{%
-    \@ifundefined{\sseq@macroname #1}{}{%
-        \sseq@error{%
-            A command named \string#1\space already exists. If you want to overwrite an existing command, say
-            '\string\sseqnewcmd*\string#1...' or '\string\sseqnewgroup*\string#1...' as appropriate%
-        }{}%
-    }%
-    \sseqnewcmd@@#1%
-}
-\def\sseqnewcmd@@#1{\@ifnextchar({\sseqnewcmd@@@#1}{\sseqnewcmd@@@#1(\x,\y)}}%)
-\def\sseqnewcmd@@@#1(#2,#3){%
-    \@ifnextchar[{\sseqnewcmd@@@@#1(#2,#3)}{\sseqnewcmd@@@@#1(#2,#3)[0]}%]
-}
-\bgroup\lccode`\*=`\#\lccode`C=`C\lowercase{\egroup
-    \long\def\sseqnewcmd@@@@#1(#2,#3)[#4]#5{%
-        \ifnum#4>6 \sseq@error{Commands defined using '\string\sseqnewcmd' or '\string\sseqnewgroup' can take at most six arguments}\fi
-        \edef\helpera{\@xp\@nx\csname \sseq@macroname#1@\endcsname}% \helpera and \helperb contain the names of the two helper macros
-        \edef\helperb{\@xp\@nx\csname \sseq@macroname#1@@\endcsname}%
-        \xdef#1{\@nx\@ifnextchar[{\@xp\@nx\helpera}{\@xp\@nx\helpera[]}}% The outermost command and the first helper are easy
-        \@xp\xdef\helpera[##1](##2,##3){\@xp\@nx\helperb{##1}{##2}{##3}}%
-        \def\temp##1##2##3##4##5##6{#5}% Substitute placeholders for the arguments the user put in the body of the macro -- we'll replace these with actual pounds later.
-        \sseq@temptoks\@xp{\temp\ppfour\ppfive\ppsix\ppseven\ppeight\ppnine}%
-        \bgroup% Using \aftergroup's we can make a loop to determine how many arguments the innermost macro should take
-            \aftergroup\@xp\aftergroup\edef\aftergroup\helperb\aftergroup##\aftergroup1\aftergroup##\aftergroup2\aftergroup##\aftergroup3%
-            \ifnum#4>0\relax
-                \sseq@tempcount=0\relax
-                \sseq@tempcountb=3\relax
-                \loop
-                    \advance\sseq@tempcount1\relax\advance\sseq@tempcountb1\relax
-                    \aftergroup####\@xp\aftergroup\the\sseq@tempcountb
-                \ifnum\sseq@tempcount<#4\repeat
-            \fi
-            \aftergroup{%
-                \aftergroup\the\aftergroup\sseq@temptoks
-            \aftergroup}%
-        \egroup
-%
-        \bgroup % Now we need to replace those fake \ppn placeholders with real pounds. Because of \lowercase, real pounds are *'s.
-        \@xp\sseq@patchrepeat\helperb{\options}{*1}%
-        \@xp\sseq@patchrepeat\helperb{#2}{*2}%
-        \@xp\sseq@patchrepeat\helperb{#3}{*3}%
-        \@xp\sseq@patchrepeat\helperb{\ppfour}{*4}%
-        \@xp\sseq@patchrepeat\helperb{\ppfive}{*5}%
-        \@xp\sseq@patchrepeat\helperb{\ppsix}{*6}%
-        \@xp\sseq@patchrepeat\helperb{\ppseven}{*7}%
-        \@xp\sseq@patchrepeat\helperb{\ppeight}{*8}%
-        \@xp\sseq@patchrepeat\helperb{\ppnine}{*9}%
-        \sseq@eval{\global\let\@xp\@nx\helperb\@xp\@nx\helperb}%
-        \egroup
+
+\NewDocumentCommand\sseqnewcmd{smD(){\x,\y}O{0}m}{
+    \IfBooleanF{#1}{
+        \@ifundefined{\sseq@macroname #2}{}{%
+            \sseq@error{%
+                A command named \string#2\space already exists. If you want to overwrite an existing command, say
+                '\string\sseqnewcmd*\string#2...' or '\string\sseqnewgroup*\string#2...' as appropriate%
+            }{}%
+        }
     }
-}% end \lowercase
+    \ifnum#4>6 \sseq@error{Commands defined using '\string\sseqnewcmd' or '\string\sseqnewgroup' can take at most six arguments}\fi
+    \sseqnewcmd@#2(#3){#4}{#5}
+}
+
+\NewDocumentCommand\sseqnewdcmd{msD(){\x,\y}O{0}m}{
+    \IfBooleanT{#2}{
+        \@ifundefined{\sseq@macroname #1}{}{%
+            \sseq@error{%
+                A command named \string#1\space already exists. If you want to overwrite an existing command, say
+                '\string\sseqnewcmd*\string#1...' or '\string\sseqnewgroup*\string#1...' as appropriate%
+            }{}%
+        }
+    }
+    \ifnum#4>5 \sseq@error{Commands defined using '\string\sseqnewdcmd' can take at most five arguments}\fi
+    \sseqnewdcmd@#1(#3){#4}{#5}
+}
+
+\bgroup\lccode`\*=`\#\lccode`C=`C\lccode`\O=`\O\lowercase{\egroup
+\def\sseqnewcmd@#1(#2,#3)#4#5{
+    \def\temp##1##2##3##4##5##6{#5}% Substitute placeholders for the arguments the user put in the body of the macro -- we'll replace these with actual pounds later.
+    \sseq@temptoks\@xp{\temp\ppfour\ppfive\ppsix\ppseven\ppeight\ppnine}%
+    \edef\helper{\@xp\@nx\csname \sseq@macroname#1@\endcsname}
+    \sseq@eval{\@nx\DeclareDocumentCommand\@nx#1{O{}u(u,u)}{\@xp\@nx\helper\unexpanded{{##1}{##3}{##4}}}}
+    \chardef\sseq@temp=3\relax
+    \sseq@eval{\gdef\@xp\@nx\helper\sseqnewcmd@makearglist{#4}{\the\sseq@temptoks}}
+    \bgroup % Now we need to replace those fake \ppn placeholders with real pounds. Because of \lowercase, real pounds are *'s.
+        \@xp\sseq@patchrepeat\helper{\options}{*1}%
+        \@xp\sseq@patchrepeat\helper{#2}{*2}%
+        \@xp\sseq@patchrepeat\helper{#3}{*3}%
+        \@xp\sseq@patchrepeat\helper{\ppfour}{*4}%
+        \@xp\sseq@patchrepeat\helper{\ppfive}{*5}%
+        \@xp\sseq@patchrepeat\helper{\ppsix}{*6}%
+        \@xp\sseq@patchrepeat\helper{\ppseven}{*7}%
+        \@xp\sseq@patchrepeat\helper{\ppeight}{*8}%
+        \@xp\sseq@patchrepeat\helper{\ppnine}{*9}%
+        \sseq@eval{\global\let\@xp\@nx\helper\@xp\@nx\helper}%
+    \egroup
+}
+
+\def\sseqnewdcmd@#1(#2,#3)[#4]#5{
+    \ifnum#4>5 \sseq@error{Commands defined using '\string\sseqnewdcmd' can take at most five arguments}\fi
+    \def\temp##1##2##3##4##5{#5}% Substitute placeholders for the arguments the user put in the body of the macro -- we'll replace these with actual pounds later.
+    \sseq@temptoks\@xp{\temp\ppfive\ppsix\ppseven\ppeight\ppnine}%
+    \edef\helpera{\@xp\@nx\csname \sseq@macroname#1@\endcsname}
+    \edef\helperb{\@xp\@nx\csname \sseq@macroname#1@@\endcsname}
+    \sseq@eval{\@nx\DeclareDocumentCommand\@nx#1{O{}u(u)}{\@xp\@nx\helper\unexpanded{{##1}{##3}{##4}}}}
+    \chardef\sseq@temp=4\relax
+    \sseq@eval{\gdef\@xp\@nx\helper\sseqnewcmd@makearglist{#4}{\the\sseq@temptoks}}
+    \bgroup % Now we need to replace those fake \ppn placeholders with real pounds. Because of \lowercase, real pounds are *'s.
+        \@xp\sseq@patchrepeat\helper{\options}{*1}%
+        \@xp\sseq@patchrepeat\helper{\dpage}{*2}%
+        \@xp\sseq@patchrepeat\helper{#2}{*3}%
+        \@xp\sseq@patchrepeat\helper{#3}{*4}%
+        \@xp\sseq@patchrepeat\helper{\ppfive}{*5}%
+        \@xp\sseq@patchrepeat\helper{\ppsix}{*6}%
+        \@xp\sseq@patchrepeat\helper{\ppseven}{*7}%
+        \@xp\sseq@patchrepeat\helper{\ppeight}{*8}%
+        \@xp\sseq@patchrepeat\helper{\ppnine}{*9}%
+        \sseq@eval{\global\let\@xp\@nx\helper\@xp\@nx\helper}%
+    \egroup
+}
+}% end lowercase
+
+\def\sseqnewcmd@makearglist#1{%
+    \unexpanded{##1##2##3}%
+    \@xp\sseqnewcmd@makearglist@\the\numexpr#1+\sseq@temp
+}
+
+\def\sseqnewcmd@makearglist@#1{%
+    \ifnum#1>\sseq@temp
+        \@xp\sseqnewcmd@makearglist@\the\numexpr#1-1\unexpanded{#####1}%
+    \fi
+}
 \def\sseq@patchrepeat#1#2#3{\patchcmd#1{#2}{#3}{\sseq@patchrepeat#1{#2}{#3}}{}}
 
 
@@ -3186,7 +3215,7 @@ copy}}
 %%
 %%%%%
 %%% \class, \classoptions, \replaceclass
-\sseq@NewDocumentCommand\class{or()}{%
+\sseq@DeclareDocumentCommand\class{or()}{%
     \begingroup
     \sseq@esetthiscall{\string\class\IfNoValueF{#1}{[\unexpanded{#1}]}\unexpanded{(#2)}}%
     \gdef\sseq@classnodetext{}%
@@ -3258,7 +3287,7 @@ copy}}
 }
 \def\sseq@setoffset#1{\def\temp{#1}\sseq@obj@gdef{\classname.offset}{\pgftransformshift{#1}}}
 
-\sseq@NewDocumentCommand\classoptions{or()}{%
+\sseq@DeclareDocumentCommand\classoptions{or()}{%
     \begingroup
     \IfNoValueT{#1}{\sseq@error{There is no reason to use \@nx\classoptions without giving options}{}}
     \sseq@setthiscall{\classoptions[#1](#2)}%
@@ -3426,7 +3455,7 @@ copy}}
         \sseq@smuggle@macro\sseq@gen
     \egroup
 }
-\sseq@NewDocumentCommand\replaceclass{or()}{%
+\sseq@DeclareDocumentCommand\replaceclass{or()}{%
     \begingroup
     \sseq@esetthiscall{\string\replaceclass\IfNoValueF{#1}{[\unexpanded{#1}]}\unexpanded{(#2)}}
     \gdef\sseq@classnodetext{}
@@ -3517,16 +3546,14 @@ copy}}
 %%%
 %%% \d and \doptions
 %%%
-\sseq@NewDocumentCommand\d{ou{(}}{%
-    \sseq@d@{#1}{#2}(%
+\sseq@DeclareDocumentCommand\d{ou(u)d()}{%
+    \sseq@d@{d}{#1}{#2}{#3}{#4}%
 }
-\sseq@NewDocumentCommandAs\sseq@d@\d{mmr()d()}{\sseq@d@@{d}{#1}{#2}{#3}{#4}}
-\sseq@NewDocumentCommand\doptions{ou{(}}{%
-    \IfNoValueT{#1}{\sseq@error{It's pointless to use '\string\doptions' without giving any options}}
-    \sseq@doptions@{#1}{#2}(%
+\sseq@DeclareDocumentCommand\doptions{ou(u)d()}{%
+    \IfNoValueT{#1}{\sseq@error{It's pointless to use '\string\doptions' without giving any options}}%
+    \sseq@d@@{doptions}{#1}{#2}{#3}{#4}%
 }
-\sseq@NewDocumentCommandAs\sseq@doptions@\doptions{mmr()d()}{\sseq@d@@{doptions}{#1}{#2}{#3}{#4}}
-\def\sseq@d@@#1#2#3#4#5{%
+\def\sseq@d@#1#2#3#4#5{%
     \begingroup
     \IfNoValueF{#2}{
         \sseq@processoptions{differential}{#2}% Outputs result into \sseq@savedoptioncode
@@ -3661,12 +3688,12 @@ copy}}
 %%%
 %%% \structline and \structlineoptions
 %%%
-\sseq@NewDocumentCommand\structline{or()r()}{%
+\sseq@DeclareDocumentCommand\structline{or()r()}{%
     \begingroup
     \sseq@esetthiscall{\string\structline\IfNoValueF{#1}{\unexpanded{[#1]}}\unexpanded{(#2)(#3)}}%
     \sseq@structline@main{structline}{#1}{#2}{#3}%
 }
-\sseq@NewDocumentCommand\structlineoptions{or()r()}{%
+\sseq@DeclareDocumentCommand\structlineoptions{or()r()}{%
     \begingroup
     \IfNoValueT{#1}{\sseq@error{It's pointless to use '\string\structlineoptions' without giving any options}}
     \sseq@esetthiscall{\string\structlineoptions\IfNoValueF{#1}{\unexpanded{[#1]}}\unexpanded{(#2)(#3)}}%
@@ -3895,7 +3922,7 @@ copy}}
 \sseqset{circle classes={draw, newellipse, ellipse ratio=1.2,inner sep=2pt}}
 
 \newcount\circleclassuid
-\sseq@NewDocumentCommand\circleclasses{or()r()}{
+\sseq@DeclareDocumentCommand\circleclasses{or()r()}{
     \begingroup
     \def\sseq@keysfortikzprim{}
     \IfNoValueF{#1}{
