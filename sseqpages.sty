@@ -1782,9 +1782,11 @@
     source anchor/.sseq @ second pass store in=\sseq@edgesourceanchor,
     target anchor/.sseq @ second pass store in=\sseq@edgetargetanchor,
     shorten >/.sseq @ second pass code={\pgfkeysalso{/tikz/shorten >=#1}},
-    shorten </.sseq @ second pass code={\pgfkeysalso{/tikz/shorten <=#1}}
+    shorten </.sseq @ second pass code={\pgfkeysalso{/tikz/shorten <=#1}},
+    invisible/.sseq @ first pass code={\sseq@drawdifferentialfalse}
 }
-
+\newif\ifsseq@drawdifferential
+\sseq@drawdifferentialtrue
 
 %%%
 %%%   Global Keys
@@ -2638,7 +2640,16 @@ copy}}
         \sseq@updatepageconstraint{#1}{||}
     },
     page/.code={\sseq@getnumrange\temp{#1}\sseq@updatepageconstraintrange},
-    set page constraint/.store in=\sseq@pageconstraint
+    set page constraint/.store in=\sseq@pageconstraint,
+%
+%
+    class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\the\sseq@scope@toks}},
+    permanent cycle style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thepermanentcyclestyle\the\sseq@scope@toks}},
+    transient cycle style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thetransientcyclestyle\the\sseq@scope@toks}},
+    this page class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thetransientcyclestyle\sseq@thethispagecyclestyle\the\sseq@scope@toks}},
+    differential style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thedifferentialstyle\the\sseq@scope@toks}},
+    struct line style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thestructlinestyle\the\sseq@scope@toks}},
+    %this page struct line style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thestructlinestyle\the\sseq@scope@toks}}
 }
 
 \pgfqkeys{/sseqpages/scope}{
@@ -3533,16 +3544,21 @@ copy}}
     \sseq@d@setpageminrec{class.\source}{#2}{source}%  automatically handles \sseq@cleanup@obj
     \sseq@d@setpageminrec{class.\target}{#2}{target}
 %
-    \sseq@obj@gdef{d.#2\source\target.page}{#2}
-    \sseq@obj@gdef{d.#2\source\target.style}{}%
-    \sseq@obj@xdef{d.#2\source\target.source}{\source}
-    \sseq@obj@xdef{d.#2\source\target.target}{\target}
-    \sseq@obj@xdef{d.#2\source\target.options}{\ifsseq@needstikz\@nx\sseq@needstikztrue\fi\unexpanded\@xp{\sseq@savedoptioncode}}
-%
-    \sseq@savedpaths@adddifferential{d.#2\source\target}%
+    \ifsseq@drawdifferential
+        \sseq@obj@gdef{d.#2\source\target.page}{#2}
+        \sseq@obj@gdef{d.#2\source\target.style}{}%
+        \sseq@obj@xdef{d.#2\source\target.source}{\source}
+        \sseq@obj@xdef{d.#2\source\target.target}{\target}
+        \sseq@obj@xdef{d.#2\source\target.options}{\ifsseq@needstikz\@nx\sseq@needstikztrue\fi\unexpanded\@xp{\sseq@savedoptioncode}}
+    %
+        \sseq@savedpaths@adddifferential{d.#2\source\target}%
+    \else
+        \sseq@obj@gdef{d.#2\source\target.invisible}{}
+    \fi
 }
 \def\sseq@d@doptions#1#2{%
     \sseq@obj@ifundef{d.#2\source\target.options}{\sseq@error{There is no differential of the form '\sseq@thiscall' so I can't add options to it}{}}{}%
+    \sseq@obj@ifdef{d.#2\source\target.invisible}{\sseq@error{Cannot add options to invisible differential}}
     \ifsseq@keepchanges\else
         \@ifundefined{sseq@thepage}{}{
             \ifnum\sseq@thepage=#2\relax\else\ifnum\sseq@thepage=0\else
