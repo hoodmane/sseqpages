@@ -187,7 +187,7 @@
 \def\sseq@ifintexpr#1{%
     \bgroup
     \catcode`\ =12\relax
-    \sseq@tempcount0\relax
+    \sseq@tempcount\z@
     \makeatletter
     \scantokens{\sseq@ifintexpr@first{needsint}#1\sseq@nil}%
     \@xp\egroup\next
@@ -278,7 +278,7 @@
     \next
 }
 
-\def\sseq@ifintexpr@true#1\sseq@nil{\ifnum\sseq@tempcount=0\relax \let\next\@firstoftwo\else\let\next\@secondoftwo\fi}
+\def\sseq@ifintexpr@true#1\sseq@nil{\ifnum\sseq@tempcount=\z@ \let\next\@firstoftwo\else\let\next\@secondoftwo\fi}
 \def\sseq@ifintexpr@false#1\sseq@nil{\let\next\@secondoftwo}
 
 \def\sseq@makeifint#1#2#3{\@xp\def\csname sseq@ifintexpr@@#1@#2\endcsname{#3}}
@@ -288,7 +288,7 @@
 \sseq@makeifint{needsint}{digit}{\sseq@ifintexpr@{int}}
 \sseq@makeifint{needsint}{*/}{\sseq@ifintexpr@false}
 \sseq@makeifint{needsint}{+-}{\sseq@ifintexpr@{needsint}}
-\sseq@makeifint{needsint}{(}{\advance\sseq@tempcount1\relax\sseq@ifintexpr@{needsint}}
+\sseq@makeifint{needsint}{(}{\advance\sseq@tempcount\@ne\sseq@ifintexpr@{needsint}}
 \sseq@makeifint{needsint}{)}{\sseq@ifintexpr@false}
 \sseq@makeifint{needsint}{ }{\sseq@ifintexpr@{needsint}}
 
@@ -298,8 +298,8 @@
 \sseq@makeifint{int}{+-}{\sseq@ifintexpr@{needsint}}
 \sseq@makeifint{int}{(}{\sseq@ifintexpr@false}
 \sseq@makeifint{int}{)}{
-    \advance\sseq@tempcount-1\relax
-    \ifnum\sseq@tempcount<0\relax
+    \advance\sseq@tempcount\m@ne
+    \ifnum\sseq@tempcount<\z@\relax
         \@xp\@xp\@xp\sseq@ifintexpr@false\@xp\@gobble
     \else
         \@xp\sseq@ifintexpr@
@@ -313,8 +313,8 @@
 \sseq@makeifint{nointallowed}{+-}{\sseq@ifintexpr@{needsint}}
 \sseq@makeifint{nointallowed}{(}{\sseq@ifintexpr@false}
 \sseq@makeifint{nointallowed}{)}{
-    \advance\sseq@tempcount-1\relax
-    \ifnum\sseq@tempcount<0\relax
+    \advance\sseq@tempcount\m@ne
+    \ifnum\sseq@tempcount<\z@
         \@xp\@xp\@xp\sseq@ifintexpr@false\@xp\@gobble
     \else
         \@xp\sseq@ifintexpr@
@@ -404,15 +404,15 @@
 
 %%% Commands to help the user define "groups" of commands to be reused
 \NewDocumentCommand\sseqnewgroup{smO{0}m}{
-    \exp_last_unbraced:Nf\sseqnewcmd\IfBooleanT{#1}{*}\@nx#2(\sseq@macrox,\sseq@macroy)[#3]{%
+        \sseq@eval{\@nx\sseqnewcmd\IfBooleanT{#1}{*}\@nx#2(\@nx\sseq@macrox,\@nx\sseq@macroy)[#3]}{%
         \bgroup
         \def\sseq@newgroup@temp{}%
         \sseq@tempiffalse
         \sseq@ifempty{\options}{}{\sseq@tempiftrue}%
         \sseq@tempcount=\numexpr\sseq@macrox\relax
         \sseq@tempcountb=\numexpr\sseq@macroy\relax
-        \ifnum\sseq@tempcount=0\relax\else\sseq@tempiftrue\fi
-        \ifnum\sseq@tempcountb=0\relax\else\sseq@tempiftrue\fi
+        \ifnum\sseq@tempcount=\z@\else\sseq@tempiftrue\fi
+        \ifnum\sseq@tempcountb=\z@\else\sseq@tempiftrue\fi
         \ifsseq@tempif\sseq@eval{\@nx\begin{scope}[xshift=\the\sseq@tempcount,yshift=\the\sseq@tempcountb,\unexpanded{\options}]}\def\sseq@newgroup@temp{\end{scope}}\fi%
             {}#4% This is set up to make sure no space problems occur with \patchcmd
         \sseq@newgroup@temp
@@ -583,7 +583,7 @@
 \def\sseq@obj@show#1{\@xptwo\show\sseq@obj{#1}}
 \def\sseq@obj@ifundef#1{\@ifundefined{\sseq@obj@fullname{#1}}}
 \def\sseq@obj@ifdef#1#2#3{\@ifundefined{\sseq@obj@fullname{#1}}{#3}{#2}}
-\def\sseq@obj@inc#1{\bgroup\sseq@tempcount\sseq@obj{#1}\relax\advance\sseq@tempcount1\relax\sseq@obj@xdef{#1}{\the\sseq@tempcount}\egroup}
+\def\sseq@obj@inc#1{\bgroup\sseq@tempcount\sseq@obj{#1}\relax\advance\sseq@tempcount\@ne\sseq@obj@xdef{#1}{\the\sseq@tempcount}\egroup}
 \def\sseq@obj@gaddto{\@xptwo\sseq@g@addto@macro\sseq@obj} % TODO: either gaddto or g@addto
 \def\sseq@obj@xaddto{\@xptwo\sseq@x@addto@macro\sseq@obj}
 \def\sseq@obj@xoaddto#1{\@xp\sseq@g@addto@macro\csname \sseq@obj@fullname{#1}\@xp\endcsname\@xp}
@@ -674,7 +674,8 @@
 %%% Install user commands
 % copy commands into user namespace by removing sseq@ prefixes
 % given a list of commands, \let\thiscommand\sseq@thiscommand on each one
-\def\sseq@usermacrolist{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions\circleclasses\isdead\isalive\pgfmathparse\lastx\lasty\getdtarget}
+\def\sseq@usermacrolist{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions
+    \circleclasses\isdead\isalive\pgfmathparse\lastx\lasty\saveclassstack\restoreclassstack\getdtarget}
 \def\sseq@installusermacros{\@xp\sseq@installusermacros@\sseq@usermacrolist\sseq@nil}
 \def\sseq@installusermacros@#1{%
     \ifx#1\sseq@nil\else % if so, that was the last command in the list
@@ -696,9 +697,9 @@
     \let\sseq@errorinfo\sseq@errorinfo@foreach % The starting message, which says we're in a for each loop and these are the variables involved
     % Now print each of the current saved values
     \let\\\sseq@errorinfo@foreach@slsl % Iterator to print out "variable = value"
-    \sseq@context@tempcount0\relax
+    \sseq@context@tempcount\z@
     \loop % Work through each layer of context / foreach loop
-        \advance\sseq@context@tempcount1\relax
+        \advance\sseq@context@tempcount\@ne
         \csname sseq@for@savedtoks\the\sseq@context@tempcount\endcsname
     \ifnum\sseq@context@tempcount<\sseq@context@depth\repeat %
 }
@@ -716,7 +717,7 @@
     \let\sseq@builderrorinfo\sseq@builderrorinfo@foreach % Install foreach error annotations
     \let\errmessage\sseq@errmessage
     \let\sseq@error@\sseq@errorwithinfo
-    \advance\sseq@context@depth1\relax
+    \advance\sseq@context@depth\@ne
     \sseq@for@clearsavedtoks % empty the saved variables at this level
 }
 
@@ -951,12 +952,12 @@
             \edef\sseq@index{\sseq@obj{partcoord.(\sseq@xycoord).tag.\sseq@class@tagprefix\sseq@rawindex}}
         }{%
             \sseq@ifintexpr{\sseq@rawindex}{%
-                \ifnum\sseq@rawindex<0\relax
+                \ifnum\sseq@rawindex<\z@
                     \sseq@obj@ifundef{partcoord.(\sseq@xycoord).numnodes}{%
                         \sseq@error{negative index '\sseq@rawindex' provided\sseq@printerrortype\space but no classes yet exist in (\sseq@xycoord).
                            Negative indices count from the most recent class in the given position; in particular, there must be at least one existing class}}{}%
-                    \edef\sseq@index{\the\numexpr\sseq@obj{partcoord.(\sseq@xycoord).numnodes} + \sseq@rawindex + 1\relax}%
-                    \ifnum\sseq@index<1\relax
+                    \edef\sseq@index{\the\numexpr\sseq@obj{partcoord.(\sseq@xycoord).numnodes} + \sseq@rawindex + \@ne\relax}%
+                    \ifnum\sseq@index<\@ne
                         \sseq@error{index '\sseq@rawindex' provided\sseq@printerrortype\space is out of bounds -- only \sseq@obj{partcoord.(\sseq@xycoord).numnodes} classes exist at position (\sseq@xycoord)}%
                     \fi
                 \else
@@ -1074,7 +1075,7 @@
         }{}%
     }{}%
 %
-    \ifnum\sseq@obj{partcoord.(\sourcecoord).numnodes}=1\relax\else
+    \ifnum\sseq@obj{partcoord.(\sourcecoord).numnodes}=\@ne\else
         \ifx\xindex\pgfutil@empty
             \sseq@error{%
                 There are multiple nodes at source coordinate (\sourcecoord) so instead of '\sseq@thiscall' you should say
@@ -1083,7 +1084,7 @@
             }%
         \fi
     \fi
-    \ifnum\sseq@obj{partcoord.(\targetcoord).numnodes}=1\relax\else
+    \ifnum\sseq@obj{partcoord.(\targetcoord).numnodes}=\@ne\else
         \ifx\yindex\pgfutil@empty
             \sseq@error{%
                 There are multiple nodes at target coordinate (\targetcoord) so instead of '\sseq@thiscall' you should say
@@ -2150,7 +2151,7 @@ copy}}
         \ifsseq@hasname\else\sseq@error{Option 'keep changes' is only for named spectral sequences}\fi
         \ifsseq@ispageenv\else\sseq@error{Option 'keep changes' is only for the sseqpage environment}\fi
     },
-    stack depth/.sseq store in=\sseq@stackdepth{4},
+    stack depth/.sseq store in=\sseq@stackdepth{0},
     grid/.code={\ifcsname sseq@grid@#1\endcsname\@xp\let\@xp\sseq@grid\csname sseq@grid@#1\endcsname\else\sseq@error{Undefined grid style "#1"}\fi},
     math nodes/.sseq is if=mathnodes,
     custom clip/.sseq store in=\sseq@customclip{},
@@ -2449,7 +2450,7 @@ copy}}
     ymirror/.value forbidden,
     xscale/.code={%
         \pgfmathparse{int(#1-1)}%
-        \ifnum\pgfmathresult<0\relax%
+        \ifnum\pgfmathresult<\z@%
             \sseq@error{You said 'xscale=#1' as a global option, but scaling by negative numbers is not allowed as a global option. Instead, please use the option 'xmirror', and
             then scale by the absolute value}
         \fi
@@ -2458,7 +2459,7 @@ copy}}
     xscale/.value required,
     yscale/.code={%
         \pgfmathparse{int(#1-1)}%
-        \ifnum\pgfmathresult<0\relax
+        \ifnum\pgfmathresult<\z@
             \sseq@error{You said 'yscale=#1' as a global option, but scaling by negative numbers is not allowed as a global option. Instead, please use the option 'ymirror', and
             then scale by the absolute value}
         \fi
@@ -2651,7 +2652,7 @@ copy}}
 
 \def\sseq@ifpgfmathresultisunitlessint{\ifpgfmathunitsdeclared\@xp\@secondoftwo\else\sseq@ifpgfmathresultisint{\@xp\@firstoftwo}{\@xp\@secondoftwo}\fi}
 \def\sseq@ifpgfmathresultisint{\@xp\sseq@ifpgfmathresultisint@\pgfmathresult..\sseq@nil}
-\def\sseq@ifpgfmathresultisint@#1.#2.#3\sseq@nil{\ifx\sseq@nil#2\sseq@nil\@xp\@firstoftwo\else \ifnum#2=0\relax \@xp\@xp\@xp\@firstoftwo\else \@xp\@xp\@xp\@secondoftwo\fi\fi}
+\def\sseq@ifpgfmathresultisint@#1.#2.#3\sseq@nil{\ifx\sseq@nil#2\sseq@nil\@xp\@firstoftwo\else \ifnum#2=\z@ \@xp\@xp\@xp\@firstoftwo\else \@xp\@xp\@xp\@secondoftwo\fi\fi}
 
 %%% Some default key settings
 \sseqset{
@@ -3029,7 +3030,7 @@ copy}}
 
 \def\sseq@tikzcommand@conditionaldraw#1#2{%
     \sseq@pgfmathparse@rescan{#2}%
-    \ifnum\pgfmathresult>0\relax #1 \fi
+    \ifnum\pgfmathresult>\z@ #1 \fi
 }
 
 
@@ -3170,13 +3171,19 @@ copy}}
     \fi
 }
 %%% Scope
+\newcount\sseq@scope@savestackid
 \def\sseq@scope{\@ifnextchar[{\sseq@scope@}{\sseq@scope@[]}}%]
 \def\sseq@scope@[#1]{%
     \sseq@scope@savedpaths@add{\begin{scope}}%
     \sseq@processoptions{scope}{#1}% outputs into \sseq@savedoptioncode
     \sseq@eval{\@nx\sseq@scope@savedpaths@add{\sseq@scope@toks{\unexpanded\@xp{\sseq@savedoptioncode}\unexpanded\@xp{\tikz@options}}}}%
+    %\advance\sseq@scope@savestackid\@ne
+    %\sseq@saveclassstack@name{scope@save\the\sseq@scope@savestackid}
 }
-\def\sseq@endscope{\sseq@scope@savedpaths@add{\end{scope}}}
+\def\sseq@endscope{%
+    \sseq@scope@savedpaths@add{\end{scope}}
+    %\sseq@restoreclassstack@name{scope@save\the\sseq@scope@savestackid
+}
 
 \def\sseq@lastx#1{%
     \@xp\sseq@ifempty\@xp{\romannumeral-0#1}{%
@@ -3195,18 +3202,52 @@ copy}}
 \def\sseq@lastx@#1{\sseq@obj@ifdef{lastx@#1}{\sseq@obj{lastx@#1}}{\@nx\sseq@error{There are fewer than \the\numexpr#1+1\relax\space coordinates on the stack}}}
 \def\sseq@lasty@#1{\sseq@obj@ifdef{lasty@#1}{\sseq@obj{lasty@#1}}{\@nx\sseq@error{There are fewer than \the\numexpr#1+1\relax\space coordinates on the stack}}}
 
-\def\sseq@pushclassstack#1#2#3{
-    \sseq@tempcount=\sseq@stackdepth % set by global option
+\newcount\sseq@userclassstacksavecount
+\def\sseq@saveclassstack{
+    \advance\sseq@userclassstacksavecount\@ne
+    \sseq@saveclassstack@name{usersave@\the\sseq@userclassstacksavecount}
+}
+\def\sseq@restoreclassstack{
+    \sseq@restoreclassstack@name{usersave@\the\sseq@userclassstacksavecount}
+    \advance\sseq@userclassstacksavecount\m@ne
+}
+
+\def\sseq@saveclassstack@name#1{
+    \sseq@tempcount=\z@
     \loop
-        \sseq@obj@gletobj{class.namedclass.lastclass\the\sseq@tempcount}{class.namedclass.lastclass\the\numexpr\sseq@tempcount-1}
-        \sseq@obj@gletobj{lastx@\the\sseq@tempcount}{lastx@\the\numexpr\sseq@tempcount-1}
-        \sseq@obj@gletobj{lasty@\the\sseq@tempcount}{lasty@\the\numexpr\sseq@tempcount-1}
-        \advance\sseq@tempcount-1\relax
-    \ifnum\sseq@tempcount>0\repeat
-    \sseq@obj@xdef{class.namedclass.lastclass}{#1}
-    \sseq@obj@xdef{class.namedclass.lastclass0}{#1}
-    \sseq@obj@xdef{lastx@0}{#2}
-    \sseq@obj@xdef{lasty@0}{#3}
+        \sseq@obj@gletobj{save#1.lastclass\the\sseq@tempcount}{class.namedclass.lastclass\the\numexpr\sseq@tempcount}
+        \sseq@obj@gletobj{save#1.lastx@\the\sseq@tempcount}{lastx@\the\numexpr\sseq@tempcount}
+        \sseq@obj@gletobj{save#1.lasty@\the\sseq@tempcount}{lasty@\the\numexpr\sseq@tempcount}
+        \advance\sseq@tempcount\@ne\relax
+    \ifnum\sseq@tempcount<\numexpr\sseq@stackdepth+1 \repeat
+}
+
+\def\sseq@restoreclassstack@name#1{
+    \sseq@tempcount=\z@
+    \loop
+        \sseq@obj@gletobj{class.namedclass.lastclass\the\numexpr\sseq@tempcount}{save#1.lastclass\the\sseq@tempcount}
+        \sseq@obj@gletobj{lastx@\the\numexpr\sseq@tempcount}{save#1.lastx@\the\sseq@tempcount}
+        \sseq@obj@gletobj{lasty@\the\numexpr\sseq@tempcount}{save#1.lasty@\the\sseq@tempcount}
+        \advance\sseq@tempcount\@ne\relax
+    \ifnum\sseq@tempcount<\numexpr\sseq@stackdepth+1 \repeat
+}
+
+
+
+\def\sseq@pushclassstack#1#2#3{
+    \ifnum\sseq@stackdepth>\z@
+        \sseq@tempcount=\sseq@stackdepth % set by global option
+        \loop
+            \sseq@obj@gletobj{class.namedclass.lastclass\the\sseq@tempcount}{class.namedclass.lastclass\the\numexpr\sseq@tempcount-1}
+            \sseq@obj@gletobj{lastx@\the\sseq@tempcount}{lastx@\the\numexpr\sseq@tempcount-1}
+            \sseq@obj@gletobj{lasty@\the\sseq@tempcount}{lasty@\the\numexpr\sseq@tempcount-1}
+            \advance\sseq@tempcount\m@ne
+        \ifnum\sseq@tempcount>0\repeat
+        \sseq@obj@xdef{class.namedclass.lastclass}{#1}
+        \sseq@obj@xdef{class.namedclass.lastclass0}{#1}
+        \sseq@obj@xdef{lastx@0}{#2}
+        \sseq@obj@xdef{lasty@0}{#3}
+    \fi
 }
 
 %%%%%
@@ -3233,7 +3274,7 @@ copy}}
     \edef\nodenum{\sseq@obj@ifundef{partcoord.(\partialcoord).numnodespp}{1}{\sseq@obj{partcoord.(\partialcoord).numnodespp}}}%
     \sseq@cleanup@obj{partcoord.(\partialcoord).numnodes}%
     \sseq@cleanup@obj{partcoord.(\partialcoord).numnodespp}%
-    \ifnum\sseq@tempcount=1\relax
+    \ifnum\sseq@tempcount=\@ne
         \sseq@obj@gdef{partcoord.(\partialcoord).numnodes}{0}%
         \sseq@obj@gdef{partcoord.(\partialcoord).numnodespp}{1}%
     \fi
@@ -3336,7 +3377,7 @@ copy}}
             }
             \let\sseq@genmax\sseq@gen
         }{
-            \ifnum\sseq@gen<0\relax
+            \ifnum\sseq@gen<\z@
                 \edef\sseq@gen{\the\numexpr\sseq@obj{class.\coord.num}+\sseq@gen+1}
             \fi
             \@ifundefined{sseq@genmax}{\let\sseq@genmax\sseq@gen}{
@@ -3357,8 +3398,8 @@ copy}}
             \let\sseq@genmax\sseq@gen
             \let\sseq@gen\sseq@genmin
         }
-        \edef\sseq@class@page{\the\numexpr\sseq@class@page-1}
-        \edef\sseq@class@pagemax{\the\numexpr\sseq@class@pagemax+1}
+        \edef\sseq@class@page{\the\numexpr\sseq@class@page-\@ne}
+        \edef\sseq@class@pagemax{\the\numexpr\sseq@class@pagemax+\@ne}
     }
     \edef\classname{class.\coord[\sseq@gen]}
     \ifsseq@keepchanges\else
@@ -3369,17 +3410,17 @@ copy}}
             \sseq@error{Generation \sseq@gen\space (index [\sseq@class@page]) of the node (#2) perished on page \sseq@obj{\classname.page} so there is no reason to add an option
             to it on page \sseq@thepage}{}%
         \fi
-        \ifnum\sseq@gen>0\relax
-            \ifnum\sseq@thepage>\sseq@obj{class.\coord[\the\numexpr\sseq@gen-1].page}\relax\else
+        \ifnum\sseq@gen>\z@
+            \ifnum\sseq@thepage>\sseq@obj{class.\coord[\the\numexpr\sseq@gen-\@ne].page}\relax\else
                 \sseq@error{Generation \sseq@gen\space (index [\sseq@class@page]) of the node (#2) is not yet present on page \sseq@thepage\space so there is no reason to add an
                 option to it on page \sseq@thepage}{}%
             \fi
         \fi
     \fi
     \sseq@tempcount=\sseq@gen\relax
-    \advance\sseq@tempcount-1\relax
+    \advance\sseq@tempcount\m@ne
     \loop
-        \advance\sseq@tempcount1\relax
+        \advance\sseq@tempcount\@ne
         \edef\classname{class.\coord[\the\sseq@tempcount]}
         \sseq@cleanup@obj{\classname.options}
         \sseq@classoptions@setup@pagerange
@@ -3428,26 +3469,26 @@ copy}}
 }
 % Takes in a macro that contains a potentially negative page, sets it to the correct positive value
 \def\sseq@class@handlenegativepage#1{
-    \ifnum#1<0\relax
+    \ifnum#1<\z@
         \@ifundefined{sseq@thepage}{
             \ifnum\sseq@obj{class.\coord[\the\sseq@tempcount].page}<\sseq@infinity\relax
                 \sseq@tempcountb=\sseq@obj{class.\coord[\the\sseq@tempcount].page}\relax
             \else
-                \advance\sseq@tempcountb-1\relax
+                \advance\sseq@tempcountb\m@ne
                 \sseq@tempcountb=\sseq@obj{class.\coord[\the\sseq@tempcount].page}\relax
             \fi
-            \advance\sseq@tempcountb1\relax
+            \advance\sseq@tempcountb\@ne\relax
         }{
             \sseq@tempcountb=\sseq@thepage\relax
         }
-        \advance\sseq@tempcountb1\relax
+        \advance\sseq@tempcountb\@ne\relax
         \advance\sseq@tempcountb#1\relax
         \edef#1{\the\sseq@tempcountb}
     \fi
 }
 \def\sseq@class@getgen#1{
     \bgroup
-        \ifnum\sseq@obj{class.\coord.num}>0\relax
+        \ifnum\sseq@obj{class.\coord.num}>\z@
             \sseq@eval{\unexpanded{\sseq@obj@pagetogen{class.\coord}}{#1}} % stores in \sseq@gen
         \else
             \def\sseq@gen{0}
@@ -3516,7 +3557,7 @@ copy}}
 \def\sseq@class@draw@ifpage#1{
     \bgroup
     \sseq@obj@pagetogen{#1}{\sseq@thepage} % sets \sseq@gen
-    \ifnum\sseq@gen>-1\relax % -1 means no class to print
+    \ifnum\sseq@gen>\m@ne % -1 means no class to print
         \ifnum\sseq@obj{#1[\sseq@gen].page}=\sseq@thepage\relax
             \sseq@thispagetrue
         \fi
@@ -3531,10 +3572,10 @@ copy}}
 \def\sseq@obj@pagetogen#1#2{
     \bgroup
         \def\sseq@gen{-1}
-        \sseq@tempcount=-1\relax
+        \sseq@tempcount=\m@ne
         \sseq@tempcountb=\sseq@obj{#1.num}\relax
         \loop
-            \advance\sseq@tempcount1\relax
+            \advance\sseq@tempcount\@ne
             \ifnum\sseq@obj{#1[\the\sseq@tempcount].page}<#2\relax\else
                 \edef\sseq@gen{\the\sseq@tempcount}
                 \sseq@tempcount=\sseq@tempcountb\relax
@@ -3551,7 +3592,7 @@ copy}}
 }
 \sseq@DeclareDocumentCommand\doptions{ou(u)d()}{%
     \IfNoValueT{#1}{\sseq@error{It's pointless to use '\string\doptions' without giving any options}}%
-    \sseq@d@@{doptions}{#1}{#2}{#3}{#4}%
+    \sseq@d@{doptions}{#1}{#2}{#3}{#4}%
 }
 \def\sseq@d@#1#2#3#4#5{%
     \begingroup
@@ -3644,9 +3685,9 @@ copy}}
             }
         \fi
     \fi
-    \ifnum\sseq@obj{#1.num}>0\relax
+    \ifnum\sseq@obj{#1.num}>\z@
         \sseq@tempcount=\sseq@obj{#1.num}\relax
-        \advance\sseq@tempcount-1\relax
+        \advance\sseq@tempcount\m@ne
         \ifnum\sseq@obj{#1[\the\sseq@tempcount].page}<#2\relax\else
             \sseq@error{The #3 \csname #3name\endcsname\space of differential \sseq@thiscall\space was the \sseq@obj{#1[\the\sseq@tempcount].deathinfo}.
             \ifnum#2=\sseq@obj{#1[\the\sseq@tempcount].page}
@@ -3668,7 +3709,7 @@ copy}}
     \fi
 }
 \def\sseq@differential@draw@ifpage#1{
-    \ifnum\sseq@thepage=0\relax
+    \ifnum\sseq@thepage=\z@
         \sseq@drawdifferential{#1}
     \else
         \ifnum\sseq@obj{#1.page}=\sseq@thepage\relax
@@ -3709,10 +3750,10 @@ copy}}
     \sseq@ifundefcoord\target{\sseq@error{Cannot add a structline with target \targetname\space because such a class does not exist}}{}
     \@ifundefined{sseq@structline@page}{%this is repeated in circleclasses
         \def\sseq@pagemin{0}
-        \ifnum\sseq@obj{class.\source.num}>0\relax
+        \ifnum\sseq@obj{class.\source.num}>\z@
             \edef\sseq@pagemin{\sseq@obj{class.\source[\the\numexpr\sseq@obj{class.\source.num}-1].page}}
         \fi
-        \ifnum\sseq@obj{class.\target.num}>0\relax
+        \ifnum\sseq@obj{class.\target.num}>\z@
             \edef\sseq@test{\sseq@obj{class.\target[\the\numexpr\sseq@obj{class.\target.num}-1].page}}
             \ifnum\sseq@test>\sseq@pagemin\relax
                 \let\sseq@pagemin\sseq@test
@@ -3769,9 +3810,9 @@ copy}}
         \edef\sseq@structline@pagemax{\the\numexpr\sseq@structline@pagemax+1}
     }
     \sseq@tempcount=\sseq@gen\relax
-    \advance\sseq@tempcount-1\relax
+    \advance\sseq@tempcount\m@ne
     \loop
-        \advance\sseq@tempcount1\relax
+        \advance\sseq@tempcount\@ne
         \edef\sseq@structlinename{structline.\source\target[\the\sseq@tempcount]}
         \sseq@cleanup@obj{\sseq@structlinename.options}
         \ifsseq@needstikz
@@ -3793,20 +3834,20 @@ copy}}
 \def\sseq@structline@getgen#1{
     \bgroup
         \sseq@tempcount=\sseq@obj{structline.\source\target.num}\relax
-        \ifnum\sseq@tempcount>0\relax
-            \ifnum#1<0\relax
+        \ifnum\sseq@tempcount>\z@
+            \ifnum#1<\z@\relax
                 \@ifundefined{sseq@thepage}{
                     \ifnum\sseq@obj{structline.\source\target[\the\sseq@tempcount].page}<\sseq@infinity\relax
                         \sseq@tempcount=\sseq@obj{structline.\source\target[\the\sseq@tempcount].page}\relax
                     \else
-                        \advance\sseq@tempcount-1\relax
+                        \advance\sseq@tempcount\m@ne
                         \sseq@tempcount=\sseq@obj{structline.\source\target[\the\sseq@tempcount].page}\relax
-                        \advance\sseq@tempcount1\relax
+                        \advance\sseq@tempcount\@ne
                     \fi
                 }{
                     \sseq@tempcount=\sseq@thepage\relax
                 }
-                \advance\sseq@tempcount1\relax
+                \advance\sseq@tempcount\@ne
                 \advance\sseq@tempcount#1\relax
             \fi
             \sseq@eval{\unexpanded{\sseq@obj@pagetogen{structline.\source\target}}{\the\sseq@tempcount}} % stores in \sseq@gen
@@ -3824,13 +3865,13 @@ copy}}
 }
 \def\sseq@structline@draw@ifpage#1{
     \bgroup
-    \ifnum\sseq@thepage=0\relax
-        \ifnum\sseq@obj{#1[0].pagemin}=0\relax
+    \ifnum\sseq@thepage=\z@
+        \ifnum\sseq@obj{#1[0].pagemin}=\z@
             \sseq@structline@draw{#1[0]}
         \fi
     \else
         \sseq@obj@pagetogen{#1}{\sseq@thepage} % sets \sseq@gen
-        \ifnum\sseq@gen<0\relax\else % negative sseq@gen means don't draw it
+        \ifnum\sseq@gen<\z@\else % negative sseq@gen means don't draw it
             \ifnum\sseq@obj{#1[\sseq@gen].page}=\sseq@thepage\relax
                 \sseq@thispagetrue
             \fi
@@ -4106,9 +4147,8 @@ copy}}
 }
 \def\sseq@drawxticks{
     \sseq@tempy=\sseq@ymin\relax
-    %\advance\sseq@tempy-1\relax
     \sseq@tempx=\sseq@xmax\relax
-    \advance\sseq@tempx1\relax
+    \advance\sseq@tempx\@ne\relax
     \edef\sseq@temp{\the\sseq@tempx}%
     \sseq@tempx=\sseq@xmin\relax
     \loop
@@ -4128,9 +4168,8 @@ copy}}
 }
 \def\sseq@drawyticks{
     \sseq@tempx=\sseq@xmin\relax
-    %\advance\sseq@tempx-1\relax
     \sseq@tempy=\sseq@ymax\relax
-    \advance\sseq@tempy1\relax
+    \advance\sseq@tempy\@ne\relax
     \edef\sseq@tempmax{\the\sseq@tempy}
     \sseq@tempy=\sseq@ymin\relax
     \loop
@@ -4259,9 +4298,9 @@ copy}}
  \pgfsetdash{{1pt}{\sseq@a*1cm-1pt}}{0.5cm+.5pt}
  \pgfsetlinewidth{1pt}
  \sseq@tempy=\sseq@ymin\relax
- \advance\sseq@tempy-1\relax
+ \advance\sseq@tempy\m@ne
  \loop
- \advance\sseq@tempy1\relax
+ \advance\sseq@tempy\@ne
  \pgfpathmoveto{\pgfpoint{\sseq@xmin cm+0.5cm/\sseq@a}{\the\sseq@tempy cm}}
  \pgfpathlineto{\pgfpoint{\sseq@xmax cm+1.01cm }{\the\sseq@tempy cm}}
  \ifnum\sseq@tempy<\sseq@ymax\repeat
@@ -4283,12 +4322,12 @@ copy}}
 }
 \def\sseqnewclasspattern@#1#2#3;{%
     \sseqnewclasspattern@@1#1{#2}#3%
-    \@ifnextchar\sseq@nil{\@gobble}{\@xp\sseqnewclasspattern@\the\numexpr#1+1\relax{#2}}%
+    \@ifnextchar\sseq@nil{\@gobble}{\@xp\sseqnewclasspattern@\the\numexpr#1+\@ne\relax{#2}}%
 }
 \def\sseqnewclasspattern@@#1#2#3#4(#5,#6){%
     \@xp\def\csname sseq@#3xoffset#1/#2\endcsname{#5}\@xp\def\csname sseq@#3yoffset#1/#2\endcsname{#6}%
     \@ifnextchar({%
-        \@xp\sseqnewclasspattern@@\the\numexpr#1+1\relax{#2}{#3}%
+        \@xp\sseqnewclasspattern@@\the\numexpr#1+\@ne\relax{#2}{#3}%
     }{}%
 }
 \sseqnewclasspattern{standard}{
@@ -4522,7 +4561,7 @@ copy}}
     \pgf@process{\pgfpointnormalised{\pgfqpoint{\pgf@xa}{\pgf@ya}}}%
     \ifdim\pgf@x>\pgf@y%
         \c@pgf@counta=\pgf@x%
-        \ifnum\c@pgf@counta=0\relax%
+        \ifnum\c@pgf@counta=\z@%
         \else%
           \divide\c@pgf@counta by 255\relax%
           \pgf@xa=16\pgf@xa\relax%
@@ -4531,7 +4570,7 @@ copy}}
         \fi%
       \else%
         \c@pgf@counta=\pgf@y%
-        \ifnum\c@pgf@counta=0\relax%
+        \ifnum\c@pgf@counta=\z@%
         \else%
           \divide\c@pgf@counta by 255\relax%
           \pgf@ya=16\pgf@ya\relax%
@@ -4634,11 +4673,11 @@ copy}}
     \else%
       \advance\pgfutil@tempdima by-\pgf@xb%
     \fi%
-    \sseq@tempcount=1\relax
+    \sseq@tempcount=\@ne
     \loop
     \pgfpathcircle{\centerpoint}{\pgfutil@tempdima}%
     \advance\pgfutil@tempdima-2pt\relax
-    \advance\sseq@tempcount1\relax
+    \advance\sseq@tempcount\@ne
     \ifnum\sseq@tempcount<\circlen@n \repeat
     \tikz@mode
     \sseq@eval{\noexpand\pgfusepath{
@@ -4840,7 +4879,7 @@ copy}}
 \def\sseq@drawedge@handletrickyedge{%
     \ifsseq@draworphanedges
         \pgfintersectionofpaths{\pgfsetpath\sseq@therangepath}{\pgfsetpath\thispath}%
-        \ifnum\pgfintersectionsolutions=0\relax
+        \ifnum\pgfintersectionsolutions=\z@
             \sseq@drawedgefalse % don't draw orphan edges that never intersect actual range
         \else% Now we have to make a line through tempa and tempb long enough so that it intersects the original clip area twice.
             \pgfmathanglebetweenpoints{\pgfpointanchor{tempa}{center}}{\pgfpointanchor{tempb}{center}}%
