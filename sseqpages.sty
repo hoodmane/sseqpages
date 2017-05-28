@@ -645,7 +645,7 @@
 %%% Install user commands
 % copy commands into user namespace by removing sseq@ prefixes
 % given a list of commands, \let\thiscommand\sseq@thiscommand on each one
-\def\sseq@usermacrolist{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions\circleclasses\isdead\isalive\pgfmathparse\lastx\lasty}
+\def\sseq@usermacrolist{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions\circleclasses\isdead\isalive\pgfmathparse\lastx\lasty\getdtarget}
 \def\sseq@installusermacros{\@xp\sseq@installusermacros@\sseq@usermacrolist\sseq@nil}
 \def\sseq@installusermacros@#1{%
     \ifx#1\sseq@nil\else % if so, that was the last command in the list
@@ -861,10 +861,13 @@
 
 %% Pulls off x,y and evaluates them, puts n or empty into a separate variable.
 % #1 -- a coordinate of the form {x,y} or {x,y,stuff}
-\def\sseq@parsecoord@maincoord#1{%
+\ExplSyntaxOn
+\def\sseq@parsecoord@maincoord{\exp_args:Nf\sseq@parsecoord@maincoord@}
+\ExplSyntaxOff
+\def\sseq@parsecoord@maincoord@#1{%
     \pgfutil@in@,{#1}
     \ifpgfutil@in@
-        \sseq@parsecoord@maincoord@#1,\sseq@nil
+        \sseq@parsecoord@maincoord@@#1,\sseq@nil
     \else
         \sseq@obj@ifdef{class.namedclass.#1}{
             \def\sourcename{#1}
@@ -875,7 +878,7 @@
     \fi
 }
 
-\def\sseq@parsecoord@maincoord@#1,#2,#3\sseq@nil{%
+\def\sseq@parsecoord@maincoord@@#1,#2,#3\sseq@nil{%
     \sseq@ifintexpr{#1}{
         \sseq@ifintexpr{#2}{}{\sseq@error{Invalid y coordinate\sseq@printerrortype}}%
         \edef\sseq@xcoord{\the\numexpr\sseq@x+(#1)\relax}%
@@ -1065,6 +1068,8 @@
 \def\sseq@differential@gettarget#1#2{\sseq@differential@gettarget@{#1}#2\sseq@nil}
 \def\sseq@differential@gettarget@#1#2,#3\sseq@nil{\the\numexpr#2+\sseq@targetx{#1}\relax,\the\numexpr#3+\sseq@targety{#1}\relax}
 
+\def\sseq@getfirsttwoelts#1,#2,#3\sseq@nil{#1,#2}
+\def\sseq@getdtarget#1#2#3{\sseq@eval{\edef\@nx#1{\@nx\sseq@differential@gettarget{#2}{\sseq@getfirsttwoelts#3,,\sseq@nil}}}}
 
 % Takes a comma separated list that can be empty, have one element, or two elements, returns first element (or empty if list is empty).
 \def\sseq@dparsecoord@getxindex#1{\sseq@dparsecoord@getxindex@#1,\sseq@nil}
@@ -2727,6 +2732,7 @@ copy}}
     \sseq@obj@xdef{restorelabelstyles}{\sseq@labelstyle{\the\sseq@labelstyle}\sseq@classlabelstyle{\the\sseq@classlabelstyle}}
     \sseq@savedpaths@add{\endgroup} % prevent some of the two-pass user macros horrors
     \sseq@storecmds
+    \ignorespacesafterend
 }
 
 \def\sseqpage{\@ifnextchar[{\sseqpage@}{\sseqpage@[]}} %]
@@ -2859,6 +2865,7 @@ copy}}
     \else
         \sseq@pagecleanup % undo any changes specific to this page
     \fi
+    \ignorespacesafterend
 }
 
 % Shorthand for sseqpage with empty body
@@ -3064,10 +3071,11 @@ copy}}
     \sseq@protected@edef\sseq@pageconstraint{(\unexpanded\@xp{\sseq@pageconstraint})#2(#1)}
 }
 
+%TODO: fix this...
 \def\sseq@updatepageconstraintrange{%
     \def\tempmax{}%
     \edef\sseq@pageconstraint{%
-        (\unexpanded\@xp{\sseq@pageconstraint})&&(\temp<=\@nx\page \ifx\tempmax\pgfutil@empty&&\page<=\tempmax)%
+        (\unexpanded\@xp{\sseq@pageconstraint})&&(\temp<=\@nx\page &&\@nx\page<=\tempmax)%
     }%
 }
 
