@@ -1,7 +1,8 @@
 %
 %
 % TODO:
-% \structline, \structlineoptions page keys
+% lastclass stack
+% label distance, class label positioning
 %
 % Title page
 % acknowledgements: tikz, tikzcd, pgfplots, sseq, anything else I ripped off code from?
@@ -11,7 +12,6 @@
 \usepackage[a4paper,left=2.25cm,right=2.25cm,top=2.5cm,bottom=2.5cm,nohead]{geometry}
 \usepackage{sseqpages}
 \usetikzlibrary{shapes.geometric}
-\usetikzlibrary{fit}
 \usepackage{amssymb}
 \usepackage{verbatim}
 \usepackage[documentation]{tcolorbox}
@@ -135,7 +135,7 @@
 
 \pgfkeys{/sseqpages/class/class:name/.forward to=/sseqpages/class/name}
 \pgfkeys{/sseqpages/class/class:page/.forward to=/sseqpages/class/page}
-\pgfkeys{/sseqpages/class/struct line:page/.forward to=/sseqpages/struct line/page}
+\pgfkeys{/sseqpages/struct line/structline:page/.forward to=/sseqpages/struct line/page}
 \begin{document}
 
 \tableofcontents
@@ -200,8 +200,8 @@ If a class is the source or the target of a differential on a certain page, then
 See the \pgfmanualpdfref{class options}{class options} section for a list of the sort of options available for classes.
 \end{command}
 
-\begin{command}{\replaceclass\oarg{options}(\meta{x},\meta{y}\opt{,\meta{n}})}
-After a class is the source or target of a differential, it disappears on the next page. However, some differentials are not injective or not surjective. Using the command |\replaceclass| causes a new symbol to appear on the page after a class supported or accepted a differential (or both).
+\begin{commandlist}{{\replaceclass\oarg{options}(\meta{x},\meta{y}\opt{,\meta{n}})},\replaceclass\oarg{options}(\meta{classname})}
+After a class is the source or target of a differential, it disappears on the next page. However, some differentials are not injective or not surjective. Using the command |\replaceclass| causes a new symbol to appear on the page after a class supported or accepted a differential (or both). If there are multiple classes at the coordinate |(x,y)| you may specify which using an integer or a |tag| $n$. By default, this command will affect the first class placed in that position. Alternatively, you can provide the |class:name| of a class.
 \begin{codeexample}[]
 \begin{sseqdata}[name=replace class example,Adams grading,classes={draw=none},math nodes]
 \class["\mathbb{Z}"](0,3)
@@ -218,10 +218,13 @@ After a class is the source or target of a differential, it disappears on the ne
 \hskip1cm
 \printpage[name=replace class example, page=4]
 \end{codeexample}
-\end{command}
+Note that this will not restore any structlines coming into or off of the class, if you want the |\structlines| to persist, you must call |\structline| again (or use the structline |structline:page| option)
+\end{commandlist}
 
-\begin{command}{\classoptions[\meta{options}](\meta{x},\meta{y}\opt{,\meta{n}})}
-This adds options to a class that already exists. If there are multiple classes at the coordinate |(x,y)| you must specify which using an integer or a |tag| $n$. This can be used in a |sseqpage| environment to modify the appearance of a class for just one drawing of the spectral sequence, for instance to highlight it for discussion purposes:
+\begin{commandlist}{{\classoptions[\meta{options}](\meta{x},\meta{y}\opt{,\meta{n}})},\classoptions[\meta{options}](\meta{classname})}
+This adds options to a class that already exists. This can be used in a |sseqpage| environment to modify the appearance of a class for just one drawing of the spectral sequence, for instance to highlight it for discussion purposes.
+
+If there are multiple classes at the coordinate |(x,y)| you may specify which using an integer or a |tag| $n$. By default, this command will affect the first class placed in that position. Alternatively, you can provide the |class:name| of a class.
 \begin{codeexample}[width=5cm]
 \begin{sseqdata}[name=class options example,classes=fill]
 \class(2,1)
@@ -256,10 +259,16 @@ Another reason to use this is to give a label to one instance of a class that sh
 \end{sseqpage}
 \end{codeexample}
 See the \pgfmanualpdfref{class options}{class options} section for a list of the sort of options available for classes.
-\end{command}
+\end{commandlist}
 
-\begin{command}{\d\oarg{options}\meta{page}\meta{source coordinate}}
-This creates a differential starting at \meta{source coordinate} of length determined by the specified page. In order to use the |\d| command, you must first specify the |degree| of the differentials as an option to the |sseqdata| or |sseqpage| environment. The degree indicates how far to the right and how far up a page r differential will go as a function of r. If there is a page r differential, on page r+1, the source, target, and any |\structline|s connected to the source and target of the differential disappear.
+\begin{commandlist}{
+    {\d\oarg{options}\meta{page}(\meta{x},\meta{y}\opt{,\meta{sourcen},\meta{targetn}})},
+    {\d\oarg{options}\meta{page}(\meta{sourcename}\opt{,\meta{targetn}})},
+    {\d\oarg{options}\meta{page}(\meta{sourcecoord})(\meta{targetcoord})}%
+}
+Calling |\d\meta{page}(\meta{x},\meta{y})| creates a differential starting at |(\meta{x},\meta{y})| of length determined by the specified page. In order to use the |\d| command like this, you must first specify the |degree| of the differentials as an option to the |sseqdata| or |sseqpage| environment. The degree indicates how far to the right and how far up a page r differential will go as a function of r. If there is a page r differential, on page r+1, the source, target, and any |\structline|s connected to the source and target of the differential disappear.
+
+If there are multiple nodes in the source or target, you may specify which one the differential should go to using an index or tag for \meta{sourcen} or \meta{targetn}. It is also possible to provide the name of the source coordinate and an optional target, or to separately provide the source and target coordinate, either as names or as |(\meta{x},\meta{y},\meta{n})|. Using |\d| with explicit source and target coordinates works even if you did not provide a |degree| to the spectral sequence. If you did provide a |degree|, then sseqpages will check whether the difference between the source and target is appropriate for a differential of a given page, and if not it will throw an error. If this is undesirable, you can use the |lax degree| option.
 \begin{codeexample}[width=7.5cm]
 \begin{sseqdata}[name=d example,degree={-1}{#1},
                  struct lines=blue]
@@ -305,16 +314,22 @@ Negative indices will count from the most recent class in the coordinate (so |-1
 \end{sseqpage}
 \end{codeexample}
 You can also use a |tag|.
-\end{command}
+\end{commandlist}
 
-\begin{command}{\doptions[\meta{options}]\meta{page}\meta{source coordinate}}
-This command adds options to an existing differential, just like |\classoptions| except for differentials.
-\end{command}
+\begin{commandlist}{
+    {\doptions[\meta{options}]\meta{page}(\meta{x},\meta{y}\opt{,\meta{sourcen},\meta{targetn}})},
+    {\doptions[\meta{options}]\meta{page}(\meta{sourcename}\opt{,\meta{targetn}})},
+    {\doptions[\meta{options}]\meta{page}(\meta{sourcecoord})(\meta{targetcoord})}%
+}
+This command adds options to an existing differential, just like |\classoptions| except for differentials. Its syntax is identical to that of |\d|.
+\end{commandlist}
 
 \begin{command}{\structline\oarg{options}\meta{source coordinate}\meta{target coordinate}}
-This command creates a structure line from \meta{source coordinate} to \meta{target coordinate}. The source and target coordinates are of the form |(|\meta{x}|,|\meta{y}\opt{|,|\meta{n}}|)|. If there are multiple classes at (x,y), then \meta{n} specifies which of the classes at (x,y) the structline starts and ends at -- if n is positive, then it counts from the first class in that position, if n is negative, it counts backwards from the most recent. You can also use a |tag| for n.
+This command creates a structure line from \meta{source coordinate} to \meta{target coordinate}. The source and target coordinates are either of the form |(|\meta{x}|,|\meta{y}\opt{|,|\meta{n}}|)| or are a |\meta{classname}|. If there are multiple classes at (x,y), then \meta{n} specifies which of the classes at (x,y) the structline starts and ends at -- if n is positive, then it counts from the first class in that position, if n is negative, it counts backwards from the most recent. You can also use a |tag| for n.
 
 If the source or target of a structure line is hit by a differential, then on subsequent pages, the structure line disappears.
+
+If the source or target has had multiple generations (i.e., they got hit and you used |\replaceclass|), then the |\structline| will only appear starting on the first page where the current generation of both the source and target are present. If this is undesirable, you can use the |structline:page| option to change it.
 \begin{codeexample}[width=9cm]
 \sseqnewgroup*\tower{
     \class(0,0)
@@ -343,12 +358,15 @@ If the source or target of a structure line is hit by a differential, then on su
 \end{command}
 
 \begin{command}{\structlineoptions[\meta{options}]\meta{source coordinate}\meta{target coordinate}}
-This command adds options to an existing structure line, just like |\classoptions| except for structure lines.
+This command adds options to an existing structure line, just like |\classoptions| except for structure lines. Its syntax is identical to |\structline|.
+\end{command}
+
+\begin{command}{\circleclasses\oarg{options}\meta{source coordinate}\meta{target coordinate}}
+This command is a lot like |\structline| except that it puts a circle around the classes instead of connecting them with a line. It does not have an "options" variant because it doesn't seem necessary and (more importantly) I didn't feel like making one. Maybe at some later date I'll put one in. It might take a certain amount of fiddling to get it to look good.
 \end{command}
 
 \subsection{\tikzname\space Primitives}
 Any code that would work in a |tikzpicture| environment will also work unchanged in a |sseqdata| or |sseqpage| environment, with a few minor differences. This is a very flexible way to add arbitrary background or foreground features to the spectral sequence:
-% TODO: WHY DOES THIS EXAMPLE WORK???
 \begin{codeexample}[]
 \begin{sseqdata}[name=tikz example,Adams grading,x range={0}{2}, x axis extend end=2em,math nodes=false]
 \class(0,0)
@@ -388,7 +406,7 @@ This key instructs |sseqpages| to put the current \tikzname\space primitive in t
 \item All foreground elements (classes, differentials, structlines, and normal \tikzname\space paths) are printed.
 \end{itemize}
 
-In particular, this means that foreground \tikzname\space paths can be clipped by the standard clipping, but background paths that are outside of the clipping expand the size of the Tikz picture. 
+In particular, this means that foreground \tikzname\space paths can be clipped by the standard clipping, but background paths that are outside of the clipping expand the size of the Tikz picture.
 \begin{codeexample}[]
 \begin{sseqpage}[no ticks]
 \class(0,0)
@@ -535,7 +553,7 @@ You can also use quotes to label edges drawn with \tikzname\ primitives:
 \draw (1,0) to["hi"'{yshift=-0.5em}] (0,1);
 \end{sseqpage}
 \end{codeexample}
-The special option ``description,'' stolen from |tikzcd|, places the label on top of the edge. In order to make this option work correctly, if the background color is not the default white, you must inform sseqpages about this using the key |background color=|\meta{color}. In this document, the background color is called \textit{graphicbackground}.
+The special option ``description,'' stolen from |tikzcd|, places the label on top of the edge. In order to make this option work correctly, if the background coolor is not the default white, you must inform sseqpages about this using the key |background color=|\meta{color}. In this document, the background color is called \textit{graphicbackground}.
 \begin{codeexample}[]
 \begin{sseqpage}[no axes,background color=graphicbackground]
 \foreach\x in {0,1,2} \foreach\y in {0,1}{
@@ -660,7 +678,7 @@ These options only work in |\classoptions|. The |page| option gives a range of p
 \printpage[name=page_example,page=2]
 \printpage[name=page_example,page=4]
 \end{codeexample}
-A ``generation'' of a class is the interval from one call of |\class| or |\replaceclass| to the page on which it next supports or is hit by a differential. 
+A ``generation'' of a class is the interval from one call of |\class| or |\replaceclass| to the page on which it next supports or is hit by a differential.
 By default the |\classoptions| command adds options only to the most recent generation of the class in a |sseqdata| environment, or on the generation appropriate to the current page in a |sseqpage| environment. Using the |generation| option allows you to provide a single generation or range of generations of the class that the options should apply to. The first generation is generation 0, and the most recent generation is generation -1. Larger negative values count backwards.
 \begin{codeexample}[]
 \begin{sseqdata}[name=page_example2, Adams grading,yscale=0.5]
@@ -746,6 +764,70 @@ See the pgfmanual subsubsection titled ``Graphic Parameters: Dash Pattern'' for 
 \end{sseqpage}
 \end{codeexample}
 \end{keylist}
+
+\begin{key}{structline:page=\meta{page}\opt{-{}-\meta{page\textunderscore max}}}
+This key is only for |\structline| and |\structlineoptions|. By default, the |\structline| command only adds a structline starting on the page where the most recent generation of the source or target is born:
+
+\begin{codeexample}[width=8cm]
+\begin{sseqdata}[name=structpage example,title=\page]
+\class(0,2)
+\class(0,4)
+\class(1,0)
+\class(1,1)
+\d2(1,0)(0,2)
+\d3(1,1)(0,4)
+\replaceclass(1,0)
+\replaceclass(1,1)
+\structline(1,0)(1,1)
+\end{sseqdata}
+\printpage[name=structpage example,page=3]
+\printpage[name=structpage example,page=4]
+\end{codeexample}
+
+By specifying a page number, you can adjust which page the |\structline| starts on:
+
+\begin{codeexample}[]
+\begin{sseqdata}[name=structpage example2]
+\class(0,2)
+\class(0,4)
+\class(1,0)
+\class(1,1)
+\d2(1,0)(0,2)
+\d3(1,1)(0,4)
+\replaceclass(1,0)
+\replaceclass(1,1)
+\structline[structline:page=2](1,0)(1,1)
+\end{sseqdata}
+\printpage[name=structpage example2,page=1]
+\printpage[name=structpage example2,page=2]
+\printpage[name=structpage example2,page=3]
+\printpage[name=structpage example2,page=4]
+\end{codeexample}
+
+Similarly, for |\structlineoptions| you can specify a minimum page on which to apply the options, or a range of pages.
+\end{key}
+
+\subsection{Options for \sectionstring\circleclass}
+\begin{key}{fit=\meta{coordinates or nodes}}
+The circleclasses command uses the \tikzname\space fittings library. Sometimes it's desirable to make the resulting node fit extra things, for example a label. It doesn't necessarily end up looking great though.
+\begin{codeexample}[]
+\begin{sseqpage}[Adams grading,axes gap=0.7cm]
+\class(0,2)
+\class(1,0)
+% Fit in the label x and also a symmetric invisible label to maintain symmetry
+\d["x"{name=x},"x"'{name=x',opacity=0}]2(1,0)
+\circleclasses[fit=(x)(x'),rounded rectangle](1,0)(0,2)
+\end{sseqpage}
+\end{codeexample}
+\end{key}
+
+\begin{key}{rounded rectangle}
+You can put a shape as an option and it will change the shape of the node drawn by |\circleclasses|. Any shape will do, but I think that an |ellipse| or |rounded rectangle| are the only particularly appealing options.
+\end{key}
+
+\begin{key}{ellipse ratio=\meta{ratio} (initially 1.2)}
+By default, the shape drawn by |\circleclasses| is a ``newelipse'' which is a custom defined shape that respects the option |elipse ratio| which roughly controls how long and skinny versus short and fat the ellipse is. If you find that the ellipse is too long, try a larger value of this option, and conversely if it's too fat try a smaller value. If no value is satisfactory, try out the |rounded rectangle| shape. (This is stolen from the following stack exchange answer: \url{https://tex.stackexchange.com/a/24621}.)
+\end{key}
 
 
 \section{Commands}
@@ -869,6 +951,27 @@ You can make a named grading convention by saying |\sseqset{my grading/.sseq gra
 \end{codeexample}
 \end{keylist}
 
+\begin{keylist}{strict degree, lax degree}
+If the degree is strict, then latex will throw an error if you try to specify a differential that doesn't have the proper grading. The degree is strict by default.
+\begin{codeexample}[code only]
+\begin{sseqdata}[name=laxdegree,Adams grading]
+\class(0,2)
+\class(1,0)
+\d3(1,0)(0,2) % Error: differential does not respect grading.
+              % Target should be in position (0,3) but instead it is (0,2)...
+\end{sseqdata}
+\end{codeexample}
+
+\begin{codeexample}[]
+\begin{sseqdata}[name=laxdegree,Adams grading, lax degree]
+\class(0,2)
+\class(1,0)
+\d3(1,0)(0,2) % No error because degree checking is off
+\end{sseqdata}
+\printpage[name=laxdegree,page=3]
+\end{codeexample}
+\end{keylist}
+
 \begin{keylist}{x range=\marg{x min}\marg{x max},y range=\marg{y min}\marg{y max}}
 These options force the x and y range to be a specific interval. By default, if no range is specified then the range is chosen to fit all the classes. If an x range is specified but no y range, then the y range is chosen to fit all the classes that lie inside the specified x range, and vice versa.
 \end{keylist}
@@ -934,6 +1037,8 @@ This option specifies that all of the commands in the current |sseqpage| environ
 Note that the orange classes and differential do not persist because the |keep changes| option is not set in the first |sseqpage| environment, but the blue classes and differential do, since the |keep changes| option is set in the second |sseqpage| environment.
 \end{key}
 
+
+
 \begin{keylist}{no differentials,draw differentials}
 The option |no differentials| suppresses all of the differentials on the current page, whereas |draw differentials| causes the page appropriate differentials to be drawn. This is useful for explaining how the computation of the spectral sequence goes:
 %\begin{codeexample}[]
@@ -964,14 +1069,14 @@ An edge is an ``orphan'' if both its source and target lie off the page. By defa
 \end{codeexample}
 \end{keylist}
 
-\begin{keylist}{run off=\marg{start arrow}\marg{end arrow}, 
-    run off struct lines=\marg{start arrow}\marg{end arrow}  (initially {...-...}),
-    run off differentials=\marg{start arrow}\marg{end arrow} (initially {...-...})}
+\begin{keylist}{run off=\meta{start tip}-\meta{end tip},
+    run off struct lines=\meta{start tip}-\meta{end tip}  (initially {...-...}),
+    run off differentials=\meta{start tip}-\meta{end tip} (initially {...-...})}
 Change the default behavior of run off edges for either all edges, just struct lines, or just differentials respectively. Local arrowhead options override this.
 
 If an edge runs off the edge of the clipping, sseqpages automatically add an arrowhead to indicate that the edge continues. This option controls which arrow head is added if the start or end of an edge runs off the page.
 \begin{codeexample}[]
-\begin{sseqpage}[x range={0}{2},y range={0}{2},draw orphan edges,run off={>}{stealth}]
+\begin{sseqpage}[x range={0}{2},y range={0}{2},draw orphan edges,run off=>-stealth]
 \class(0,0)
 \class(3,0)\class(0,3)
 \structline(0,0)(3,0)
@@ -1088,7 +1193,7 @@ In cases where the same drawing feature is affected by multiple of these styles,
 \end{sseqpage}
 \end{codeexample}
 
-There are also options 
+There are also options
 
 
 Throughout, ``class'' and ``cycle'' are synonyms.
@@ -1098,7 +1203,7 @@ This passes global options to all future spectral sequences in the current scope
 % Applies to both of the following sseqs:
 %\sseqset{scale=0.5}
 \begin{sseqpage}[scale=0.5]
-\foreach \x in {0,1} 
+\foreach \x in {0,1}
 \foreach \y in {0,1,2}{
     \class(\x,\y)
 }
@@ -1108,7 +1213,7 @@ This passes global options to all future spectral sequences in the current scope
     Adams grading,
     classes={fill,blue}
 ]
-\foreach \x in {0,1,2} 
+\foreach \x in {0,1,2}
 \foreach \y in {0,1,2}{
     \class(\x,\y)
 }
