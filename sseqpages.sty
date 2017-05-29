@@ -10,14 +10,12 @@
 
 
 % TODO:
-%   Fix sseqs / sseq to deal with global options correctly (check \sseqset{sseq={scale=0.5}} example).
-%   Fix shifts (what does this mean again? label shifts of some sort?)
+%  lastclass stack
 %
 % Don't really care about:
-%  Check \sseqset used inside environments
+%  Fix shifts (what does this mean again? label shifts of some sort?)
 %  improve axes options? allow axis to be centered on coordinate or centered between coordinates
-%  Check "change classes" mechanism
-% Various pipe dream lua only features.
+%  Various pipe dream lua only features.
 
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{sseqpages}
@@ -179,7 +177,7 @@
 }
 
 \bgroup\lccode`\!=`\ \lowercase{\egroup
-\let\sseq@otherspace!
+\let\sseq@otherspace!% This has to be a let, no idea why
 }
 
 % Spaces matter to us, because \sseq@ifintexpr{1 1} is false but \sseqsifintexpr{11} is true
@@ -207,6 +205,10 @@
         \ifx\temptok\sseq@nil
             \@xp\let\@xp\next\csname sseq@ifintexpr@@\sseq@ifintexpr@state @done\endcsname
         \else
+            % Even though I \let \sseq@otherspace to a space of catcode other up there,
+            % I still need this freaking expandafter here. God only knows why. Figured this out by trial and error.
+            % We need to check here for a space because \string<space> produces NO OUTPUT regardless of the catcode of the space.
+            % This fucks over \sseq@ifintexpr@@@ real hard because it doesn't expect \string#1 to produce no characters.
             \@xp\ifx\sseq@otherspace\temptok
                 \def\next{\sseq@ifintexpr@next{~}\@xp\next\@gobble}
             \else
@@ -218,10 +220,11 @@
 }
 
 \def\sseq@ifintexpr@@@#1{
-    \ifcat$\@xp\@gobble\string#1$
+    \ifcat$\@xp\@gobble\string#1$%
         \@xp\sseq@ifintexpr@@@@\@xp#1
     \else
         % scantokens puts an extra space character after control sequences, so to give them the best shot at working, eat that space character
+        % Then use f expansion.
         \@xp\@xp\@xp\sseq@ifintexpr@@@fexpcs\@xp\@xp\@xp#1\@xp\@gobble
     \fi
 }
@@ -234,6 +237,7 @@
         \@xp\sseq@ifintexpr@false
     \else
         \ifx\temptok\sseq@error
+            \@xpthree\sseq@error\@xp\@xp\@xp\@gobbletwo
         \else
             \@xp\@xp\@xp\sseq@ifintexpr@@@@
         \fi
@@ -244,7 +248,8 @@
 \ExplSyntaxOff
 
 
-% We can't just use \futurelet because "\let\test(" makes \test unexpandable,
+% We can't just use \futurelet because "\let\test(" makes \test unexpandable
+% (I guess that makes sense, but why is it that I need \@xp\ifx\otherspace above if I've also \let\otherspace to a character? Mysterious...),
 % so then "\csname hello\test\endcsname" is an error. This indexes into our state machine,
 % cases: a digits, + or -, * or /, (, ), or something else (anything else always leads to false
 \def\sseq@ifintexpr@@@@#1{%
@@ -584,7 +589,7 @@
 \def\sseq@obj@ifundef#1{\@ifundefined{\sseq@obj@fullname{#1}}}
 \def\sseq@obj@ifdef#1#2#3{\@ifundefined{\sseq@obj@fullname{#1}}{#3}{#2}}
 \def\sseq@obj@inc#1{\bgroup\sseq@tempcount\sseq@obj{#1}\relax\advance\sseq@tempcount\@ne\sseq@obj@xdef{#1}{\the\sseq@tempcount}\egroup}
-\def\sseq@obj@gaddto{\@xptwo\sseq@g@addto@macro\sseq@obj} % TODO: either gaddto or g@addto
+\def\sseq@obj@gaddto{\@xptwo\sseq@g@addto@macro\sseq@obj}
 \def\sseq@obj@xaddto{\@xptwo\sseq@x@addto@macro\sseq@obj}
 \def\sseq@obj@xoaddto#1{\@xp\sseq@g@addto@macro\csname \sseq@obj@fullname{#1}\@xp\endcsname\@xp}
 \def\sseq@obj@map#1#2{\def\\##1{#2}\sseq@obj{#1}}
@@ -674,8 +679,8 @@
 %%% Install user commands
 % copy commands into user namespace by removing sseq@ prefixes
 % given a list of commands, \let\thiscommand\sseq@thiscommand on each one
-\def\sseq@usermacrolist{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions
-    \circleclasses\isdead\isalive\pgfmathparse\lastx\lasty\saveclassstack\restoreclassstack\getdtarget}
+\def\sseq@usermacrolist{\class\replaceclass\d\structline\classoptions\doptions\structlineoptions\circleclasses
+    \pgfmathparse\isalive\getdtarget\lastx\lasty\savestack\restorestack\pushstack}
 \def\sseq@installusermacros{\@xp\sseq@installusermacros@\sseq@usermacrolist\sseq@nil}
 \def\sseq@installusermacros@#1{%
     \ifx#1\sseq@nil\else % if so, that was the last command in the list
@@ -952,15 +957,16 @@
             \edef\sseq@index{\sseq@obj{partcoord.(\sseq@xycoord).tag.\sseq@class@tagprefix\sseq@rawindex}}
         }{%
             \sseq@ifintexpr{\sseq@rawindex}{%
-                \ifnum\sseq@rawindex<\z@
-                    \sseq@obj@ifundef{partcoord.(\sseq@xycoord).numnodes}{%
-                        \sseq@error{negative index '\sseq@rawindex' provided\sseq@printerrortype\space but no classes yet exist in (\sseq@xycoord).
-                           Negative indices count from the most recent class in the given position; in particular, there must be at least one existing class}}{}%
+                \sseq@obj@ifundef{partcoord.(\sseq@xycoord).numnodes}{\sseq@error{No classes yet exist in (\sseq@xycoord)}}{}%
+                \ifnum\sseq@rawindex<\z@%
                     \edef\sseq@index{\the\numexpr\sseq@obj{partcoord.(\sseq@xycoord).numnodes} + \sseq@rawindex + \@ne\relax}%
                     \ifnum\sseq@index<\@ne
-                        \sseq@error{index '\sseq@rawindex' provided\sseq@printerrortype\space is out of bounds -- only \sseq@obj{partcoord.(\sseq@xycoord).numnodes} classes exist at position (\sseq@xycoord)}%
+                        \sseq@error{Index '\sseq@rawindex' provided\sseq@printerrortype\space is out of bounds -- only \sseq@obj{partcoord.(\sseq@xycoord).numnodes} classes exist at position (\sseq@xycoord)}%
                     \fi
                 \else
+                    \ifnum\sseq@rawindex>\sseq@obj{partcoord.(\sseq@xycoord).numnodes}\relax
+                        \sseq@error{Index '\sseq@rawindex' provided\sseq@printerrortype\space is out of bounds -- only \sseq@obj{partcoord.(\sseq@xycoord).numnodes} classes exist at position (\sseq@xycoord)}%
+                    \fi
                     \edef\sseq@index{\the\numexpr\sseq@rawindex}
                 \fi
             }{
@@ -1014,41 +1020,41 @@
 % #3 -- target coordinate or "No Value"
 \def\sseq@dparsecoord#1#2#3{%
     \def\sseq@index{}
-    \sseq@parsecoord@maincoord{#2}{}%
-    \sseq@tempiftrue
+    \def\sseq@errortype{differential}
+    \sseq@parsecoord@maincoord{#2}%
     \ifx\sseq@index\pgfutil@empty
         \edef\sseq@rawsindex{\@xp\sseq@dparsecoord@getxindex\@xp{\sseq@restcoord}}%
         \edef\sseq@rawtindex{\@xp\sseq@dparsecoord@getyindex\@xp{\sseq@restcoord}}
     %
         \let\sseq@rawindex\sseq@rawsindex
+        \def\sseq@errortype{source of differential}
         \sseq@parsecoord@index
-        \IfNoValueF{#3}{\sseq@tempiffalse}
     \else
         \edef\sseq@rawtindex{\@xp\sseq@dparsecoord@getxindex\@xp{\sseq@restcoord}}%
         \edef\sseq@shouldbeempty{\@xp\sseq@dparsecoord@getyindex\@xp{\sseq@restcoord}}
         \ifx\sseq@shouldbeempty\pgfutil@empty\else
-            \sseq@error{TODO: fill me in}
+            \sseq@error{You provided a named class and two indexes, but the named class already comes with an index so you can only provide one more for the target}
         \fi
-        \IfNoValueF{#3}{\sseq@tempiffalse}
     \fi
     \let\sourcecoord\sseq@xycoord
     \edef\source{(\sseq@xycoord,\sseq@index)}%
     \ifx\sourcename\undefined
         \edef\sourcename{(\sseq@xycoord\ifx\sseq@rawindex\pgfutil@empty\else,\sseq@rawindex\fi)}
     \fi
-    \ifsseq@tempif
+    \IfNoValueTF{#3}{
         \ifsseq@hasdegree\else\sseq@d@error@nodegree\fi
         \sseq@eval{\edef\@nx\sseq@xycoord{\@nx\sseq@differential@gettarget{#1}{\sseq@xycoord}}}
         \let\sseq@rawindex\sseq@rawtindex
+        \def\sseq@errortype{target of differential}
         \sseq@parsecoord@index
         \let\targetcoord\sseq@xycoord
         \edef\target{(\sseq@xycoord,\sseq@index)}%
         \edef\targetname{(\sseq@xycoord\ifx\sseq@rawindex\pgfutil@empty\else,\sseq@rawindex\fi)}
-    \else
+    }{
         \ifx\sseq@rawtindex\pgfutil@empty\else
-            \sseq@error{TODO: fill me in}
+            \sseq@error{You provided both a target index and a target coordinate, but this overdetermines the differential}
         \fi
-        \sseq@parsecoord\target{#3}{}
+        \sseq@parsecoord\target{#3}{differential}
         \let\targetcoord\target@partial
         \ifsseq@hasdegree
             \ifsseq@strictdegree
@@ -1058,41 +1064,7 @@
                 \fi
             \fi
         \fi
-    \fi
-
-%
-    \sseq@ifundefcoord\source{%
-        \sseq@error{%
-            Source \sourcename\space of differential '\sseq@thiscall' can't support
-            a differential because a class in that position never existed% TODO: make separate out of bounds index error message
-        }{}%
-    }{}%
-%
-    \sseq@ifundefcoord\target{%
-        \sseq@error{%
-            Target \targetname\space of differential '\sseq@thiscall' can't accept
-            a differential because a class in that position never existed%
-        }{}%
-    }{}%
-%
-    \ifnum\sseq@obj{partcoord.(\sourcecoord).numnodes}=\@ne\else
-        \ifx\xindex\pgfutil@empty
-            \sseq@error{%
-                There are multiple nodes at source coordinate (\sourcecoord) so instead of '\sseq@thiscall' you should say
-                '\sseq@thiscall@command\unexpanded\@xp{\sseq@thiscall@options}\sseq@thiscall@page(#2,n\ifx\yindex\pgfutil@empty\else,\yindex\fi)' where n specifies which of the
-                \sseq@obj{partcoord.(\sourcecoord).numnodes} nodes at (\sourcecoord) should be the source%
-            }%
-        \fi
-    \fi
-    \ifnum\sseq@obj{partcoord.(\targetcoord).numnodes}=\@ne\else
-        \ifx\yindex\pgfutil@empty
-            \sseq@error{%
-                There are multiple nodes at target coordinate (\targetcoord) so instead of '\sseq@thiscall' you should say
-                '\sseq@thiscall@command\unexpanded\@xp{\sseq@thiscall@options}\sseq@thiscall@page(#2,\xindex,n)' where n specifies which of the
-                \sseq@obj{partcoord.(\targetcoord).numnodes} nodes at (\targetcoord) should be the target%
-            }%
-        \fi
-    \fi
+    }
 }
 
 \def\sseq@differential@gettarget#1#2{\sseq@differential@gettarget@{#1}#2\sseq@nil}
@@ -1129,9 +1101,9 @@
 \def\sseq@parsecoordex@#1(#2){\sseq@parsecoordex@@#1#2,\@nil}
 \def\sseq@parsecoordex@@#1#2,#3,#4\@nil{
     \ifx&#4&
-        \exp_last_unbraced:NNo#1(\the\numexpr#2\@xp,\the\numexpr#3,1)
+        \exp_last_unbraced:NNo\sseq@parsecoord@indexex#1(\the\numexpr#2\@xp,\the\numexpr#3,1)
     \else
-        \exp_args:NNoo\sseq@parsecoordex@@@#1{\the\numexpr#2\@xp,\the\numexpr#3}{\sseq@removecomma#4\sseq@nil}
+        \exp_args:NNo\sseq@parsecoord@indexex#1{\the\numexpr#2\@xp,\the\numexpr#3\@xp\relax\@xp}\@xp{\sseq@removecomma#4\sseq@nil}
     \fi
 }
 
@@ -1921,12 +1893,49 @@
       \def\pgf@marshal{\pgfkeysvalueof{/errors/value required/.@cmd}}%
     \fi%
     \let\pgfkeyscurrentname\pgfkeyscurrentkey
-    \@xp\sseq@keys@try@addtooptions\@xp{\sseq@temp}{}{\sseq@keys@unknown}
+    \@xp\sseq@keys@try@addtooptions\@xp{\sseq@temp}{}{\sseq@addstylecodetooptions@unknown}
   \fi
+}
+\let\sseq@addstylecodetooptions@unknown\sseq@keys@unknown
+
+\def\sseq@sseqstyle@globalpart{}
+
+
+\newtoks\sseq@sseqstyle
+\newtoks\sseq@sseqstyle@page
+\def\sseq@thesseqstyle{\the\sseq@sseqstyle\the\sseq@sseqstyle@page}
+\sseq@set@newstyle{
+    sseqs/.code={%
+        \let\sseq@savedoptioncode@store\sseq@savedoptioncode
+        \let\sseq@savedoptioncode\sseq@sseqstyle@globalpart
+        \def\sseq@addstylecodetooptions@unknown{%
+            \let\sseq@sseqstyle@globalpart\sseq@savedoptioncode
+            \edef\sseq@savedoptioncode{\the\sseq@sseqstyle}
+            \sseq@keys@unknown
+            \sseq@sseqstyle\@xp{\sseq@savedoptioncode}
+            \let\sseq@savedoptioncode\sseq@sseqstyle@globalpart
+        }
+        \sseq@addstylecodetooptions{/sseqpages/global}{#1}
+        \let\sseq@sseqstyle@globalpart\sseq@savedoptioncode
+        \ifx\sseqset\sseqset@inprogress
+            \sseq@savedpaths@xadd{\sseq@sseqstyle{\the\sseq@sseqstyle}}
+        \fi
+        \let\sseq@addstylecodetooptions@unknown\sseq@keys@unknown
+        \let\sseq@savedoptioncode\sseq@savedoptioncode@store
+    },%
+    change sseqs/.code={%
+        \ifsseq@ispageenv\else\sseq@error{It's pointless to use 'change sseqs' in the sseqdata environment. Try 'sseqs={#1}' instead}\fi
+        \ifsseq@hasname\else\sseq@error{It's pointless to use 'change sseqs' in a standalone sseqpage environment. Try 'sseqs={#1}' instead}\fi
+        \let\sseq@savedoptioncode@store\sseq@savedoptioncode
+        \edef\sseq@savedoptioncode{\the\sseq@sseqstyle@page}
+        \sseq@addstylecodetooptions{\sseq@temppath}{#1}
+        \sseq@sseqstyle@page\@xp{\sseq@savedoptioncode}
+        \let\sseq@savedoptioncode\sseq@savedoptioncode@store
+    }
 }
 
 
-\sseq@newstyles{/sseqpages/global}{sseq}% DON'T make this /global/default! Bad things will happen.
+%\sseq@newstyles{/sseqpages/}{sseq}% DON'T make this /global/default! Bad things will happen.
 \sseq@newstyles{/sseqpages}{edge, label, edge label, differential label, struct line label}
 \sseq@newstyles{/sseqpages/class,/sseqpages}{class, permanent cycle, transient cycle, this page cycle}
 \sseq@newstyles{/sseqpages/differential,/sseqpages}{differential}
@@ -2125,7 +2134,8 @@ copy}}
         \sseq@passoptionto{/sseqpages/global}
     },
     /sseqpages/global/{default} options/.code={},
-    /sseqpages/global/name only/.unknown/.code={}
+    /sseqpages/global/name only/.unknown/.code={},
+    /sseqpages/global/sseqstyle/.unknown/.code={}
 }
 
 \pgfqkeys{/sseqpages/global/name only}{
@@ -2300,9 +2310,8 @@ copy}}
     \fi
 }
 
-% TODO: should I steal more of the axes label code from pgfplots?
 \pgfqkeys{/sseqpages/global}{
-    every title/.sseq style={at={(0.5*\xmin+0.5*\xmax,\ymax+1)}},
+    every title/.sseq style={},
     every axis label/.sseq style={}
 }
 
@@ -2311,7 +2320,7 @@ copy}}
 \sseq@addtostorelist{\sseq@ytickfn}{} % so the default is instated in begin{sseqdata} / begin{sseqpicture}.
 \sseq@globalkeys{%
     title/.sseq store in=\sseq@title{},
-	title style/.sseq append to style={/sseqpages/global/every title}{at={(0.5*\xmin+0.5*\xmax,\ymax+1)}},
+	title style/.sseq append to style={/sseqpages/global/every title}{at={(0.5*\xmin+0.5*\xmax,\ymax)}},
     draw title/.sseq is if=drawtitle,
     no title/.code=\sseq@drawtitlefalse,
 %
@@ -2680,9 +2689,13 @@ copy}}
 %
 %
     class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\the\sseq@scope@toks}},
-    permanent cycle style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thepermanentcyclestyle\the\sseq@scope@toks}},
-    transient cycle style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thetransientcyclestyle\the\sseq@scope@toks}},
+    cycle style/.forward to=/sseqpages/tikz primitives/class style,
+    permanent class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thepermanentcyclestyle\the\sseq@scope@toks}},
+    permanent cycle style/.forward to=/sseqpages/tikz primitives/permanent class style,
+    transient class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thetransientcyclestyle\the\sseq@scope@toks}},
+    transient cycle style/.forward to=/sseqpages/tikz primitives/transient class style,
     this page class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thetransientcyclestyle\sseq@thethispagecyclestyle\the\sseq@scope@toks}},
+    this page cycle style/.forward to=/sseqpages/tikz primitives/this page class style,
     differential style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thedifferentialstyle\the\sseq@scope@toks}},
     struct line style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thestructlinestyle\the\sseq@scope@toks}},
     %this page struct line style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thestructlinestyle\the\sseq@scope@toks}}
@@ -2690,9 +2703,13 @@ copy}}
 
 \pgfqkeys{/sseqpages/fit}{
     class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\the\sseq@scope@toks}},
-    permanent cycle style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thepermanentcyclestyle\the\sseq@scope@toks}},
-    transient cycle style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thetransientcyclestyle\the\sseq@scope@toks}},
+    cycle style/.forward to=/sseqpages/tikz primitives/class style,
+    permanent class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thepermanentcyclestyle\the\sseq@scope@toks}},
+    permanent cycle style/.forward to=/sseqpages/tikz primitives/permanent class style,
+    transient class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thetransientcyclestyle\the\sseq@scope@toks}},
+    transient cycle style/.forward to=/sseqpages/tikz primitives/transient class style,
     this page class style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theclassstyle\sseq@thetransientcyclestyle\sseq@thethispagecyclestyle\the\sseq@scope@toks}},
+    this page cycle style/.forward to=/sseqpages/tikz primitives/this page class style,
     differential style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thedifferentialstyle\the\sseq@scope@toks}},
     struct line style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thestructlinestyle\the\sseq@scope@toks}},
     %this page struct line style/.sseq @ first pass code={\sseq@d@addto@options{\sseq@thesseqstyle\sseq@theedgestyle\sseq@thestructlinestyle\the\sseq@scope@toks}}
@@ -2864,6 +2881,7 @@ copy}}
         every node/.style={}
     }
     \begin{tikzpicture}[/sseqpages/global/{default} options,\ifsseq@hasname/sseqpages/global/{\sseq@thename} options\fi,/sseqpages/global/{this page} options]%
+    \sseq@sseqstyle@globalpart
     \pgftransformreset
     \sseq@globaldetonetransform
     \sseq@globalscaletransform
@@ -2876,7 +2894,10 @@ copy}}
     \ifx\sseq@title\pgfutil@empty
 	\else
         \ifsseq@drawtitle
-            \sseq@eval{\noexpand\node[/sseqpages/global/every title] {\unexpanded\expandafter{\sseq@title}};}
+            \sseq@eval{\unexpanded{\path (0.5*\xmin+0.5*\xmax,\ymax) node[
+                /sseqpages/global/every title,
+                above=\sseq@clip@padding@top+\sseq@yaxis@end@extend+10pt
+            ]} {\unexpanded\expandafter{\sseq@title}};}
         \fi
     \fi
     \ifx\sseq@xaxislabel\pgfutil@empty
@@ -3076,7 +3097,7 @@ copy}}
     \edef\sseq@temp@ii{#1}
     \ifx\sseq@temp@i\sseq@temp@ii
         \sseq@tikzprimitives@ifintcoords{#1}{
-            \sseq@parsecoord\coord{#1}{TODO: what am I}
+            \sseq@parsecoord\coord{#1}{tikz primitive}
             \sseq@obj@ifundef{partcoord.(\coord@partial).numnodes}{\sseq@tikzprimitives@coords@notaclass{#1}}{
                 \sseq@x@addto@macro\sseq@temp{(sseq{\sseq@removeparens\coord})}%\sseq@tempanchor % TODO: Fix anchors
             }
@@ -3120,7 +3141,9 @@ copy}}
     \def\sseq@isaliveprotect{}
     \let\sseq@isalive@\sseq@isalive@active
     \bgroup
+    % OH MY GOD IT WAS SO HARD TO GET \isalive to report errors correctly. And to work in general >_<
     \let\sseq@isalive@parens\sseq@isalive@parens@check
+    \def\sseq@error{\let\protect\relax\sseq@error@}%
     \let\protect\@unexpandable@protect
     \edef\sseq@error@annotation{\unexpanded{.^^J(In page constraint "#1")}\unexpanded\@xp{\sseq@error@annotation}}
     \setbox0=\hbox{#1}
@@ -3158,10 +3181,7 @@ copy}}
 }
 
 \def\sseq@isalive@parens@check(#1){
-    \sseq@parsecoord\coord{#1}{}
-    \sseq@ifundefcoord\coord{
-        \sseq@error{Fewer than \sseq@rawindex\space classes exist in position (\coord@partial) so you can't check whether \coord\space is alive}%
-    }{}
+    \sseq@parsecoord\coord{#1}{\string\isalive}
 }
 \def\sseq@isalive@parens(#1){\sseq@parsecoordex\sseq@isalive@parens@(#1)}
 \def\sseq@isalive@parens@(#1,#2,#3){\@nx\sseq@isalive@final{#1}{#2}{#3}{\sseq@obj{class.(#1,#2,#3).num}}}
@@ -3188,11 +3208,11 @@ copy}}
     \sseq@processoptions{scope}{#1}% outputs into \sseq@savedoptioncode
     \sseq@eval{\@nx\sseq@scope@savedpaths@add{\sseq@scope@toks{\unexpanded\@xp{\sseq@savedoptioncode}\unexpanded\@xp{\tikz@options}}}}%
     %\advance\sseq@scope@savestackid\@ne
-    %\sseq@saveclassstack@name{scope@save\the\sseq@scope@savestackid}
+    %\sseq@savestack@name{scope@save\the\sseq@scope@savestackid}
 }
 \def\sseq@endscope{%
     \sseq@scope@savedpaths@add{\end{scope}}
-    %\sseq@restoreclassstack@name{scope@save\the\sseq@scope@savestackid
+    %\sseq@restorestack@name{scope@save\the\sseq@scope@savestackid
 }
 
 \def\sseq@lastx#1{%
@@ -3209,20 +3229,20 @@ copy}}
         \sseq@lasty@0#1%
     }%
 }
-\def\sseq@lastx@#1{\sseq@obj@ifdef{lastx@#1}{\sseq@obj{lastx@#1}}{\@nx\sseq@error{There are fewer than \the\numexpr#1+1\relax\space coordinates on the stack}}}
-\def\sseq@lasty@#1{\sseq@obj@ifdef{lasty@#1}{\sseq@obj{lasty@#1}}{\@nx\sseq@error{There are fewer than \the\numexpr#1+1\relax\space coordinates on the stack}}}
+\def\sseq@lastx@#1{\sseq@obj@ifdef{lastx@#1}{\sseq@obj{lastx@#1}}{\@nx\@nx\@nx\sseq@error{There are fewer than \the\numexpr#1+1\relax\space coordinates on the stack}}}
+\def\sseq@lasty@#1{\sseq@obj@ifdef{lasty@#1}{\sseq@obj{lasty@#1}}{\@nx\@nx\@nx\sseq@error{There are fewer than \the\numexpr#1+1\relax\space coordinates on the stack}}}
 
-\newcount\sseq@userclassstacksavecount
-\def\sseq@saveclassstack{
-    \advance\sseq@userclassstacksavecount\@ne
-    \sseq@saveclassstack@name{usersave@\the\sseq@userclassstacksavecount}
+\newcount\sseq@userstacksavecount
+\def\sseq@savestack{
+    \advance\sseq@userstacksavecount\@ne
+    \sseq@savestack@name{usersave@\the\sseq@userstacksavecount}
 }
-\def\sseq@restoreclassstack{
-    \sseq@restoreclassstack@name{usersave@\the\sseq@userclassstacksavecount}
-    \advance\sseq@userclassstacksavecount\m@ne
+\def\sseq@restorestack{
+    \sseq@restorestack@name{usersave@\the\sseq@userstacksavecount}
+    \advance\sseq@userstacksavecount\m@ne
 }
 
-\def\sseq@saveclassstack@name#1{
+\def\sseq@savestack@name#1{
     \sseq@tempcount=\z@
     \loop
         \sseq@obj@gletobj{save#1.lastclass\the\sseq@tempcount}{class.namedclass.lastclass\the\numexpr\sseq@tempcount}
@@ -3232,7 +3252,7 @@ copy}}
     \ifnum\sseq@tempcount<\numexpr\sseq@stackdepth+1 \repeat
 }
 
-\def\sseq@restoreclassstack@name#1{
+\def\sseq@restorestack@name#1{
     \sseq@tempcount=\z@
     \loop
         \sseq@obj@gletobj{class.namedclass.lastclass\the\numexpr\sseq@tempcount}{save#1.lastclass\the\sseq@tempcount}
@@ -3243,8 +3263,15 @@ copy}}
 }
 
 
+\def\sseq@pushstack(#1){
+    \bgroup
+    \sseq@parsecoord\temp{#1}{}
+    \sseq@pushstack@\temp
+    \egroup
+}
+\def\sseq@pushstack@{\@xp\sseq@pushstack@@}
 
-\def\sseq@pushclassstack#1#2#3{
+\def\sseq@pushstack@@(#1,#2,#3){
     \ifnum\sseq@stackdepth>\z@
         \sseq@tempcount=\sseq@stackdepth % set by global option
         \loop
@@ -3253,10 +3280,10 @@ copy}}
             \sseq@obj@gletobj{lasty@\the\sseq@tempcount}{lasty@\the\numexpr\sseq@tempcount-1}
             \advance\sseq@tempcount\m@ne
         \ifnum\sseq@tempcount>0\repeat
-        \sseq@obj@xdef{class.namedclass.lastclass}{#1}
-        \sseq@obj@xdef{class.namedclass.lastclass0}{#1}
-        \sseq@obj@xdef{lastx@0}{#2}
-        \sseq@obj@xdef{lasty@0}{#3}
+        \sseq@obj@xdef{class.namedclass.lastclass}{#1,#2,#3}
+        \sseq@obj@xdef{class.namedclass.lastclass0}{#1,#2,#3}
+        \sseq@obj@xdef{lastx@0}{#1}
+        \sseq@obj@xdef{lasty@0}{#2}
     \fi
 }
 
@@ -3315,7 +3342,7 @@ copy}}
     \ifcsname sseq@class@showname\endcsname
         \sseq@eval{\@nx\sseq@handleclassquotes{\sseq@obj{class.\classname.name}}{\sseq@class@showname}}
     \fi
-    \sseq@pushclassstack{\coordnopar}{\xcoord}{\ycoord}
+\sseq@pushstack@\coord
 
 %
     \sseq@obj@gdef{class.\coord.num}{0}% For \replaceclass
@@ -3347,13 +3374,8 @@ copy}}
     \gdef\sseq@classlabelnodes{}%
     \sseq@processoptions{class}{#1}% Outputs result into \sseq@savedoptioncode
 %
-    \sseq@parsecoord\coord{#2}{}%
+    \sseq@parsecoord\coord{#2}{\string\classoptions}%
     \let\partialcoord\coord@partial
-    \sseq@ifundefcoord\coord{%
-        \sseq@error{%
-            Cannot add options to a class \coordname\space because a class in position (\coord@partial) never existed% TODO: make separate out of bounds index error message
-        }{}%
-    }{}
     \ifx\sseq@class@tag\pgfutil@empty\else
         \sseq@obj@ifundef{partcoord.(\partialcoord).tag.\sseq@class@tagprefix\sseq@class@tag}{%
             \ifsseq@keepchanges\else
@@ -3515,7 +3537,7 @@ copy}}
     \IfNoValueF{#1}{%
         \sseq@processoptions{class}{#1}% Outputs result into \sseq@savedoptioncode
     }%
-    \sseq@parsecoord\coord{#2}{}
+    \sseq@parsecoord\coord{#2}{\string\replaceclass}
     \let\partialcoord\coord@partial
     \ifx\sseq@class@tag\pgfutil@empty\else
         \sseq@obj@ifundef{partcoord.(\partialcoord).tag.\sseq@class@tagprefix\sseq@class@tag}{%
@@ -3548,7 +3570,7 @@ copy}}
         \sseq@obj@ifundef{partialcoord.(\partialcoord).tag.\sseq@class@tagprefix\sseq@class@tag}{%
             \sseq@obj@xdef{partialcoord.(\partialcoord).tag.\sseq@class@tagprefix\sseq@class@tag}{\nodenum}%
         }{%
-            \sseq@error{Tag already defined}% TODO improve this error?
+            \sseq@error{Tag '\sseq@classtagprefix\sseq@class@tag' is already defined in position (\partialcoord)}%
         }%
     \fi
     \edef\classname{class.\coord[\sseq@obj{class.\coord.num}]}
@@ -3979,8 +4001,8 @@ copy}}
     \IfNoValueF{#1}{
         \sseq@processoptions{fit}{#1}
     }
-    \sseq@parsecoord\coorda{#2}{TODO: what am I}
-    \sseq@parsecoord\coordb{#3}{TODO: what am I}
+    \sseq@parsecoord\coorda{#2}{first \@nx\circleclass class}
+    \sseq@parsecoord\coordb{#3}{second \@nx\circleclass class}
     \sseq@ifundefcoord\coorda{\sseq@error{Cannot add a ellipse around \coordaname\space because such a class does not exist}}{}
     \sseq@ifundefcoord\coordb{\sseq@error{Cannot add a ellipse around \coordbname\space because such a class does not exist}}{}
 %
